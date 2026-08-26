@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RecordStickyHeader } from '@/components/records/record-sticky-header';
-import { RecordSubTabs } from '@/components/records/record-sub-tabs';
+import { RecordSubTabs, RECORD_TAB_TRIGGER_CLASS } from '@/components/records/record-sub-tabs';
 import { DoctorsNotesTab } from '@/components/records/doctors-notes-tab';
 import { ConsentModal } from '@/components/records/consent-modal';
 import {
@@ -1017,160 +1017,178 @@ export default function NewClinicalNotePage() {
           </TabsContent>
 
           {/* ─── TAB 3: Referral ─── */}
-          <TabsContent value="referral" className="mt-4 space-y-4 print:hidden">
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-sm text-muted-foreground">
-                  <strong>{patientName}</strong> · {patientAge} · {formatDate(new Date())}
-                </p>
-              </CardContent>
-            </Card>
+          <TabsContent value="referral" className="mt-4 print:hidden">
+            <Tabs defaultValue="referral" className="space-y-4">
+              <TabsList className="grid h-auto w-full max-w-md grid-cols-2 gap-1 bg-muted/60 p-1">
+                <TabsTrigger value="referral" className={RECORD_TAB_TRIGGER_CLASS}>
+                  Referral
+                </TabsTrigger>
+                <TabsTrigger value="other-letters" className={RECORD_TAB_TRIGGER_CLASS}>
+                  Others Letter
+                </TabsTrigger>
+              </TabsList>
 
-            {/* A. Referral Details */}
-            <SectionCard title="A. Referral Details" icon={<ArrowRightLeft className="h-4 w-4" />}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label className="text-sm">Referred To (Doctor Name)</Label>
-                  <Input
-                    value={referral.referred_to}
-                    onChange={(e) => { setReferral({ ...referral, referred_to: e.target.value }); markChanged(); }}
-                    placeholder="e.g., Dr. Jane Smith"
+              <TabsContent value="referral" className="mt-0 space-y-4">
+                {/* A. Referral Details */}
+                <SectionCard title="A. Referral Details" icon={<ArrowRightLeft className="h-4 w-4" />}>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label className="text-sm">Referred To (Doctor Name)</Label>
+                      <Input
+                        value={referral.referred_to}
+                        onChange={(e) => { setReferral({ ...referral, referred_to: e.target.value }); markChanged(); }}
+                        placeholder="e.g., Dr. Jane Smith"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-sm">Specialty</Label>
+                      <Select
+                        value={referral.specialty}
+                        onValueChange={(v) => { setReferral({ ...referral, specialty: v }); markChanged(); }}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select specialty..." /></SelectTrigger>
+                        <SelectContent>
+                          {SPECIALTIES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-sm">Institution</Label>
+                      <Input
+                        value={referral.institution}
+                        onChange={(e) => { setReferral({ ...referral, institution: e.target.value }); markChanged(); }}
+                        placeholder="e.g., Life Healthcare, Netcare"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-sm">Contact (Phone/Fax/Email)</Label>
+                      <Input
+                        value={referral.contact}
+                        onChange={(e) => { setReferral({ ...referral, contact: e.target.value }); markChanged(); }}
+                        placeholder="e.g., 011 123 4567"
+                      />
+                    </div>
+                  </div>
+                </SectionCard>
+
+                {/* B. Urgency */}
+                <SectionCard title="B. Urgency Level" icon={<AlertTriangle className="h-4 w-4" />}>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {URGENCY_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => { setReferral({ ...referral, urgency: opt.value }); markChanged(); }}
+                        className={cn(
+                          'rounded-lg border p-3 text-center transition-all',
+                          referral.urgency === opt.value
+                            ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                            : 'hover:border-primary/40'
+                        )}
+                      >
+                        <p className="text-sm font-semibold text-foreground">{opt.label}</p>
+                        <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </SectionCard>
+
+                {/* C. Referral letter composer */}
+                <SectionCard title="C. Referral Letter" icon={<FileText className="h-4 w-4" />}>
+                  <ReferralLetterComposer
+                    reason={referral.reason}
+                    letter={referral.clinical_summary}
+                    onReasonChange={(value) => {
+                      setReferral({ ...referral, reason: value });
+                      markChanged();
+                    }}
+                    onLetterChange={(value) => {
+                      setReferral({ ...referral, clinical_summary: value, specific_questions: '' });
+                      markChanged();
+                    }}
+                    patientId={patient.id}
+                    patientDisplayName={patientName}
+                    ageOrDobHint={
+                      patient.date_of_birth
+                        ? `Date of Birth: ${formatDate(patient.date_of_birth)} (${patientAge})`
+                        : patientAge
+                    }
+                    gender={patient?.gender || null}
+                    referringDoctor={{
+                      fullName: doctorName,
+                      practiceName: doctor?.practice_name || undefined,
+                      specialization: doctor?.specialization || undefined,
+                      phone: doctor?.profile?.phone || undefined,
+                      email: doctor?.profile?.email || undefined,
+                      hpcsa: doctor?.hpcsa_registration_number || undefined,
+                    }}
+                    patientContext={{
+                      displayName: patientName,
+                      dateOfBirthOrAge: patient.date_of_birth
+                        ? `Date of Birth: ${formatDate(patient.date_of_birth)} (${patientAge})`
+                        : patientAge,
+                      gender: patient.gender || null,
+                      phone: patient.profile?.phone || null,
+                      email: patient.profile?.email || null,
+                      addressLine: [patient.address, patient.city, patient.province]
+                        .filter(Boolean)
+                        .join(', ') || null,
+                      allergies: patient.allergies || null,
+                      medicalHistory: patient.medical_history || null,
+                    }}
+                    clinical={{
+                      chief_complaint: clinical.chief_complaint,
+                      history_present_illness: clinical.history_present_illness,
+                      assessment: clinical.assessment,
+                      plan: clinical.plan,
+                      primary_diagnosis: clinical.primary_diagnosis,
+                      physical_exam_notes: clinical.physical_exam_notes,
+                      severity: clinical.severity,
+                      general_appearance: clinical.general_appearance,
+                      differential_diagnoses: clinical.differential_diagnoses,
+                      vitals_summary: formatVitalsSummary(clinical.vitals),
+                      positive_ros_summary: formatPositiveRosSummary(clinical.review_of_systems),
+                      medications_summary: medications
+                        .filter((m) => m.drug_name.trim())
+                        .map((m) => `${m.drug_name} ${m.strength} ${m.frequency}`.trim())
+                        .join('\n'),
+                    }}
+                    referralMeta={{
+                      referred_to: referral.referred_to,
+                      specialty: referral.specialty,
+                      institution: referral.institution,
+                      contact: referral.contact,
+                      reason: referral.reason,
+                      urgency: referral.urgency,
+                      specific_questions: referral.specific_questions,
+                    }}
                   />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm">Specialty</Label>
-                  <Select
-                    value={referral.specialty}
-                    onValueChange={(v) => { setReferral({ ...referral, specialty: v }); markChanged(); }}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Select specialty..." /></SelectTrigger>
-                    <SelectContent>
-                      {SPECIALTIES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm">Institution</Label>
-                  <Input
-                    value={referral.institution}
-                    onChange={(e) => { setReferral({ ...referral, institution: e.target.value }); markChanged(); }}
-                    placeholder="e.g., Life Healthcare, Netcare"
+                </SectionCard>
+              </TabsContent>
+
+              <TabsContent value="other-letters" className="mt-0">
+                <SectionCard title="D. Clinical letters (session draft)" icon={<FileText className="h-4 w-4" />}>
+                  <ClinicalLetterComposer
+                    patientId={patient.id}
+                    patientDisplayName={patientName}
+                    doctorDisplayName={doctorName}
+                    practiceName={doctor?.practice_name || null}
+                    consultationDate={new Date().toISOString().slice(0, 10)}
+                    diagnosisText={clinical.primary_diagnosis || null}
                   />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm">Contact (Phone/Fax/Email)</Label>
-                  <Input
-                    value={referral.contact}
-                    onChange={(e) => { setReferral({ ...referral, contact: e.target.value }); markChanged(); }}
-                    placeholder="e.g., 011 123 4567"
-                  />
-                </div>
-              </div>
-            </SectionCard>
+                </SectionCard>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
 
-            {/* B. Urgency */}
-            <SectionCard title="B. Urgency Level" icon={<AlertTriangle className="h-4 w-4" />}>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {URGENCY_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => { setReferral({ ...referral, urgency: opt.value }); markChanged(); }}
-                    className={cn(
-                      'rounded-lg border p-3 text-center transition-all',
-                      referral.urgency === opt.value
-                        ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                        : 'hover:border-primary/40'
-                    )}
-                  >
-                    <p className="text-sm font-semibold text-foreground">{opt.label}</p>
-                    <p className="text-xs text-muted-foreground">{opt.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </SectionCard>
-
-            {/* C. Referral letter composer */}
-            <SectionCard title="C. Referral Letter" icon={<FileText className="h-4 w-4" />}>
-              <ReferralLetterComposer
-                reason={referral.reason}
-                letter={referral.clinical_summary}
-                onReasonChange={(value) => {
-                  setReferral({ ...referral, reason: value });
-                  markChanged();
-                }}
-                onLetterChange={(value) => {
-                  setReferral({ ...referral, clinical_summary: value, specific_questions: '' });
-                  markChanged();
-                }}
-                patientId={patient.id}
-                patientDisplayName={patientName}
-                ageOrDobHint={
-                  patient.date_of_birth
-                    ? `Date of Birth: ${formatDate(patient.date_of_birth)} (${patientAge})`
-                    : patientAge
-                }
-                gender={patient?.gender || null}
-                referringDoctor={{
-                  fullName: doctorName,
-                  practiceName: doctor?.practice_name || undefined,
-                  specialization: doctor?.specialization || undefined,
-                  phone: doctor?.profile?.phone || undefined,
-                  email: doctor?.profile?.email || undefined,
-                  hpcsa: doctor?.hpcsa_registration_number || undefined,
-                }}
-                patientContext={{
-                  displayName: patientName,
-                  dateOfBirthOrAge: patient.date_of_birth
-                    ? `Date of Birth: ${formatDate(patient.date_of_birth)} (${patientAge})`
-                    : patientAge,
-                  gender: patient.gender || null,
-                  phone: patient.profile?.phone || null,
-                  email: patient.profile?.email || null,
-                  addressLine: [patient.address, patient.city, patient.province]
-                    .filter(Boolean)
-                    .join(', ') || null,
-                  allergies: patient.allergies || null,
-                  medicalHistory: patient.medical_history || null,
-                }}
-                clinical={{
-                  chief_complaint: clinical.chief_complaint,
-                  history_present_illness: clinical.history_present_illness,
-                  assessment: clinical.assessment,
-                  plan: clinical.plan,
-                  primary_diagnosis: clinical.primary_diagnosis,
-                  physical_exam_notes: clinical.physical_exam_notes,
-                  severity: clinical.severity,
-                  general_appearance: clinical.general_appearance,
-                  differential_diagnoses: clinical.differential_diagnoses,
-                  vitals_summary: formatVitalsSummary(clinical.vitals),
-                  positive_ros_summary: formatPositiveRosSummary(clinical.review_of_systems),
-                  medications_summary: medications
-                    .filter((m) => m.drug_name.trim())
-                    .map((m) => `${m.drug_name} ${m.strength} ${m.frequency}`.trim())
-                    .join('\n'),
-                }}
-                referralMeta={{
-                  referred_to: referral.referred_to,
-                  specialty: referral.specialty,
-                  institution: referral.institution,
-                  contact: referral.contact,
-                  reason: referral.reason,
-                  urgency: referral.urgency,
-                  specific_questions: referral.specific_questions,
-                }}
-              />
-            </SectionCard>
-
-            <SectionCard title="D. Clinical letters (session draft)" icon={<FileText className="h-4 w-4" />}>
-              <ClinicalLetterComposer
-                patientId={patient.id}
-                patientDisplayName={patientName}
-                doctorDisplayName={doctorName}
-                practiceName={doctor?.practice_name || null}
-                consultationDate={new Date().toISOString().slice(0, 10)}
-                diagnosisText={clinical.primary_diagnosis || null}
-              />
-            </SectionCard>
+          <TabsContent value="notes" className="mt-4 print:hidden">
+            <DoctorsNotesTab
+              notes={privateNotes}
+              doctorName={doctorName}
+              onChange={(notes) => {
+                setPrivateNotes(notes);
+                markChanged();
+              }}
+            />
           </TabsContent>
         </Tabs>
       </div>

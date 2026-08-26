@@ -7,17 +7,11 @@ import type {
 
 export type PatientFolderSection =
   | 'overview'
-  | 'timeline'
-  | 'consultations'
-  | 'prescriptions'
-  | 'referrals';
+  | 'consultations';
 
 export const PATIENT_FOLDER_SECTIONS: { id: PatientFolderSection; label: string }[] = [
   { id: 'overview', label: 'Overview' },
-  { id: 'timeline', label: 'Timeline' },
   { id: 'consultations', label: 'Consultations' },
-  { id: 'prescriptions', label: 'Prescriptions' },
-  { id: 'referrals', label: 'Referrals' },
 ];
 
 export type ClinicalTimelineKind =
@@ -308,6 +302,10 @@ export function buildPatientFacingTimeline(records: MedicalRecord[]): ClinicalTi
 }
 
 export function parseFolderSection(value: string | null): PatientFolderSection {
+  // Legacy sections redirected to Overview.
+  if (value === 'timeline' || value === 'prescriptions' || value === 'referrals') {
+    return 'overview';
+  }
   const allowed = PATIENT_FOLDER_SECTIONS.map((s) => s.id);
   if (value && (allowed as string[]).includes(value)) return value as PatientFolderSection;
   return 'overview';

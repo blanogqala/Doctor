@@ -35,16 +35,13 @@ import {
   buildClinicalTimeline,
   buildConsultationTree,
   buildPatientFolderOverview,
-  doctorDisplayName,
-  flattenPrescriptions,
-  flattenReferrals,
   parseFolderSection,
   recordComplaintSummary,
   type ClinicalTimelineEvent,
   type PatientFolderSection,
 } from '@/lib/clinical/patient-folder';
 import type { Appointment, Doctor, MedicalRecord, Patient } from '@/lib/types';
-import { Calendar, FileText, Folder, Pill, Search, ArrowRightLeft } from 'lucide-react';
+import { Calendar, FileText, Folder, Search } from 'lucide-react';
 
 export default function DoctorRecordsPage() {
   const { user } = useAuth();
@@ -160,13 +157,6 @@ export default function DoctorRecordsPage() {
       }),
     [patientRecords, appointments, selectedPatientId]
   );
-
-  const prescriptions = useMemo(
-    () => flattenPrescriptions(patientRecords),
-    [patientRecords]
-  );
-
-  const referrals = useMemo(() => flattenReferrals(patientRecords), [patientRecords]);
 
   const filteredConsultations = useMemo(() => {
     return consultationTree.filter(({ parent, followUps }) => {
@@ -336,39 +326,28 @@ export default function DoctorRecordsPage() {
                     </Section>
                   )}
 
-                  {overview.latestPrescription && (
-                    <Section title="Latest prescription">
-                      <ClinicalSummary>
-                        <p className="font-medium">
-                          {overview.latestPrescription.drug_name}{' '}
-                          {overview.latestPrescription.dosage}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {overview.latestPrescription.frequency}
-                          {overview.latestPrescription.duration
-                            ? ` · ${overview.latestPrescription.duration}`
-                            : ''}{' '}
-                          · {formatDate(overview.latestPrescription.created_at)}
-                        </p>
-                      </ClinicalSummary>
-                    </Section>
-                  )}
+                  <Section title="Clinical timeline">
+                    <div className="max-h-[28rem] overflow-y-auto overscroll-contain rounded-xl border border-primary/40 bg-primary-soft/50 p-3 scrollbar-thin sm:max-h-[32rem] sm:p-4">
+                      <ClinicalTimeline
+                        events={timeline}
+                        onOpen={onTimelineOpen}
+                        className="divide-border/60"
+                        empty={
+                          <div className="flex flex-col items-center gap-2 py-10 text-center">
+                            <Calendar className="h-8 w-8 text-muted-foreground" aria-hidden />
+                            <p className="text-sm font-medium text-foreground">
+                              No timeline events yet
+                            </p>
+                            <p className="max-w-sm text-xs text-muted-foreground">
+                              Consultations and appointments will appear here.
+                            </p>
+                          </div>
+                        }
+                      />
+                    </div>
+                  </Section>
                 </>
               )}
-            </TabsContent>
-
-            <TabsContent value="timeline" className="mt-4">
-              <ClinicalTimeline
-                events={timeline}
-                onOpen={onTimelineOpen}
-                empty={
-                  <EmptyState
-                    icon={<Calendar className="h-10 w-10" />}
-                    title="No timeline events yet"
-                    description="Consultations, prescriptions, referrals, and appointments will appear here."
-                  />
-                }
-              />
             </TabsContent>
 
             <TabsContent value="consultations" className="mt-4 space-y-4">
@@ -410,75 +389,6 @@ export default function DoctorRecordsPage() {
                     </div>
                   ))}
                 </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="prescriptions" className="mt-4 space-y-3">
-              {prescriptions.length === 0 ? (
-                <EmptyState
-                  icon={<Pill className="h-10 w-10" />}
-                  title="No prescriptions yet"
-                  description="Prescriptions added during consultations will appear here."
-                />
-              ) : (
-                prescriptions.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className="w-full rounded-lg border border-primary/50 bg-primary/5 p-4 text-left shadow-sm transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={() => openRecord(p.medical_record_id)}
-                  >
-                    <p className="font-semibold text-foreground">
-                      {p.drug_name} {p.strength ?? p.dosage}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {p.frequency}
-                      {p.duration ? ` · ${p.duration}` : ''}
-                      {p.is_prn ? ' · PRN' : ''}
-                    </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {formatDate(p.created_at)}
-                      {p.doctor_name ? ` · ${doctorDisplayName(p.doctor_name)}` : ''}
-                    </p>
-                  </button>
-                ))
-              )}
-            </TabsContent>
-
-            <TabsContent value="referrals" className="mt-4 space-y-3">
-              {referrals.length === 0 ? (
-                <EmptyState
-                  icon={<ArrowRightLeft className="h-10 w-10" />}
-                  title="No referrals yet"
-                  description="Referrals created during consultations will appear here."
-                />
-              ) : (
-                referrals.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    className="w-full rounded-lg border border-primary/50 bg-primary/5 p-4 text-left shadow-sm transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={() =>
-                      r.medical_record_id ? openRecord(r.medical_record_id) : undefined
-                    }
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-foreground">
-                        {r.specialty || r.referred_to}
-                      </p>
-                      <StatusBadge
-                        tone={r.urgency === 'URGENT' ? 'danger' : 'info'}
-                        label={r.urgency.toLowerCase()}
-                      />
-                      <StatusBadge tone="neutral" label={r.status} className="normal-case" />
-                    </div>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.reason}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {formatDate(r.created_at)}
-                      {r.doctor_name ? ` · ${doctorDisplayName(r.doctor_name)}` : ''}
-                    </p>
-                  </button>
-                ))
               )}
             </TabsContent>
           </Tabs>

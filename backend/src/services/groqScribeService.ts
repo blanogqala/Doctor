@@ -5,7 +5,11 @@ import { groqFetch } from './groqClient';
 
 const GROQ_BASE = 'https://api.groq.com/openai/v1';
 const WHISPER_MODEL = 'whisper-large-v3';
-const LLM_MODEL = 'llama-3.3-70b-versatile';
+
+/** Resolved at call time so GROQ_SCRIBE_MODEL env default/overrides apply. */
+export function resolveScribeLlmModel(): string {
+  return env.GROQ_SCRIBE_MODEL;
+}
 
 const ROS_KEYS = [
   'Constitutional',
@@ -306,7 +310,7 @@ async function extractSoapFromTranscript(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: LLM_MODEL,
+      model: resolveScribeLlmModel(),
       temperature: 0.1,
       response_format: { type: 'json_object' },
       messages: [
@@ -320,14 +324,8 @@ async function extractSoapFromTranscript(
   });
 
   if (!res.ok) {
-    let detail = 'Clinical extraction failed';
-    try {
-      const body = (await res.json()) as { error?: { message?: string } };
-      detail = body.error?.message || detail;
-    } catch {
-      // ignore
-    }
-    throw new AppError(502, detail);
+    // Do not surface raw provider model-ID errors to callers / UI warnings.
+    throw new AppError(502, 'Clinical extraction failed');
   }
 
   const data = (await res.json()) as {
@@ -372,11 +370,9 @@ export async function runConsultationScribe(params: {
     suggestions = extracted.suggestions;
     confidenceScores = extracted.confidenceScores;
     warnings = extracted.warnings;
-  } catch (err) {
+  } catch {
     warnings.push(
-      err instanceof AppError
-        ? `SOAP extraction incomplete: ${err.message}. Transcript is available for manual entry.`
-        : 'SOAP extraction incomplete. Transcript is available for manual entry.'
+      'SOAP extraction incomplete. Transcript is available for manual entry.'
     );
   }
 
@@ -401,8 +397,13 @@ export async function runConsultationScribe(params: {
     confidenceScores,
     warnings,
     processingTimeMs: Date.now() - started,
-    models: { asr: WHISPER_MODEL, llm: LLM_MODEL },
+    models: { asr: WHISPER_MODEL, llm: resolveScribeLlmModel() },
   };
 }
 
-export const SCRIBE_MODELS = { asr: WHISPER_MODEL, llm: LLM_MODEL };
+export const SCRIBE_MODELS = {
+  asr: WHISPER_MODEL,
+  get llm() {
+    return resolveScribeLlmModel();
+  },
+};

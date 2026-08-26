@@ -76,10 +76,34 @@ export const scribeExtractionSchema = z
 
 export type ScribeExtractionRaw = z.infer<typeof scribeExtractionSchema>;
 
+/** Strip optional markdown fences / leading commentary before JSON.parse. */
+export function stripJsonPayload(content: string): string {
+  let s = content.trim();
+  const fenced = /^```(?:json|JSON)?\s*\r?\n?([\s\S]*?)\r?\n?```\s*$/;
+  const m = s.match(fenced);
+  if (m) {
+    s = m[1].trim();
+  } else if (s.startsWith('```')) {
+    s = s
+      .replace(/^```(?:json|JSON)?\s*\r?\n?/, '')
+      .replace(/\r?\n?```\s*$/, '')
+      .trim();
+  }
+  // If model added preamble, take the outermost JSON object when present.
+  if (!s.startsWith('{') && !s.startsWith('[')) {
+    const start = s.indexOf('{');
+    const end = s.lastIndexOf('}');
+    if (start !== -1 && end > start) {
+      s = s.slice(start, end + 1);
+    }
+  }
+  return s;
+}
+
 export function parseScribeExtractionJson(content: string): ScribeExtractionRaw {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(content);
+    parsed = JSON.parse(stripJsonPayload(content));
   } catch {
     throw new Error('INVALID_JSON');
   }

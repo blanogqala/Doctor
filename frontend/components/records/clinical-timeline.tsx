@@ -32,7 +32,7 @@ export function ClinicalTimelineItem({
   const interactive = Boolean(event.href || onOpen);
   const content = (
     <>
-      <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground">
+      <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary-soft text-primary">
         {kindIcon[event.kind]}
       </div>
       <div className="min-w-0 flex-1">

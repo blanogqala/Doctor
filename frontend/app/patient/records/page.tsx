@@ -22,8 +22,6 @@ import {
   buildConsultationTree,
   buildPatientFacingTimeline,
   doctorDisplayName,
-  flattenPrescriptions,
-  flattenReferrals,
   recordComplaintSummary,
   type ClinicalTimelineEvent,
 } from '@/lib/clinical/patient-folder';
@@ -31,15 +29,10 @@ import type { MedicalRecord } from '@/lib/types';
 import {
   Download,
   FileText,
-  Pill,
-  ShieldCheck,
-  ArrowRightLeft,
 } from 'lucide-react';
 
 const PATIENT_RECORD_SECTIONS = [
   { id: 'consultations', label: 'Consultations' },
-  { id: 'prescriptions', label: 'Prescriptions' },
-  { id: 'referrals', label: 'Referrals' },
   { id: 'timeline', label: 'Timeline' },
 ] as const;
 
@@ -73,8 +66,6 @@ export default function PatientRecordsPage() {
 
   const consultationTree = useMemo(() => buildConsultationTree(records), [records]);
   const timeline = useMemo(() => buildPatientFacingTimeline(records), [records]);
-  const prescriptions = useMemo(() => flattenPrescriptions(records), [records]);
-  const referrals = useMemo(() => flattenReferrals(records), [records]);
 
   const openRecord = (id: string) => {
     router.push(`/patient/records/view/${id}`);
@@ -116,7 +107,7 @@ export default function PatientRecordsPage() {
       <AppPage>
         <PageHeader
           title="My Medical Records"
-          description="Your consultations, prescriptions, and referrals in one place."
+          description="Your consultations and clinical timeline in one place."
           actions={
             <Button
               variant="outline"
@@ -230,64 +221,6 @@ export default function PatientRecordsPage() {
                   />
                 }
               />
-            </TabsContent>
-
-
-            <TabsContent value="prescriptions" className="mt-4 space-y-3">
-              {prescriptions.length === 0 ? (
-                <EmptyState
-                  icon={<Pill className="h-10 w-10" />}
-                  title="No prescriptions available"
-                  description="Prescriptions from your consultations will appear here."
-                />
-              ) : (
-                prescriptions.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => openRecord(p.medical_record_id)}
-                    className="w-full rounded-lg border border-border bg-card p-4 text-left shadow-sm hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <p className="font-semibold">
-                      {p.drug_name} {p.dosage}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {p.frequency}
-                      {p.duration ? ` · ${p.duration}` : ''}
-                    </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {formatDate(p.created_at)} · View
-                    </p>
-                  </button>
-                ))
-              )}
-            </TabsContent>
-
-            <TabsContent value="referrals" className="mt-4 space-y-3">
-              {referrals.length === 0 ? (
-                <EmptyState
-                  icon={<ArrowRightLeft className="h-10 w-10" />}
-                  title="No referrals available"
-                  description="Referrals from your consultations will appear here."
-                />
-              ) : (
-                referrals.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() =>
-                      r.medical_record_id ? openRecord(r.medical_record_id) : undefined
-                    }
-                    className="w-full rounded-lg border border-border bg-card p-4 text-left shadow-sm hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <p className="font-semibold">{r.specialty || r.referred_to}</p>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.reason}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {formatDate(r.created_at)} · View
-                    </p>
-                  </button>
-                ))
-              )}
             </TabsContent>
           </Tabs>
           

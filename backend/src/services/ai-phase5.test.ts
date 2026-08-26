@@ -1,9 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import { parseScribeExtractionJson } from '../services/scribeExtractionSchema';
-import { normalizeExtraction } from '../services/groqScribeService';
+import {
+  normalizeExtraction,
+  resolveScribeLlmModel,
+  SCRIBE_MODELS,
+} from '../services/groqScribeService';
 import { mergeAiSuggestions } from '../services/aiMerge';
 import { canAiWriteField } from '../services/aiProvenance';
 import { REFERRAL_URGENCY_VALUES } from '../validation/schemas';
+
+describe('scribe LLM model configuration', () => {
+  it('uses openai/gpt-oss-120b by default for structured extraction', () => {
+    expect(resolveScribeLlmModel()).toBe('openai/gpt-oss-120b');
+    expect(SCRIBE_MODELS.llm).toBe('openai/gpt-oss-120b');
+  });
+
+  it('does not use deprecated llama-3.3-70b-versatile for extraction', () => {
+    expect(resolveScribeLlmModel()).not.toBe('llama-3.3-70b-versatile');
+    expect(SCRIBE_MODELS.llm).not.toBe('llama-3.3-70b-versatile');
+  });
+
+  it('keeps Whisper ASR model unchanged', () => {
+    expect(SCRIBE_MODELS.asr).toBe('whisper-large-v3');
+  });
+});
 
 describe('scribe extraction Zod validation', () => {
   it('accepts valid structured output', () => {
@@ -20,6 +40,26 @@ describe('scribe extraction Zod validation', () => {
     expect(suggestions.chief_complaint).toBe('Sore throat');
     expect(suggestions.vitals?.hr).toBe('72');
     expect(suggestions.vitals?.temp).toBeUndefined();
+  });
+
+  it('maps assessment and plan to existing SOAP fields', () => {
+    const raw = parseScribeExtractionJson(
+      JSON.stringify({
+        assessment: 'Likely viral pharyngitis',
+        plan: 'Supportive care; return if worsening',
+      })
+    );
+    const { suggestions } = normalizeExtraction(raw as Record<string, unknown>);
+    expect(suggestions.assessment).toBe('Likely viral pharyngitis');
+    expect(suggestions.plan).toBe('Supportive care; return if worsening');
+  });
+
+  it('parses markdown-fenced JSON without relaxing schema', () => {
+    const fenced = '```json\n{"chief_complaint":"Headache","severity":"MILD"}\n```';
+    const raw = parseScribeExtractionJson(fenced);
+    const { suggestions } = normalizeExtraction(raw as Record<string, unknown>);
+    expect(suggestions.chief_complaint).toBe('Headache');
+    expect(suggestions.severity).toBe('MILD');
   });
 
   it('rejects malformed JSON', () => {

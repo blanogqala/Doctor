@@ -56,8 +56,7 @@ export function RecordSubTabs({
       </TabsTrigger>
       <TabsTrigger value="referral" className={RECORD_TAB_TRIGGER_CLASS}>
         <ArrowRightLeft className="h-4 w-4" />
-        <span className="hidden sm:inline">Referral</span>
-        <span className="sm:hidden">Refer</span>
+        <span>Letters</span>
       </TabsTrigger>
       {!isPatient && (
         <TabsTrigger value="notes" className={RECORD_TAB_TRIGGER_CLASS}>

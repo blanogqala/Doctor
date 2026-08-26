@@ -8,9 +8,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RecordStickyHeader } from '@/components/records/record-sticky-header';
-import { RecordSubTabs } from '@/components/records/record-sub-tabs';
+import { RecordSubTabs, RECORD_TAB_TRIGGER_CLASS } from '@/components/records/record-sub-tabs';
 import { DoctorsNotesTab } from '@/components/records/doctors-notes-tab';
 import { ConsultationEvidence } from '@/components/records/consultation-evidence';
 import { CheckupTelemedicinePanel } from '@/components/records/checkup-telemedicine-panel';
@@ -942,17 +942,18 @@ export default function EditClinicalRecordPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="referral" className="mt-4 space-y-4">
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-sm text-muted-foreground">
-                  <strong>{patientName}</strong>
-                  {patientAgeHint ? ` · ${patientAgeHint}` : ''}
-                  {gender ? ` · ${gender}` : ''}
-                </p>
-              </CardContent>
-            </Card>
+          <TabsContent value="referral" className="mt-4">
+            <Tabs defaultValue="referral" className="space-y-4">
+              <TabsList className="grid h-auto w-full max-w-md grid-cols-2 gap-1 bg-primary-soft border-2 border-primary">
+                <TabsTrigger value="referral" className={RECORD_TAB_TRIGGER_CLASS}>
+                  Referral
+                </TabsTrigger>
+                <TabsTrigger value="other-letters" className={RECORD_TAB_TRIGGER_CLASS}>
+                  Others Letter
+                </TabsTrigger>
+              </TabsList>
 
+              <TabsContent value="referral" className="mt-0 space-y-4">
             <Card>
               <CardContent className="space-y-4 p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold">
@@ -1101,20 +1102,24 @@ export default function EditClinicalRecordPage() {
                 />
               </CardContent>
             </Card>
+              </TabsContent>
 
-            <Card>
-              <CardContent className="space-y-3 p-4">
-                <div className="text-sm font-semibold">D. Clinical letters (session draft)</div>
-                <ClinicalLetterComposer
-                  patientId={params.patientId}
-                  patientDisplayName={patientName}
-                  doctorDisplayName={doctorName}
-                  practiceName={doctorPracticeName || null}
-                  consultationDate={new Date().toISOString().slice(0, 10)}
-                  diagnosisText={clinical.primary_diagnosis || null}
-                />
-              </CardContent>
-            </Card>
+              <TabsContent value="other-letters" className="mt-0">
+                <Card>
+                  <CardContent className="space-y-3 p-4">
+                    <div className="text-sm font-semibold">D. Clinical letters (session draft)</div>
+                    <ClinicalLetterComposer
+                      patientId={params.patientId}
+                      patientDisplayName={patientName}
+                      doctorDisplayName={doctorName}
+                      practiceName={doctorPracticeName || null}
+                      consultationDate={new Date().toISOString().slice(0, 10)}
+                      diagnosisText={clinical.primary_diagnosis || null}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="notes" className="mt-4">

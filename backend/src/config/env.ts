@@ -16,6 +16,8 @@ const envSchema = z.object({
   GROQ_API_KEY: z.string().optional(),
   /** Groq HTTP timeout in ms (ASR + LLM). */
   GROQ_TIMEOUT_MS: z.coerce.number().int().positive().default(90_000),
+  /** Groq chat model for structured SOAP / scribe extraction (not Whisper). */
+  GROQ_SCRIBE_MODEL: z.string().min(1).default('openai/gpt-oss-120b'),
   RESEND_API_KEY: z.string().optional(),
   INQUIRY_NOTIFICATION_EMAIL: z.string().email().default('owner@medspace.co.za'),
   RESEND_FROM_EMAIL: z.string().default('MedSpace <notifications@medspace.co.za>'),

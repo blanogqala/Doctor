@@ -196,7 +196,10 @@ describe('patient-folder helpers', () => {
 
   it('formats doctor display and folder section', () => {
     expect(doctorDisplayName('Dr. Ndlovu')).toBe('Dr Ndlovu');
-    expect(parseFolderSection('timeline')).toBe('timeline');
+    expect(parseFolderSection('timeline')).toBe('overview');
+    expect(parseFolderSection('prescriptions')).toBe('overview');
+    expect(parseFolderSection('referrals')).toBe('overview');
+    expect(parseFolderSection('consultations')).toBe('consultations');
     expect(parseFolderSection('nope')).toBe('overview');
   });
 });
