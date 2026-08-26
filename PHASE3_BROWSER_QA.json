@@ -1,0 +1,246 @@
+[
+  {
+    "role": "Doctor",
+    "pages": {
+      "/doctor": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      }
+    }
+  },
+  {
+    "role": "Reception",
+    "pages": {
+      "/admin": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      },
+      "/admin/patients": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      }
+    }
+  },
+  {
+    "role": "Patient",
+    "pages": {
+      "/patient": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      }
+    }
+  },
+  {
+    "role": "Platform Admin",
+    "pages": {
+      "/super-admin/dashboard": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      },
+      "/super-admin/practices": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      },
+      "/super-admin/support": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      }
+    }
+  }
+]

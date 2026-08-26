@@ -1,0 +1,403 @@
+[
+  {
+    "role": "Doctor",
+    "pages": {
+      "/doctor": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "430": {
+          "status": "PASS",
+          "scrollWidth": 430,
+          "clientWidth": 430,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      },
+      "/doctor/records?patient=005c6885-d07a-4e0f-8fbc-60f10f41e974": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "430": {
+          "status": "PASS",
+          "scrollWidth": 430,
+          "clientWidth": 430,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      },
+      "/doctor/records?patient=005c6885-d07a-4e0f-8fbc-60f10f41e974&section=consultations": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "430": {
+          "status": "PASS",
+          "scrollWidth": 430,
+          "clientWidth": 430,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      },
+      "/doctor/records/005c6885-d07a-4e0f-8fbc-60f10f41e974/new": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "430": {
+          "status": "PASS",
+          "scrollWidth": 430,
+          "clientWidth": 430,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      },
+      "/doctor/records/005c6885-d07a-4e0f-8fbc-60f10f41e974/edit/b0000000-0000-4000-8000-000000000101": {
+        "390": {
+          "status": "ISSUE",
+          "error": "net::ERR_ABORTED at http://localhost:3000/doctor/records/005c6885-d07a-4e0f-8fbc-60f10f41e974/edit/b0000000-0000-4000-8000-000000000101?tenant=eastern-cape"
+        },
+        "430": {
+          "status": "PASS",
+          "scrollWidth": 430,
+          "clientWidth": 430,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      },
+      "/doctor/records/005c6885-d07a-4e0f-8fbc-60f10f41e974/view/b0000000-0000-4000-8000-000000000102": {
+        "390": {
+          "status": "ISSUE",
+          "error": "net::ERR_ABORTED at http://localhost:3000/doctor/records/005c6885-d07a-4e0f-8fbc-60f10f41e974/view/b0000000-0000-4000-8000-000000000102?tenant=eastern-cape"
+        },
+        "430": {
+          "status": "PASS",
+          "scrollWidth": 430,
+          "clientWidth": 430,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      }
+    },
+    "context": {
+      "patientId": "005c6885-d07a-4e0f-8fbc-60f10f41e974",
+      "draftId": "b0000000-0000-4000-8000-000000000101",
+      "finalizedId": "b0000000-0000-4000-8000-000000000102"
+    }
+  },
+  {
+    "role": "Reception",
+    "pages": {
+      "/admin": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "430": {
+          "status": "PASS",
+          "scrollWidth": 430,
+          "clientWidth": 430,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      }
+    }
+  },
+  {
+    "role": "Patient",
+    "pages": {
+      "/patient": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "430": {
+          "status": "PASS",
+          "scrollWidth": 430,
+          "clientWidth": 430,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      },
+      "/patient/records": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "430": {
+          "status": "PASS",
+          "scrollWidth": 430,
+          "clientWidth": 430,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      }
+    }
+  },
+  {
+    "role": "Platform Admin",
+    "pages": {
+      "/super-admin/dashboard": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "430": {
+          "status": "PASS",
+          "scrollWidth": 430,
+          "clientWidth": 430,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      }
+    }
+  }
+]

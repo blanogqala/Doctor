@@ -1,0 +1,50 @@
+services:
+  - type: web
+    name: medspace-api-staging
+    runtime: node
+    plan: starter
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    healthCheckPath: /health/ready
+    disk:
+      name: medspace-clinical-staging
+      mountPath: /var/data
+      sizeGB: 10
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_ENV
+        value: staging
+      - key: CLINICAL_STORAGE_DRIVER
+        value: render-disk
+      - key: CLINICAL_STORAGE_ROOT
+        value: /var/data/clinical
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: None
+      - key: DATABASE_URL
+        fromDatabase:
+          name: medspace-db-staging
+          property: connectionString
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: LIVEKIT_URL
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+
+databases:
+  - name: medspace-db-staging
+    plan: basic_256mb

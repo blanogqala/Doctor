@@ -1,0 +1,182 @@
+[
+  {
+    "role": "Doctor",
+    "pages": {
+      "/doctor/records": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      },
+      "/doctor/records?patient=005c6885-d07a-4e0f-8fbc-60f10f41e974": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      },
+      "/doctor/records/005c6885-d07a-4e0f-8fbc-60f10f41e974/new": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      }
+    },
+    "context": {
+      "patientId": "005c6885-d07a-4e0f-8fbc-60f10f41e974",
+      "recordId": null,
+      "draftId": null
+    }
+  },
+  {
+    "role": "Patient",
+    "pages": {
+      "/patient/records": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      }
+    }
+  },
+  {
+    "role": "Reception",
+    "pages": {
+      "/admin/patients": {
+        "390": {
+          "status": "PASS",
+          "scrollWidth": 390,
+          "clientWidth": 390,
+          "overflowX": false
+        },
+        "768": {
+          "status": "PASS",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowX": false
+        },
+        "1024": {
+          "status": "PASS",
+          "scrollWidth": 1024,
+          "clientWidth": 1024,
+          "overflowX": false
+        },
+        "1366": {
+          "status": "PASS",
+          "scrollWidth": 1366,
+          "clientWidth": 1366,
+          "overflowX": false
+        },
+        "1440": {
+          "status": "PASS",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowX": false
+        }
+      }
+    }
+  }
+]

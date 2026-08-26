@@ -1,0 +1,17 @@
+-- AlterTable
+ALTER TABLE "practices" ADD COLUMN IF NOT EXISTS "tagline" TEXT;
+ALTER TABLE "practices" ADD COLUMN IF NOT EXISTS "phone" TEXT;
+ALTER TABLE "practices" ADD COLUMN IF NOT EXISTS "email" TEXT;
+ALTER TABLE "practices" ADD COLUMN IF NOT EXISTS "whatsapp" TEXT;
+ALTER TABLE "practices" ADD COLUMN IF NOT EXISTS "address_line1" TEXT;
+ALTER TABLE "practices" ADD COLUMN IF NOT EXISTS "city" TEXT;
+ALTER TABLE "practices" ADD COLUMN IF NOT EXISTS "province" TEXT;
+ALTER TABLE "practices" ADD COLUMN IF NOT EXISTS "postal_code" TEXT;
+ALTER TABLE "practices" ADD COLUMN IF NOT EXISTS "map_embed_url" TEXT;
+ALTER TABLE "practices" ADD COLUMN IF NOT EXISTS "emergency_phone" TEXT;
+ALTER TABLE "practices" ADD COLUMN IF NOT EXISTS "office_hours" JSONB;
+
+-- AlterTable
+ALTER TABLE "doctors" ADD COLUMN IF NOT EXISTS "telemedicine_fee_cents" INTEGER NOT NULL DEFAULT 45000;
+ALTER TABLE "doctors" ADD COLUMN IF NOT EXISTS "photo_url" TEXT;
+ALTER TABLE "doctors" ADD COLUMN IF NOT EXISTS "credentials" JSONB;

@@ -1,0 +1,166 @@
+{
+  "results": [
+    {
+      "flow": "Public pricing",
+      "result": "PASS",
+      "notes": "{\"solo\":true,\"small\":true,\"clinic\":true,\"enterprise\":true,\"seats\":true}"
+    },
+    {
+      "flow": "Inquiry form visible",
+      "result": "PASS",
+      "notes": "join section present"
+    },
+    {
+      "flow": "Public practice booking_available field",
+      "result": "PASS",
+      "notes": "status=ACTIVE booking_available=true"
+    },
+    {
+      "flow": "Super Admin Dashboard",
+      "result": "PASS",
+      "notes": "dashboard loaded"
+    },
+    {
+      "flow": "Super Admin Practices",
+      "result": "PASS",
+      "notes": "practices list opened"
+    },
+    {
+      "flow": "Super Admin Billing",
+      "result": "PASS",
+      "notes": "billing opened"
+    },
+    {
+      "flow": "Super Admin Support",
+      "result": "PASS",
+      "notes": "support opened"
+    },
+    {
+      "flow": "Owner Practice Management",
+      "result": "PASS",
+      "notes": "owner PM surface"
+    },
+    {
+      "flow": "Reception Settings / branding",
+      "result": "PASS",
+      "notes": "settings page"
+    },
+    {
+      "flow": "Owner invitation activation",
+      "result": "NOT RUN",
+      "notes": "Requires seeded SaaS lifecycle / manual UAT — see UAT_PHASE7_FINAL.md"
+    },
+    {
+      "flow": "Reception invitation accept",
+      "result": "NOT RUN",
+      "notes": "Requires seeded SaaS lifecycle / manual UAT — see UAT_PHASE7_FINAL.md"
+    },
+    {
+      "flow": "Doctor invitation + seats",
+      "result": "NOT RUN",
+      "notes": "Requires seeded SaaS lifecycle / manual UAT — see UAT_PHASE7_FINAL.md"
+    },
+    {
+      "flow": "Doctor deactivation",
+      "result": "NOT RUN",
+      "notes": "Requires seeded SaaS lifecycle / manual UAT — see UAT_PHASE7_FINAL.md"
+    },
+    {
+      "flow": "Subscription edit (plan seats)",
+      "result": "NOT RUN",
+      "notes": "Requires seeded SaaS lifecycle / manual UAT — see UAT_PHASE7_FINAL.md"
+    },
+    {
+      "flow": "Trial billing (no invoice during trial)",
+      "result": "NOT RUN",
+      "notes": "Requires seeded SaaS lifecycle / manual UAT — see UAT_PHASE7_FINAL.md"
+    },
+    {
+      "flow": "Owner EFT report",
+      "result": "NOT RUN",
+      "notes": "Requires seeded SaaS lifecycle / manual UAT — see UAT_PHASE7_FINAL.md"
+    },
+    {
+      "flow": "Suspended billing stays suspended",
+      "result": "NOT RUN",
+      "notes": "Requires seeded SaaS lifecycle / manual UAT — see UAT_PHASE7_FINAL.md"
+    },
+    {
+      "flow": "Public suspended practice booking disabled (UI)",
+      "result": "NOT RUN",
+      "notes": "Requires seeded SaaS lifecycle / manual UAT — see UAT_PHASE7_FINAL.md"
+    },
+    {
+      "flow": "Responsive QA matrix",
+      "result": "PASS",
+      "notes": "0 overflow cells"
+    }
+  ],
+  "responsive": {
+    "pricing": {
+      "390": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "inquiry": {
+      "390": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "sa-dashboard": {
+      "390": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "sa-practices": {
+      "390": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "sa-billing": {
+      "390": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "sa-support": {
+      "390": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "owner-pm": {
+      "390": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "reception-settings": {
+      "390": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    }
+  },
+  "generatedAt": "2026-08-25T15:48:29.983Z"
+}

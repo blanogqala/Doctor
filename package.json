@@ -1,0 +1,18 @@
+{
+  "name": "ec-doctor-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev:kill-ports & concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:kill-ports": "powershell -NoProfile -Command \"foreach ($p in 3000,3001) { Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue } }; exit 0\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install",
+    "build": "cd frontend && npm run build",
+    "typecheck": "cd frontend && npm run typecheck && cd ../backend && npm run typecheck",
+    "test": "cd backend && npm test && cd ../frontend && npm test"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
