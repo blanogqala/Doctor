@@ -25,7 +25,7 @@ export function RecordViewChrome({
   return (
     <div
       className={cn(
-        'sticky top-16 z-30 -mx-4 -mt-4 border-b bg-white shadow-md sm:-mx-6 sm:-mt-6 lg:top-0 lg:-mx-8 lg:-mt-8',
+        'sticky top-16 z-30 -mx-4 -mt-4 border-b-2 border-primary bg-primary-soft shadow-md sm:-mx-6 sm:-mt-6 lg:top-0 lg:-mx-8 lg:-mt-8',
         'print:static print:shadow-none',
         className
       )}
@@ -44,7 +44,9 @@ export function RecordViewChrome({
             </div>
           ) : null}
         </div>
-        {tabs ? <div className="mt-3">{tabs}</div> : null}
+        {tabs ? (
+          <div className="mt-3 rounded-lg border border-primary-soft bg-primary/30">{tabs}</div>
+        ) : null}
       </div>
     </div>
   );

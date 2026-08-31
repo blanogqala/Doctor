@@ -13,6 +13,7 @@ import { RecordSubTabs } from '@/components/records/record-sub-tabs';
 import { ClinicalNotesReadOnly } from '@/components/records/clinical-notes-readonly';
 import { DoctorsNotesTab } from '@/components/records/doctors-notes-tab';
 import { ConsultationEvidence } from '@/components/records/consultation-evidence';
+import { LettersReadView } from '@/components/records/letters-read-view';
 import { CheckupTelemedicinePanel } from '@/components/records/checkup-telemedicine-panel';
 import { AmendmentsList } from '@/components/records/amendments-list';
 import { RecordStatusBadge } from '@/components/records/record-status';
@@ -22,6 +23,7 @@ import { StatusBadge } from '@/components/ds/status-badge';
 import { useToast } from '@/hooks/use-toast';
 import { medicalRecordsApi } from '@/lib/api/medical-records';
 import { formatDate, maskIdNumber } from '@/lib/format';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import { doctorDisplayName } from '@/lib/clinical/patient-folder';
 import { normalizeDoctorNotes, recordWasEdited } from '@/lib/doctor-notes';
 import type { MedicalRecord } from '@/lib/types';
@@ -48,7 +50,7 @@ export default function ViewClinicalRecordPage() {
       const checkup = Boolean(data.parent_record_id);
       const telemed = checkup && data.appointment?.type === 'TELEMEDICINE';
       const tabParam = searchParams.get('tab');
-      if (tabParam && ['clinical', 'prescription', 'referral', 'notes'].includes(tabParam)) {
+      if (tabParam && ['clinical', 'notes', 'referral', 'prescription'].includes(tabParam)) {
         setActiveTab(tabParam);
       } else if (telemed || checkup) {
         setActiveTab('clinical');
@@ -71,9 +73,9 @@ export default function ViewClinicalRecordPage() {
     load();
   }, [load]);
 
-  const folderHref = `/doctor/records?patient=${params.patientId}`;
+  const folderHref = `/doctor/records?patient=${params.patientId}&section=consultations`;
   const patient = record?.patient;
-  const patientName = patient?.profile?.full_name ?? 'Unknown Patient';
+  const patientName = patientDisplayName(patient);
   const doctorName = record?.doctor?.profile?.full_name ?? 'Unknown Doctor';
   const isAuthor = !!(user?.doctor?.id && record?.doctor_id === user.doctor.id);
   const canEdit = isAuthor && !!record && !record.is_erroneous;
@@ -250,43 +252,8 @@ export default function ViewClinicalRecordPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="referral" className="mt-0 space-y-3">
-              {!record.referrals?.length ? (
-                <div className="rounded-lg border border-dashed py-12 text-center text-sm text-muted-foreground">
-                  No referrals on this medical record.
-                </div>
-              ) : (
-                record.referrals.map((r) => (
-                  <Card key={r.id}>
-                    <CardContent className="space-y-2 p-4 text-sm">
-                      <p>
-                        Referred to <strong>{r.referred_to}</strong>
-                        {r.specialty ? ` (${r.specialty})` : ''}
-                      </p>
-                      {r.referred_to_institution && (
-                        <p className="text-muted-foreground">{r.referred_to_institution}</p>
-                      )}
-                      <StatusBadge
-                        tone={r.urgency === 'URGENT' ? 'danger' : 'info'}
-                        label={r.urgency.toLowerCase()}
-                      />
-                      <p className="whitespace-pre-line">{r.reason}</p>
-                      {r.clinical_summary && (
-                        <p className="whitespace-pre-line">
-                          <span className="font-medium">Summary: </span>
-                          {r.clinical_summary}
-                        </p>
-                      )}
-                      {r.specific_questions && (
-                        <p className="whitespace-pre-line">
-                          <span className="font-medium">Questions: </span>
-                          {r.specific_questions}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              )}
+            <TabsContent value="referral" className="mt-0">
+              <LettersReadView record={record} patientDisplayName={patientName} />
             </TabsContent>
 
             <TabsContent value="notes" className="mt-0">

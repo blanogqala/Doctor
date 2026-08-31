@@ -84,7 +84,11 @@ function ActivateForm() {
         <div className="rounded-lg border bg-muted/40 p-3 text-sm">
           <p className="font-medium">{preview.practice_name}</p>
           <p className="text-muted-foreground">
-            Activate account for {preview.full_name} ({preview.email})
+            {preview.practice_name} has invited you to activate your existing patient profile.
+          </p>
+          <p className="mt-1 text-sm">
+            Email
+            <span className="ml-2 font-medium text-foreground">{preview.email}</span>
           </p>
         </div>
       )}
@@ -132,7 +136,7 @@ function ActivateForm() {
         ) : (
           <>
             <CheckCircle2 className="mr-2 h-4 w-4" />
-            Activate account
+            Activate My Account
           </>
         )}
       </Button>
@@ -143,10 +147,10 @@ function ActivateForm() {
 export default function ActivatePage() {
   return (
     <AuthShell
-      title="Activate your account"
-      subtitle="Create your password to access MedSpace"
-      cardTitle="Patient activation"
-      cardDescription="Choose a secure password for your patient portal"
+      title="Welcome to MedSpace"
+      subtitle="Activate your existing patient profile"
+      cardTitle="Activate Patient Portal"
+      cardDescription="Create a password to access the portal for this practice"
     >
       <Suspense
         fallback={

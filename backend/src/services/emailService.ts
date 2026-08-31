@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { SubscriptionPlan } from '@prisma/client';
 import { env } from '../config/env';
+import { isResendSendEnabled } from '../config/resendDelivery';
 import { getPlanDefaults } from '../config/subscriptionPlans';
 import { escapeHtml } from '../utils/escapeHtml';
 import { practiceFrontendUrl } from '../utils/frontendUrl';
@@ -52,8 +53,8 @@ function requestedPlanLabel(plan: SubscriptionPlan): string {
 
 export async function sendInquiryNotificationEmail(data: InquiryEmailData): Promise<void> {
   const client = getResend();
-  if (!client) {
-    console.warn('[email] RESEND_API_KEY not configured — skipping inquiry email');
+  if (!client || !isResendSendEnabled()) {
+    console.warn('[email] Resend not sending — skipping inquiry email');
     return;
   }
 
@@ -117,13 +118,16 @@ View in Dashboard: ${dashboardUrl}`;
     <p><a href="${escapeHtml(dashboardUrl)}">View in Dashboard</a></p>
   `;
 
-  await client.emails.send({
+  const result = await client.emails.send({
     from: env.RESEND_FROM_EMAIL,
     to: env.INQUIRY_NOTIFICATION_EMAIL,
     subject: `New Practice Inquiry: ${data.fullName} (${data.city})`,
     text,
     html,
   });
+  if (result.error) {
+    console.warn('[email] inquiry delivery failed:', result.error.message);
+  }
 }
 
 function roleLabel(role: string, isOwner: boolean): string {
@@ -141,20 +145,24 @@ async function sendEmail(params: {
   logTag: string;
 }): Promise<boolean> {
   const client = getResend();
-  if (!client) {
-    console.log(`[${params.logTag}] RESEND_API_KEY not configured — email skipped`, {
+  if (!client || !isResendSendEnabled()) {
+    console.log(`[${params.logTag}] Resend not sending — email skipped`, {
       to: params.to,
       subject: params.subject,
     });
     return false;
   }
-  await client.emails.send({
+  const result = await client.emails.send({
     from: env.RESEND_FROM_EMAIL,
     to: params.to,
     subject: params.subject,
     text: params.text,
     html: params.html,
   });
+  if (result.error) {
+    console.warn(`[${params.logTag}] Resend delivery failed: ${result.error.message}`);
+    return false;
+  }
   return true;
 }
 
@@ -223,14 +231,14 @@ export async function sendPatientActivationEmail(data: {
   const safeName = escapeHtml(data.fullName);
   const safePractice = escapeHtml(data.practiceName);
   const subject = data.isResend
-    ? `Your MedSpace activation link was resent — ${data.practiceName}`
-    : `Activate your ${data.practiceName} patient account`;
+    ? `Your MedSpace portal invitation was resent — ${data.practiceName}`
+    : `${data.practiceName} has invited you to activate your MedSpace patient portal`;
 
   const text = `Hi ${data.fullName},
 
-${data.isResend ? 'Here is a new activation link' : 'Your patient account has been created'} for ${data.practiceName} on MedSpace.
+${data.practiceName} has created your patient profile on MedSpace.
+Activate your secure patient portal to manage your appointments and access the services available from your practice.
 
-Create your own password to activate your account:
 ${activateUrl}
 
 This link expires in 7 days and can only be used once.
@@ -241,8 +249,8 @@ MedSpace will never email you a password.
 
   const html = `
     <p>Hi ${safeName},</p>
-    <p>${data.isResend ? 'Here is a new activation link' : 'Your patient account has been created'} for <strong>${safePractice}</strong> on MedSpace.</p>
-    <p><a href="${escapeHtml(activateUrl)}">Create your password and activate your account</a></p>
+    <p><strong>${safePractice}</strong> has created your patient profile on MedSpace. Activate your secure patient portal to manage your appointments and access the services available from your practice.</p>
+    <p><a href="${escapeHtml(activateUrl)}">Activate Patient Portal</a></p>
     <p>This link expires in 7 days and can only be used once.</p>
     <p>MedSpace will never email you a password.</p>
     <p>— MedSpace Team</p>

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { UserRole } from '@prisma/client';
+import { PatientPortalStatus, PatientRegistrationSource, UserRole } from '@prisma/client';
 import { prisma } from '../config/database';
 import { toSnakeCase } from '../utils/serialize';
 import { toSafeProfile } from '../utils/safeProfile';
@@ -7,8 +7,9 @@ import { AppError } from '../middleware/errorHandler';
 import { validatePassword } from '../utils/passwordPolicy';
 import { assertActiveDoctorInPractice } from './activeDoctor';
 import { revokeAllPracticeSessionsForProfile } from './sessionService';
-import { createPendingPatientActivation } from './patientActivationService';
-import { generateSecureToken } from '../utils/secureToken';
+import { splitFullName } from '../utils/personName';
+import { assertPatientEmailAvailable } from './patientEmailUniqueness';
+import { createReceptionPatient } from './receptionPatientService';
 
 const profileInclude = {
   doctor: true,
@@ -119,12 +120,10 @@ export async function register(data: {
     throw new AppError(403, 'Only patient self-registration is allowed');
   }
 
-  const existing = await prisma.profile.findUnique({
-    where: { practiceId_email: { practiceId: data.practiceId, email: data.email } },
+  await assertPatientEmailAvailable(prisma, {
+    practiceId: data.practiceId,
+    email: data.email,
   });
-  if (existing) {
-    throw new AppError(409, 'Email already in use');
-  }
 
   const passwordHash = await bcrypt.hash(data.password, 10);
   const practice = await prisma.practice.findUnique({ where: { id: data.practiceId } });
@@ -138,6 +137,7 @@ export async function register(data: {
       inactiveMessage: 'This Doctor is inactive and cannot receive new patient assignments.',
     });
   }
+  const names = splitFullName(data.fullName);
 
   const profile = await prisma.profile.create({
     data: {
@@ -152,6 +152,12 @@ export async function register(data: {
       patient: {
         create: {
           practiceId: data.practiceId,
+          firstName: names.firstName,
+          lastName: names.lastName,
+          email: data.email,
+          phone: data.phone ?? null,
+          registrationSource: PatientRegistrationSource.SELF_REGISTERED,
+          portalStatus: PatientPortalStatus.ACTIVE,
           idNumber: (data.patient?.id_number as string) ?? null,
           idNumberLast4: data.patient?.id_number
             ? String(data.patient.id_number).slice(-4)
@@ -184,80 +190,27 @@ export async function register(data: {
 
 export async function adminCreatePatient(
   data: {
-    email: string;
+    email?: string;
     fullName: string;
     phone?: string;
     patient: Record<string, unknown>;
   },
-  practiceId: string
+  practiceId: string,
+  actorId: string
 ) {
-  const existing = await prisma.profile.findUnique({
-    where: { practiceId_email: { practiceId, email: data.email } },
-  });
-  if (existing) {
-    throw new AppError(409, 'Email already in use');
-  }
-
-  // Unusable placeholder until the patient chooses a password via activation.
-  const passwordHash = await bcrypt.hash(generateSecureToken(), 10);
-  const assignedDoctorId = (data.patient?.assigned_doctor_id as string) ?? null;
-  if (assignedDoctorId) {
-    await assertActiveDoctorInPractice(prisma, assignedDoctorId, practiceId, {
-      inactiveMessage: 'This Doctor is inactive and cannot receive new patient assignments.',
-    });
-  }
-
-  const profile = await prisma.profile.create({
-    data: {
-      practiceId,
-      email: data.email,
-      fullName: data.fullName,
+  const names = splitFullName(data.fullName);
+  const created = await createReceptionPatient(
+    {
+      firstName: names.firstName,
+      lastName: names.lastName,
+      email: data.email ?? null,
       phone: data.phone ?? null,
-      role: UserRole.PATIENT,
-      passwordHash,
-      isActive: false,
-      activatedAt: null,
-      patient: {
-        create: {
-          practiceId,
-          idNumber: (data.patient?.id_number as string) ?? null,
-          idNumberLast4: data.patient?.id_number
-            ? String(data.patient.id_number).slice(-4)
-            : null,
-          dateOfBirth: data.patient?.date_of_birth
-            ? new Date(String(data.patient.date_of_birth))
-            : null,
-          gender: (data.patient?.gender as never) ?? 'UNKNOWN',
-          address: (data.patient?.address as string) ?? null,
-          city: (data.patient?.city as string) ?? null,
-          province: (data.patient?.province as string) ?? 'Eastern Cape',
-          medicalAidProvider: (data.patient?.medical_aid_provider as string) ?? null,
-          medicalAidNumber: (data.patient?.medical_aid_number as string) ?? null,
-          emergencyContactName: (data.patient?.emergency_contact_name as string) ?? null,
-          emergencyContactPhone: (data.patient?.emergency_contact_phone as string) ?? null,
-          assignedDoctorId,
-          // Clinical PHI is Doctor-owned; Reception create does not set it.
-        },
-      },
+      patient: data.patient,
     },
-    include: profileInclude,
-  });
-
-  const activation = await createPendingPatientActivation({
-    profileId: profile.id,
     practiceId,
-  });
-
-  const user = await buildAuthUser(profile.id);
-  // Never create a patient session for an admin — that enables impersonation.
-  // Never return a password — activation is email/UAT-link based.
-  return {
-    user,
-    profileId: profile.id,
-    activationToken: activation.rawToken,
-    email: profile.email,
-    fullName: profile.fullName,
-  };
+    actorId
+  );
+  return created;
 }
 
 export async function changePassword(

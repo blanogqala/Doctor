@@ -312,6 +312,9 @@ export const medicalRecordController = {
           followUpDate: body.follow_up_date ? new Date(String(body.follow_up_date)) : null,
           isDraft: body.is_draft !== undefined ? Boolean(body.is_draft) : true,
           doctorNotesPrivate: notesValue,
+          clinicalLetters: Array.isArray(body.clinical_letters)
+            ? (body.clinical_letters as Prisma.InputJsonValue)
+            : undefined,
           aiFieldProvenance: body.ai_field_provenance
             ? (body.ai_field_provenance as Prisma.InputJsonValue)
             : undefined,
@@ -400,7 +403,7 @@ export const medicalRecordController = {
       throw new AppError(403, 'You can only edit your own records');
     }
 
-    // Finalized records are immutable except mark-erroneous; use amendments for corrections.
+    // Finalized records are immutable except mark-erroneous and referral/letter updates.
     const markingErroneous =
       body.is_erroneous !== undefined && Boolean(body.is_erroneous) !== existing.isErroneous;
     if (!existing.isDraft && !existing.isErroneous) {
@@ -423,7 +426,6 @@ export const medicalRecordController = {
         'follow_up_date',
         'doctor_notes_private',
         'prescriptions',
-        'referrals',
         'is_draft',
         'ai_field_provenance',
       ];
@@ -456,7 +458,7 @@ export const medicalRecordController = {
       }
     }
 
-    const isAutosave = Boolean(body.autosave);
+    const isAutosave = Boolean(body.autosave) && existing.isDraft;
     if (isAutosave) {
       if (body.is_draft === false) {
         throw new AppError(400, 'Autosave cannot finalize medical records');
@@ -505,6 +507,12 @@ export const medicalRecordController = {
       aiFieldProvenance:
         body.ai_field_provenance !== undefined
           ? (body.ai_field_provenance as Prisma.InputJsonValue)
+          : undefined,
+      clinicalLetters:
+        body.clinical_letters !== undefined
+          ? Array.isArray(body.clinical_letters)
+            ? (body.clinical_letters as Prisma.InputJsonValue)
+            : Prisma.DbNull
           : undefined,
     };
 

@@ -27,6 +27,7 @@ const REDACT_KEYS = new Set([
   'doctor_notes_private',
   'prescriptions',
   'referrals',
+  'clinical_letters',
   'correction_note',
   'transcript',
   'scribe_transcript',

@@ -8,9 +8,11 @@ import {
   changePassword,
 } from '../services/authService';
 import { logAudit } from '../services/auditService';
+import { sendPasswordResetEmail, sendPatientActivationEmail } from '../services/emailService';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { requestPasswordReset, resetPasswordWithToken } from '../services/passwordResetService';
-import { sendPasswordResetEmail, sendPatientActivationEmail } from '../services/emailService';
+import { toSnakeCase } from '../utils/serialize';
+import { toRoleScopedPatientDto } from '../utils/patientDto';
 import {
   createPracticeSession,
   revokePracticeSessionByRawToken,
@@ -172,68 +174,28 @@ export const authController = {
 
   adminCreatePatient: asyncHandler(async (req: Request, res: Response) => {
     const schema = z.object({
-      email: z.string().email(),
+      email: z.string().email().optional().or(z.literal('')),
       full_name: z.string().min(1),
       phone: z.string().optional(),
-      patient: z.record(z.unknown()),
+      patient: z.record(z.unknown()).optional(),
     });
     const body = schema.parse(req.body);
     const practiceId = requirePracticeId(req);
-    const result = await adminCreatePatient(
+    const created = await adminCreatePatient(
       {
-        email: body.email,
+        email: body.email || undefined,
         fullName: body.full_name,
         phone: body.phone,
-        patient: body.patient,
+        patient: body.patient ?? {},
       },
-      practiceId
-    );
-
-  // Optimize: avoid duplicate practice lookup
-    const practice = await prisma.practice.findUniqueOrThrow({
-      where: { id: practiceId },
-      select: { clinicName: true, subdomain: true },
-    });
-
-    let emailDelivered = false;
-    try {
-      emailDelivered = await sendPatientActivationEmail({
-        email: result.email,
-        fullName: result.fullName,
-        practiceName: practice.clinicName,
-        subdomain: practice.subdomain,
-        token: result.activationToken,
-      });
-    } catch (err) {
-      console.error('[auth] Patient activation email failed:', err);
-    }
-
-    const uatActivationUrl = buildUatActivationUrlIfEnabled(
-      practice.subdomain,
-      result.activationToken
-    );
-
-    await logAudit({
       practiceId,
-      actorId: req.user!.userId,
-      action: 'PATIENT_CREATED_PENDING_ACTIVATION',
-      resource: 'USER',
-      resourceId: result.profileId,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
+      req.user!.userId
+    );
+
+    res.status(201).json({
+      patient: toSnakeCase(toRoleScopedPatientDto(req.user!.role, created)),
+      message: 'Patient created. Portal access is not issued until an invitation is sent.',
     });
-
-    const payload: Record<string, unknown> = {
-      user: result.user,
-      activation_issued: true,
-      email_delivered: emailDelivered,
-      message: 'Patient created. Activation invitation issued.',
-    };
-    if (uatActivationUrl) {
-      payload.uat_activation_url = uatActivationUrl;
-    }
-
-    res.status(201).json(payload);
   }),
 
   resendPatientActivation: asyncHandler(async (req: Request, res: Response) => {

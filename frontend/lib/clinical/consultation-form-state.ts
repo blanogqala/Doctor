@@ -4,13 +4,15 @@ import type { AiFieldProvenanceMap } from '@/lib/ai-merge';
 import type { MedicalRecord, ReferralUrgency } from '@/lib/types';
 import type { ClinicalForm } from '@/lib/clinical-form';
 import type { DoctorPrivateNote } from '@/lib/types';
-import type { MedicationSaveItem, ReferralSaveState } from './consultation-save-payload';
+import type { MedicationSaveItem, ReferralSaveState, ClinicalLetterSaveState } from './consultation-save-payload';
+import { parseClinicalLetterSave } from './consultation-save-payload';
 
 export interface ConsultationFormState {
   clinical: ClinicalForm;
   privateNotes: DoctorPrivateNote[];
   medications: MedicationSaveItem[];
   referral: ReferralSaveState;
+  clinicalLetter: ClinicalLetterSaveState;
   aiProvenance: AiFieldProvenanceMap;
 }
 
@@ -58,6 +60,7 @@ export function medicalRecordToFormState(rec: MedicalRecord): ConsultationFormSt
           clinical_summary: '',
           specific_questions: '',
         },
+    clinicalLetter: parseClinicalLetterSave(rec.clinical_letters),
     aiProvenance: provenance,
   };
 }

@@ -13,29 +13,8 @@ vi.mock('../config/database', () => ({
   },
 }));
 
-vi.mock('./patientActivationService', () => ({
-  createPendingPatientActivation: vi.fn().mockResolvedValue({
-    rawToken: 'activation-raw-token',
-    record: { id: 'act-1' },
-  }),
-}));
-
-vi.mock('../utils/secureToken', () => ({
-  generateSecureToken: vi.fn().mockReturnValue('secure-random-token-value'),
-  hashToken: vi.fn((v: string) => `hash:${v}`),
-}));
-
-vi.mock('bcryptjs', () => ({
-  default: {
-    hash: vi.fn().mockResolvedValue('hashed'),
-    compare: vi.fn(),
-  },
-}));
-
-vi.mock('jsonwebtoken', () => ({
-  default: {
-    sign: vi.fn().mockReturnValue('should-not-be-returned'),
-  },
+vi.mock('./receptionPatientService', () => ({
+  createReceptionPatient: vi.fn(),
 }));
 
 vi.mock('../config/env', () => ({
@@ -50,42 +29,21 @@ vi.mock('../config/env', () => ({
 
 import { prisma } from '../config/database';
 import { adminCreatePatient, buildAuthUser } from '../services/authService';
+import { createReceptionPatient } from '../services/receptionPatientService';
 
-const mockedPrisma = prisma as unknown as {
-  profile: {
-    findUnique: ReturnType<typeof vi.fn>;
-    create: ReturnType<typeof vi.fn>;
-  };
-  doctor: { findFirst: ReturnType<typeof vi.fn> };
-};
+const mockedCreate = createReceptionPatient as unknown as ReturnType<typeof vi.fn>;
 
 describe('adminCreatePatient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('does not return a temporary password or JWT', async () => {
-    mockedPrisma.profile.findUnique.mockResolvedValueOnce(null);
-    mockedPrisma.profile.create.mockResolvedValueOnce({
-      id: 'profile-1',
-      email: 'p@example.com',
-      role: UserRole.PATIENT,
-      practiceId: 'practice-1',
-      doctor: null,
-      patient: { id: 'patient-1' },
-      practice: null,
-    });
-
-    // buildAuthUser does another findUnique
-    mockedPrisma.profile.findUnique.mockResolvedValueOnce({
-      id: 'profile-1',
-      email: 'p@example.com',
-      role: UserRole.PATIENT,
-      practiceId: 'practice-1',
-      softDeletedAt: null,
-      doctor: null,
-      patient: { id: 'patient-1' },
-      practice: null,
+  it('does not return a temporary password, JWT, or activation token', async () => {
+    mockedCreate.mockResolvedValueOnce({
+      id: 'patient-1',
+      profileId: null,
+      firstName: 'Test',
+      lastName: 'Patient',
     });
 
     const result = await adminCreatePatient(
@@ -94,17 +52,19 @@ describe('adminCreatePatient', () => {
         fullName: 'Test Patient',
         patient: {},
       },
-      'practice-1'
+      'practice-1',
+      'reception-1'
     );
 
-    expect(result).toHaveProperty('user');
-    expect(result).toHaveProperty('activationToken');
+    expect(result).toMatchObject({ id: 'patient-1', profileId: null });
     expect(result).not.toHaveProperty('tempPassword');
+    expect(result).not.toHaveProperty('activationToken');
     expect(result).not.toHaveProperty('token');
+    expect(mockedCreate).toHaveBeenCalled();
   });
 
   it('sanitizes profile fields in auth user responses', async () => {
-    mockedPrisma.profile.findUnique.mockResolvedValueOnce({
+    (prisma.profile.findUnique as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       id: 'profile-1',
       email: 'p@example.com',
       role: UserRole.PATIENT,

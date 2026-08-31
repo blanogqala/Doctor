@@ -34,14 +34,18 @@ import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ViewToggle, type ViewMode } from '@/components/shared/view-toggle';
 import { SlotPicker } from '@/components/shared/slot-picker';
+import { AppointmentPatientPicker } from '@/components/appointments/appointment-patient-picker';
+import type { DraftTelephonePatient } from '@/lib/appointments/patient-picker-ui';
 import { DelayBadge } from '@/components/shared/delay-badge';
 import { useToast } from '@/hooks/use-toast';
 import { logAudit } from '@/lib/audit';
 import { appointmentsApi } from '@/lib/api/appointments';
 import { patientsApi, doctorsApi } from '@/lib/api/patients';
 import { formatDate, formatTime, toDateInput } from '@/lib/format';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import type { Appointment, Patient, Doctor, AppointmentStatus, AppointmentType } from '@/lib/types';
 import { groupAppointmentsByMonthDay } from '@/lib/appointments/group-by-month-day';
+import { buildAppointmentCreateBody } from '@/lib/appointments/telephone-booking';
 import {
   CalendarDays,
   Plus,
@@ -93,6 +97,7 @@ export default function AdminAppointmentsPage() {
   const [cancelAppt, setCancelAppt] = useState<Appointment | null>(null);
   const [arrivedAppt, setArrivedAppt] = useState<Appointment | null>(null);
   const [saving, setSaving] = useState(false);
+  const [draftPatient, setDraftPatient] = useState<DraftTelephonePatient | null>(null);
 
   const [form, setForm] = useState({
     patient_id: '',
@@ -187,6 +192,7 @@ export default function AdminAppointmentsPage() {
   };
 
   const openCreate = () => {
+    setDraftPatient(null);
     setForm({
       patient_id: '',
       doctor_id: doctors[0]?.id ?? '',
@@ -213,33 +219,36 @@ export default function AdminAppointmentsPage() {
   };
 
   const handleCreate = async () => {
-    if (!form.patient_id || !form.doctor_id || !form.scheduled_at) {
+    if ((!form.patient_id && !draftPatient) || !form.doctor_id || !form.scheduled_at) {
       toast({ title: 'Please fill all required fields', variant: 'destructive' });
       return;
     }
     setSaving(true);
     try {
-      const data = await appointmentsApi.create({
-        patient_id: form.patient_id,
+      const payload = buildAppointmentCreateBody({
         doctor_id: form.doctor_id,
         scheduled_at: new Date(form.scheduled_at).toISOString(),
         duration_minutes: parseInt(form.duration_minutes, 10),
         type: form.type,
         reason: form.reason || null,
         status: form.type === 'TELEMEDICINE' ? 'CONFIRMED_TELEMEDICINE' : 'CONFIRMED_IN_PERSON',
+        patient_id: form.patient_id,
+        draftPatient,
       });
+      const data = await appointmentsApi.create(payload);
       setSaving(false);
 
       await logAudit({
         action: 'CREATE',
         resource: 'appointments',
         resource_id: data.id,
-        patient_id: form.patient_id,
+        patient_id: data.patient_id,
         new_value: { scheduled_at: form.scheduled_at, type: form.type, status: data.status },
       });
 
       toast({ title: 'Appointment created' });
       setCreateOpen(false);
+      setDraftPatient(null);
       loadData();
     } catch (err) {
       setSaving(false);
@@ -337,7 +346,7 @@ export default function AdminAppointmentsPage() {
       new_value: { status: 'ARRIVED' },
     });
 
-    toast({ title: 'Patient marked as arrived', description: `${arrivedAppt.patient?.profile?.full_name ?? 'Patient'} is in the waiting room` });
+    toast({ title: 'Patient marked as arrived', description: `${patientDisplayName(arrivedAppt.patient) } is in the waiting room` });
     setArrivedAppt(null);
     loadData();
   };
@@ -503,7 +512,7 @@ export default function AdminAppointmentsPage() {
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="truncate font-medium text-foreground">
-                                {appt.patient?.profile?.full_name ?? 'Unknown Patient'}
+                                {patientDisplayName(appt.patient)}
                               </p>
                               <p className="truncate text-sm text-muted-foreground">
                                 {appt.doctor?.profile?.full_name ?? '—'}
@@ -595,7 +604,7 @@ export default function AdminAppointmentsPage() {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="truncate font-medium text-foreground">
-                                    {appt.patient?.profile?.full_name ?? 'Unknown Patient'}
+                                    {patientDisplayName(appt.patient)}
                                   </p>
                                   <p className="truncate text-sm text-muted-foreground">
                                     {appt.doctor?.profile?.full_name ?? '—'}
@@ -654,7 +663,7 @@ export default function AdminAppointmentsPage() {
       </div>
 
       {/* Create / Edit dialog */}
-      <Dialog open={createOpen || !!editAppt} onOpenChange={(o) => { if (!o) { setCreateOpen(false); setEditAppt(null); } }}>
+      <Dialog open={createOpen || !!editAppt} onOpenChange={(o) => { if (!o) { setCreateOpen(false); setEditAppt(null); setDraftPatient(null); } }}>
         <DialogContent
           className="max-w-lg"
           onPointerDownOutside={(e) => e.preventDefault()}
@@ -669,17 +678,14 @@ export default function AdminAppointmentsPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Patient *</Label>
-              <Select value={form.patient_id} onValueChange={(v) => setForm({ ...form, patient_id: v })} disabled={!!editAppt}>
-                <SelectTrigger><SelectValue placeholder="Select patient..." /></SelectTrigger>
-                <SelectContent>
-                  {patients.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.profile?.full_name ?? 'Unknown'}
-                      {p.id_number_last4 ? ` (...${p.id_number_last4})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <AppointmentPatientPicker
+                patients={patients}
+                value={form.patient_id}
+                draftPatient={draftPatient}
+                disabled={!!editAppt}
+                onChange={(v) => setForm({ ...form, patient_id: v })}
+                onDraftPatient={setDraftPatient}
+              />
             </div>
             <div className="space-y-2">
               <Label>Doctor *</Label>
@@ -753,7 +759,7 @@ export default function AdminAppointmentsPage() {
         open={!!arrivedAppt}
         onOpenChange={(o) => !o && setArrivedAppt(null)}
         title="Mark Patient as Arrived"
-        description={`Confirm that ${arrivedAppt?.patient?.profile?.full_name ?? 'this patient'} has arrived at the clinic? This will notify the doctor.`}
+        description={`Confirm that ${patientDisplayName(arrivedAppt?.patient)} has arrived at the clinic? This will notify the doctor.`}
         confirmLabel="Confirm Arrival"
         onConfirm={handleMarkArrived}
       />
@@ -763,7 +769,7 @@ export default function AdminAppointmentsPage() {
         open={!!cancelAppt}
         onOpenChange={(o) => !o && setCancelAppt(null)}
         title="Cancel Appointment"
-        description={`Cancel the appointment for ${cancelAppt?.patient?.profile?.full_name ?? 'this patient'}? This action will be logged in the audit trail.`}
+        description={`Cancel the appointment for ${patientDisplayName(cancelAppt?.patient)}? This action will be logged in the audit trail.`}
         confirmLabel="Cancel Appointment"
         destructive
         requireReason

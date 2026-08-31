@@ -10,6 +10,7 @@ interface PatientFolderCardProps {
   idLabel: string;
   lastVisitLabel: string;
   recordsLabel: string;
+  extraBadges?: Array<{ label: string; tone?: StatusTone }>;
   onClick: () => void;
 }
 
@@ -20,6 +21,7 @@ export function PatientFolderCard({
   idLabel,
   lastVisitLabel,
   recordsLabel,
+  extraBadges,
   onClick,
 }: PatientFolderCardProps) {
   return (
@@ -42,6 +44,13 @@ export function PatientFolderCard({
         <p className="text-xs text-muted-foreground">{idLabel}</p>
         <p className="text-xs text-muted-foreground">{lastVisitLabel}</p>
         <p className="text-xs text-muted-foreground">{recordsLabel}</p>
+        {extraBadges && extraBadges.length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-1">
+            {extraBadges.map((badge) => (
+              <StatusBadge key={badge.label} tone={badge.tone ?? 'neutral'} label={badge.label} />
+            ))}
+          </div>
+        )}
       </div>
     </button>
   );

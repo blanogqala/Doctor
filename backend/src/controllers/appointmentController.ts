@@ -26,6 +26,7 @@ import {
   DEFAULT_DURATION_MINUTES,
 } from '../services/schedulingService';
 import { assertActiveDoctorInPractice } from '../services/activeDoctor';
+import { createReceptionPatientWithAppointment } from '../services/receptionPatientService';
 
 function buildAppointmentWhere(req: Request) {
   const { role, userId } = req.user!;
@@ -117,8 +118,11 @@ export const appointmentController = {
     const role = req.user!.role;
     let doctorId = String(body.doctor_id ?? '');
     let patientId = String(body.patient_id ?? '');
+    const newPatient = (body.new_patient as { first_name?: string; last_name?: string } | undefined) ?? undefined;
     const scheduledAt = new Date(String(body.scheduled_at));
     const durationMinutes = Number(body.duration_minutes ?? DEFAULT_DURATION_MINUTES);
+    const notes =
+      role === UserRole.ADMIN || role === UserRole.DOCTOR ? ((body.notes as string) ?? null) : null;
 
     if (role === UserRole.PATIENT) {
       const selfPatientId = await getPatientIdForProfile(req.user!.userId, practiceId);
@@ -130,22 +134,49 @@ export const appointmentController = {
       doctorId = selfDoctorId;
       await assertPatientAccess(req.user!.userId, role, patientId, practiceId);
     } else if (role === UserRole.ADMIN) {
-      // Admin may schedule for any practice patient/doctor
+      // Admin may schedule for any practice patient/doctor, or create a telephone patient atomically.
     } else {
       throw new AppError(403, 'Insufficient permissions');
     }
 
-    if (!doctorId || !patientId) {
-      throw new AppError(400, 'doctor_id and patient_id are required');
+    if (!doctorId) {
+      throw new AppError(400, 'doctor_id is required');
     }
 
     await assertDoctorInPractice(doctorId, practiceId);
+    await assertSlotAvailable({ doctorId, scheduledAt, durationMinutes });
+
+    if (role === UserRole.ADMIN && newPatient && !body.patient_id) {
+      const appointment = await createReceptionPatientWithAppointment({
+        practiceId,
+        actorId: req.user!.userId,
+        firstName: String(newPatient.first_name ?? ''),
+        lastName: String(newPatient.last_name ?? ''),
+        doctorId,
+        scheduledAt,
+        durationMinutes,
+        type: body.type as string | undefined,
+        status: (body.status as string) ?? undefined,
+        reason: (body.reason as string) ?? null,
+        notes,
+      });
+      try {
+        await notifyAppointmentBooked(appointment.id);
+      } catch (err) {
+        console.error('[appointments] failed to send booking notifications:', err);
+      }
+      res.status(201).json(toSnakeCase(toRoleScopedAppointmentDto(role, appointment)));
+      return;
+    }
+
+    if (!patientId) {
+      throw new AppError(400, 'doctor_id and patient_id are required');
+    }
+
     const patient = await prisma.patient.findFirst({
       where: { id: patientId, practiceId, softDeletedAt: null },
     });
     if (!patient) throw new AppError(400, 'Invalid patient for this practice');
-
-    await assertSlotAvailable({ doctorId, scheduledAt, durationMinutes });
 
     const appointment = await prisma.appointment.create({
       data: {
@@ -158,9 +189,7 @@ export const appointmentController = {
         type: body.type as never,
         status: (body.status as never) ?? 'PENDING',
         reason: (body.reason as string) ?? null,
-        notes: role === UserRole.ADMIN || role === UserRole.DOCTOR
-          ? ((body.notes as string) ?? null)
-          : null,
+        notes,
       },
       include: appointmentInclude,
     });

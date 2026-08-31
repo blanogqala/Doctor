@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { StatusBadge } from '@/components/ds/status-badge';
 import { ageFromDob, doctorDisplayName, formatGenderLabel } from '@/lib/clinical/patient-folder';
 import { initials, maskIdNumber } from '@/lib/format';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import type { Patient } from '@/lib/types';
 import { ArrowLeft, Plus, CalendarPlus, CreditCard, Stethoscope, Phone } from 'lucide-react';
 
@@ -19,7 +20,7 @@ export function PatientFolderHeader({
   onNewConsultation?: () => void;
   onBookFollowUp?: () => void;
 }) {
-  const name = patient.profile?.full_name ?? 'Unknown patient';
+  const name = patientDisplayName(patient);
   const age = ageFromDob(patient.date_of_birth);
   const gender = formatGenderLabel(patient.gender);
   const demographics = [gender, age != null ? `${age} yrs` : null].filter(Boolean).join(', ');
@@ -28,7 +29,7 @@ export function PatientFolderHeader({
     : null;
   const patientId = maskIdNumber(patient.id_number) ?? patient.id.slice(0, 8);
   const archived = Boolean(patient.soft_deleted_at);
-  const phone = patient.profile?.phone;
+  const phone = patient.phone ?? patient.profile?.phone;
 
   return (
     <header className="space-y-4">

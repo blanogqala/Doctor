@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { messagesApi } from '@/lib/api/misc';
 import { patientsApi } from '@/lib/api/patients';
 import { initials, formatTime, formatDate } from '@/lib/format';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import type { Message, Patient, Profile } from '@/lib/types';
 import { MessageSquare, Send, Search, ArrowLeft, Headset, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -223,7 +224,7 @@ export function MessagesView() {
     (c) =>
       !search ||
       c.otherProfile.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.patient.profile?.full_name ?? '').toLowerCase().includes(search.toLowerCase())
+      patientDisplayName(c.patient).toLowerCase().includes(search.toLowerCase())
   );
 
   const isPatient = user?.role === 'PATIENT';
@@ -343,7 +344,7 @@ export function MessagesView() {
                     </p>
                     {user?.role !== 'PATIENT' && (
                       <p className="text-xs text-muted-foreground">
-                        Patient: {activeConversation.patient.profile?.full_name}
+                        Patient: {patientDisplayName(activeConversation.patient)}
                       </p>
                     )}
                     {user?.role === 'PATIENT' && activeConversation.otherProfile.role === 'ADMIN' && (

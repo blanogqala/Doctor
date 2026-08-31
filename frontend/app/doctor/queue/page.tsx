@@ -18,6 +18,7 @@ import { appointmentsApi } from '@/lib/api/appointments';
 import { checkupRecordIdFromAppointment } from '@/lib/appointment-records';
 import { useTelemedicineJoin } from '@/hooks/useTelemedicineJoin';
 import { formatTime } from '@/lib/format';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import type { Appointment, AppointmentStatus } from '@/lib/types';
 import { isStartable as canStartStatus } from '@/lib/appointments/status';
 import { startConsultation } from '@/lib/appointments/start-consultation';
@@ -149,7 +150,7 @@ export default function DoctorQueuePage() {
 
     toast({
       title: 'Consultation started',
-      description: `${appt.patient?.profile?.full_name ?? 'Patient'} is now in consultation. Record locked to you.`,
+      description: `${patientDisplayName(appt.patient)} is now in consultation. Record locked to you.`,
     });
 
     router.push(result.href);
@@ -163,7 +164,7 @@ export default function DoctorQueuePage() {
       await joinCall({
         appointmentId: appt.id,
         patientId: appt.patient_id,
-        patientName: appt.patient?.profile?.full_name ?? 'Patient',
+        patientName: patientDisplayName(appt.patient),
         reason: appt.reason,
         recordId: childId ?? undefined,
       });
@@ -265,7 +266,7 @@ export default function DoctorQueuePage() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium text-foreground">
-              {appt.patient?.profile?.full_name ?? 'Unknown Patient'}
+              {patientDisplayName(appt.patient)}
             </p>
             <p className="truncate text-sm text-muted-foreground">
               {appt.reason ?? '—'}
@@ -485,7 +486,7 @@ export default function DoctorQueuePage() {
         open={!!noShowAppt}
         onOpenChange={(o) => !o && setNoShowAppt(null)}
         title="Mark as No-show"
-        description={`Mark ${noShowAppt?.patient?.profile?.full_name ?? 'this patient'} as a no-show? This will be logged in the audit trail.`}
+        description={`Mark ${patientDisplayName(noShowAppt?.patient)} as a no-show? This will be logged in the audit trail.`}
         confirmLabel="Mark No-show"
         destructive
         requireReason

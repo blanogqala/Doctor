@@ -42,6 +42,7 @@ import { paymentsApi } from '@/lib/api/misc';
 import { patientsApi } from '@/lib/api/patients';
 import { appointmentsApi } from '@/lib/api/appointments';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import type { Payment, Patient, Appointment, PaymentStatus, PaymentMethod } from '@/lib/types';
 import { CreditCard, Plus, Search, CheckCircle, Ban, Loader2 } from 'lucide-react';
 
@@ -84,7 +85,7 @@ export default function AdminPaymentsPage() {
   }, [loadData]);
 
   const filtered = payments.filter((p) => {
-    const name = p.patient?.profile?.full_name ?? '';
+    const name = patientDisplayName(p.patient).toLowerCase();
     const matchesSearch = !search || name.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -285,7 +286,7 @@ export default function AdminPaymentsPage() {
                     <TableRow key={pay.id}>
                       <TableCell className="font-mono text-xs">{pay.invoice_number}</TableCell>
                       <TableCell>
-                        <div className="font-medium">{pay.patient?.profile?.full_name ?? 'Unknown'}</div>
+                        <div className="font-medium">{patientDisplayName(pay.patient)}</div>
                       </TableCell>
                       <TableCell className="table-priority-medium text-sm text-muted-foreground">
                         {formatDate(pay.created_at)}
@@ -341,7 +342,7 @@ export default function AdminPaymentsPage() {
                 <SelectTrigger><SelectValue placeholder="Select patient..." /></SelectTrigger>
                 <SelectContent>
                   {patients.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.profile?.full_name}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>{patientDisplayName(p)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -387,7 +388,7 @@ export default function AdminPaymentsPage() {
           <DialogHeader>
             <DialogTitle>Mark Payment Received</DialogTitle>
             <DialogDescription>
-              {markPaidPay?.patient?.profile?.full_name} — {markPaidPay ? formatCurrency(markPaidPay.amount_cents) : ''}
+              {patientDisplayName(markPaidPay?.patient)} — {markPaidPay ? formatCurrency(markPaidPay.amount_cents) : ''}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

@@ -1,11 +1,16 @@
 import bcrypt from 'bcryptjs';
-import { UserRole } from '@prisma/client';
+import { PatientPortalStatus, UserRole } from '@prisma/client';
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { generateSecureToken, hashToken } from '../utils/secureToken';
 import { validatePassword } from '../utils/passwordPolicy';
 import { logAudit } from './auditService';
 import { createPracticeSession } from './sessionService';
+import {
+  activatePortalInvitationAndCreateSession,
+  findPortalInvitationByToken,
+  validatePortalInvitationToken,
+} from './patientPortalInvitationService';
 
 export const PATIENT_ACTIVATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -83,6 +88,11 @@ export async function resendPatientActivation(params: {
 }
 
 export async function validatePatientActivationToken(token: string) {
+  const portalInvite = await findPortalInvitationByToken(token);
+  if (portalInvite) {
+    return validatePortalInvitationToken(token);
+  }
+
   if (!token || token.length < 16) {
     throw new AppError(400, INVALID_LINK);
   }
@@ -192,6 +202,11 @@ export async function acceptPatientActivation(params: {
       },
     });
 
+    await tx.patient.updateMany({
+      where: { profileId: record.profileId, practiceId: record.practiceId },
+      data: { portalStatus: PatientPortalStatus.ACTIVE },
+    });
+
     return { profile, practice: record.practice };
   });
 
@@ -202,6 +217,20 @@ export async function acceptPatientActivation(params: {
     resource: 'USER',
     resourceId: result.profile.id,
   });
+  const linkedPatient = await prisma.patient.findFirst({
+    where: { profileId: result.profile.id, practiceId: result.profile.practiceId },
+    select: { id: true },
+  });
+  if (linkedPatient) {
+    await logAudit({
+      practiceId: result.profile.practiceId,
+      actorId: result.profile.id,
+      action: 'PATIENT_PORTAL_ACTIVATED',
+      resource: 'PATIENT',
+      resourceId: linkedPatient.id,
+      patientId: linkedPatient.id,
+    });
+  }
 
   return {
     profileId: result.profile.id,
@@ -219,6 +248,11 @@ export async function activateAndCreateSession(params: {
   userAgent?: string | null;
   ipAddress?: string | null;
 }) {
+  const portalInvite = await findPortalInvitationByToken(params.token);
+  if (portalInvite) {
+    return activatePortalInvitationAndCreateSession(params);
+  }
+
   const activated = await acceptPatientActivation(params);
   const session = await createPracticeSession({
     profileId: activated.profileId,

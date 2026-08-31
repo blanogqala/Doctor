@@ -10,6 +10,7 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { RecordViewChrome } from '@/components/records/record-view-chrome';
 import { RecordSubTabs } from '@/components/records/record-sub-tabs';
+import { LettersReadView } from '@/components/records/letters-read-view';
 import { ClinicalNotesReadOnly } from '@/components/records/clinical-notes-readonly';
 import { AmendmentsList } from '@/components/records/amendments-list';
 import { RecordStatusBadge } from '@/components/records/record-status';
@@ -155,28 +156,11 @@ export default function PatientRecordViewPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="referral" className="mt-0 space-y-3">
-              {!record.referrals?.length ? (
-                <div className="rounded-lg border border-dashed py-12 text-center text-sm text-muted-foreground">
-                  No referrals on this record.
-                </div>
-              ) : (
-                record.referrals.map((r) => (
-                  <Card key={r.id}>
-                    <CardContent className="space-y-2 p-4 text-sm">
-                      <p>
-                        Referred to <strong>{r.referred_to}</strong>
-                        {r.specialty ? ` (${r.specialty})` : ''}
-                      </p>
-                      {r.referred_to_institution && (
-                        <p className="text-muted-foreground">{r.referred_to_institution}</p>
-                      )}
-                      <Badge variant="secondary">{r.urgency}</Badge>
-                      <p className="whitespace-pre-line">{r.reason}</p>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
+            <TabsContent value="referral" className="mt-0">
+              <LettersReadView
+                record={record}
+                patientDisplayName={record.patient?.profile?.full_name ?? 'Patient'}
+              />
             </TabsContent>
           </div>
         </Tabs>

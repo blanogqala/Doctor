@@ -32,8 +32,10 @@ import { useToast } from '@/hooks/use-toast';
 import { logAudit } from '@/lib/audit';
 import { patientsApi, doctorsApi } from '@/lib/api/patients';
 import { medicalRecordsApi } from '@/lib/api/medical-records';
-import { authApi } from '@/lib/api/auth';
 import { formatDate, formatTime, maskIdNumber } from '@/lib/format';
+import { patientDisplayName, patientEmail } from '@/lib/patients/display-name';
+import { filterPatients, originBadgeLabel, portalBadgeLabel, type OriginFilter, type PortalFilter } from '@/lib/patients/filters';
+import { PortalInviteActions } from '@/components/patients/portal-invite-actions';
 import type { Patient, Doctor, MedicalRecord } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -54,6 +56,9 @@ export default function AdminPatientsPage() {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [originFilter, setOriginFilter] = useState<OriginFilter>('ALL');
+  const [portalFilter, setPortalFilter] = useState<PortalFilter>('ALL');
+  const [inviteBusy, setInviteBusy] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editPatient, setEditPatient] = useState<Patient | null>(null);
@@ -62,7 +67,8 @@ export default function AdminPatientsPage() {
   const [bookParent, setBookParent] = useState<MedicalRecord | null>(null);
 
   const [form, setForm] = useState({
-    full_name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone: '',
     id_number: '',
@@ -133,19 +139,20 @@ export default function AdminPatientsPage() {
     return sorted[0].record_date;
   }, [patientRecords]);
 
-  const filteredPatients = useMemo(() => {
-    if (!search) return patients;
-    const q = search.toLowerCase();
-    return patients.filter((p) => {
-      const name = p.profile?.full_name?.toLowerCase() ?? '';
-      const id = p.id_number?.toLowerCase() ?? '';
-      return name.includes(q) || id.includes(q);
-    });
-  }, [patients, search]);
+  const filteredPatients = useMemo(
+    () =>
+      filterPatients(patients, {
+        search,
+        origin: originFilter,
+        portal: portalFilter,
+      }),
+    [patients, search, originFilter, portalFilter]
+  );
 
   const openCreate = () => {
     setForm({
-      full_name: '',
+      first_name: '',
+      last_name: '',
       email: '',
       phone: '',
       id_number: '',
@@ -165,9 +172,10 @@ export default function AdminPatientsPage() {
   const openEdit = (p: Patient) => {
     setEditPatient(p);
     setForm({
-      full_name: p.profile?.full_name ?? '',
-      email: p.profile?.email ?? '',
-      phone: p.profile?.phone ?? '',
+      first_name: p.first_name ?? '',
+      last_name: p.last_name ?? '',
+      email: patientEmail(p),
+      phone: p.phone ?? p.profile?.phone ?? '',
       id_number: p.id_number ?? '',
       date_of_birth: p.date_of_birth ?? '',
       gender: p.gender,
@@ -182,15 +190,17 @@ export default function AdminPatientsPage() {
   };
 
   const handleCreate = async () => {
-    if (!form.full_name || !form.email) {
-      toast({ title: 'Name and email are required', variant: 'destructive' });
+    if (!form.first_name.trim() || !form.last_name.trim()) {
+      toast({ title: 'First name and surname are required', variant: 'destructive' });
       return;
     }
 
-    const { exists } = await patientsApi.checkEmail(form.email);
-    if (exists) {
-      toast({ title: 'Email already in use', description: 'A user with this email already exists.', variant: 'destructive' });
-      return;
+    if (form.email) {
+      const { exists } = await patientsApi.checkEmail(form.email);
+      if (exists) {
+        toast({ title: 'Email already in use', description: 'A user with this email already exists.', variant: 'destructive' });
+        return;
+      }
     }
 
     if (form.id_number && !/^\d{13}$/.test(form.id_number)) {
@@ -199,10 +209,11 @@ export default function AdminPatientsPage() {
     }
 
     try {
-      const result = await authApi.adminCreatePatient({
-        email: form.email,
-        full_name: form.full_name,
-        phone: form.phone,
+      const created = await patientsApi.create({
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        email: form.email || undefined,
+        phone: form.phone || undefined,
         patient: {
           id_number: form.id_number || null,
           date_of_birth: form.date_of_birth || null,
@@ -221,26 +232,14 @@ export default function AdminPatientsPage() {
       await logAudit({
         action: 'CREATE',
         resource: 'patients',
-        resource_id: result.user.id,
-        new_value: { full_name: form.full_name, email: form.email },
+        resource_id: created.id,
+        new_value: { first_name: form.first_name, last_name: form.last_name },
       });
 
       toast({
         title: 'Patient created',
-        description: result.uat_activation_url
-          ? 'Activation invitation issued. UAT activation link is available to copy.'
-          : result.email_delivered
-            ? `Activation invitation issued to ${form.email}`
-            : 'Patient created. Activation invitation issued.',
+        description: 'Patient folder created. Portal access is not issued until you send an invitation.',
       });
-      if (result.uat_activation_url && typeof navigator !== 'undefined' && navigator.clipboard) {
-        try {
-          await navigator.clipboard.writeText(result.uat_activation_url);
-          toast({ title: 'UAT activation link copied' });
-        } catch {
-          // ignore clipboard failures
-        }
-      }
       setCreateOpen(false);
       loadData();
     } catch (err) {
@@ -253,9 +252,14 @@ export default function AdminPatientsPage() {
   };
 
   const handleUpdate = async () => {
-    if (!editPatient || !editPatient.profile) return;
+    if (!editPatient) return;
 
-    if (form.email !== editPatient.profile.email) {
+    if (!form.first_name.trim() || !form.last_name.trim()) {
+      toast({ title: 'First name and surname are required', variant: 'destructive' });
+      return;
+    }
+
+    if (form.email && form.email !== patientEmail(editPatient)) {
       const { exists } = await patientsApi.checkEmail(form.email);
       if (exists) {
         toast({ title: 'Email already in use', description: 'Another user already has this email.', variant: 'destructive' });
@@ -276,9 +280,10 @@ export default function AdminPatientsPage() {
     }
 
     const oldValues = {
-      full_name: editPatient.profile.full_name,
-      email: editPatient.profile.email,
-      phone: editPatient.profile.phone,
+      first_name: editPatient.first_name,
+      last_name: editPatient.last_name,
+      email: patientEmail(editPatient),
+      phone: editPatient.phone ?? editPatient.profile?.phone,
       address: editPatient.address,
       city: editPatient.city,
       medical_aid_provider: editPatient.medical_aid_provider,
@@ -286,7 +291,9 @@ export default function AdminPatientsPage() {
 
     try {
       await patientsApi.update(editPatient.id, {
-        full_name: form.full_name,
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        email: form.email || null,
         phone: form.phone || null,
         date_of_birth: form.date_of_birth || null,
         gender: form.gender,
@@ -297,6 +304,7 @@ export default function AdminPatientsPage() {
         emergency_contact_name: form.emergency_contact_name || null,
         emergency_contact_phone: form.emergency_contact_phone || null,
         assigned_doctor_id: form.assigned_doctor_id || null,
+        id_number: form.id_number || null,
       });
     } catch (err) {
       toast({
@@ -313,12 +321,40 @@ export default function AdminPatientsPage() {
       resource_id: editPatient.id,
       patient_id: editPatient.id,
       old_value: oldValues,
-      new_value: { full_name: form.full_name, phone: form.phone, address: form.address, city: form.city },
+      new_value: { first_name: form.first_name, last_name: form.last_name, phone: form.phone, address: form.address, city: form.city },
     });
 
     toast({ title: 'Patient updated successfully' });
     setEditPatient(null);
     loadData();
+  };
+
+  const sendPortalInvite = async (patient: Patient, resend: boolean) => {
+    setInviteBusy(true);
+    try {
+      const result = resend
+        ? await patientsApi.resendPortalInvite(patient.id)
+        : await patientsApi.invitePortal(patient.id);
+      toast({
+        title: resend ? 'Invitation resent' : 'Invitation sent',
+        description: result.email_delivered
+          ? 'Email sent.'
+          : result.message,
+      });
+      if (result.uat_activation_url && navigator.clipboard) {
+        await navigator.clipboard.writeText(result.uat_activation_url);
+        toast({ title: 'UAT activation link copied' });
+      }
+      await loadData();
+    } catch (err) {
+      toast({
+        title: 'Invitation failed',
+        description: err instanceof Error ? err.message : 'Could not send invitation',
+        variant: 'destructive',
+      });
+    } finally {
+      setInviteBusy(false);
+    }
   };
 
   const handleDelete = async (reason?: string) => {
@@ -357,18 +393,22 @@ export default function AdminPatientsPage() {
         <DialogHeader>
           <DialogTitle>{editPatient ? 'Edit Patient' : 'Register New Patient'}</DialogTitle>
           <DialogDescription>
-            {editPatient ? 'Update patient contact and demographic information' : 'Create a new patient account and profile'}
+            {editPatient ? 'Update patient contact and demographic information' : 'Create a practice patient folder. Portal access is optional.'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Full Name *</Label>
-              <Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+              <Label>First Name *</Label>
+              <Input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>Email *</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} disabled={!!editPatient} />
+              <Label>Surname *</Label>
+              <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label>Phone</Label>
@@ -463,7 +503,7 @@ export default function AdminPatientsPage() {
       open={!!deletePatient}
       onOpenChange={(o) => !o && setDeletePatient(null)}
       title="Archive Patient"
-      description={`Archive ${deletePatient?.profile?.full_name ?? 'this patient'}? Their medical history will be preserved for legal compliance, but they will no longer appear in active lists.`}
+      description={`Archive ${patientDisplayName(deletePatient)}? Their medical history will be preserved for legal compliance, but they will no longer appear in active lists.`}
       confirmLabel="Archive Patient"
       destructive
       requireReason
@@ -490,10 +530,18 @@ export default function AdminPatientsPage() {
                       <User className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-foreground">{selectedPatient.profile?.full_name}</h2>
+                      <h2 className="text-xl font-bold text-foreground">{patientDisplayName(selectedPatient)}</h2>
                       <p className="text-sm text-muted-foreground">
                         ID: {maskIdNumber(selectedPatient.id_number) ?? '—'}
                       </p>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        <span className="rounded-full border px-2 py-0.5 text-xs">
+                          {originBadgeLabel(selectedPatient.registration_source)}
+                        </span>
+                        <span className="rounded-full border px-2 py-0.5 text-xs">
+                          {portalBadgeLabel(selectedPatient.portal_status)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
@@ -535,37 +583,13 @@ export default function AdminPatientsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-shrink-0 items-center gap-2">
-                  {!selectedPatient.profile?.activated_at && (
-                    <Button
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          const result = await authApi.resendPatientActivation(
-                            selectedPatient.profile_id || selectedPatient.profile!.id
-                          );
-                          toast({
-                            title: 'Activation invitation resent',
-                            description: result.email_delivered
-                              ? 'Email sent.'
-                              : result.message,
-                          });
-                          if (result.uat_activation_url && navigator.clipboard) {
-                            await navigator.clipboard.writeText(result.uat_activation_url);
-                            toast({ title: 'UAT activation link copied' });
-                          }
-                        } catch (err) {
-                          toast({
-                            title: 'Resend failed',
-                            description: err instanceof Error ? err.message : 'Could not resend',
-                            variant: 'destructive',
-                          });
-                        }
-                      }}
-                    >
-                      Resend activation
-                    </Button>
-                  )}
+                <div className="flex flex-shrink-0 flex-wrap items-start justify-end gap-2">
+                  <PortalInviteActions
+                    patient={selectedPatient}
+                    busy={inviteBusy}
+                    onInvite={() => sendPortalInvite(selectedPatient, false)}
+                    onResend={() => sendPortalInvite(selectedPatient, true)}
+                  />
                   <Button onClick={() => openEdit(selectedPatient)}>
                     Edit Information
                   </Button>
@@ -782,15 +806,40 @@ export default function AdminPatientsPage() {
           }
         />
 
-        <div className="relative max-w-xl">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or ID number..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-            aria-label="Search patients"
-          />
+        <div className="flex flex-col gap-3">
+          <div className="relative max-w-xl">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or ID number..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+              aria-label="Search patients"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Select value={originFilter} onValueChange={(v) => setOriginFilter(v as OriginFilter)}>
+              <SelectTrigger className="w-[180px]" aria-label="Filter by origin">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Patients</SelectItem>
+                <SelectItem value="SELF_REGISTERED">Self-registered</SelectItem>
+                <SelectItem value="RECEPTION_CREATED">Reception-created</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={portalFilter} onValueChange={(v) => setPortalFilter(v as PortalFilter)}>
+              <SelectTrigger className="w-[180px]" aria-label="Filter by portal status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All portal statuses</SelectItem>
+                <SelectItem value="NO_PORTAL_ACCESS">No portal access</SelectItem>
+                <SelectItem value="INVITED">Invite sent</SelectItem>
+                <SelectItem value="ACTIVE">Portal active</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {loading ? (
@@ -816,12 +865,22 @@ export default function AdminPatientsPage() {
               return (
                 <PatientFolderCard
                   key={p.id}
-                  name={p.profile?.full_name ?? 'Unknown'}
+                  name={patientDisplayName(p)}
                   statusLabel={p.soft_deleted_at ? 'Archived' : 'Active'}
                   statusTone={p.soft_deleted_at ? 'neutral' : 'success'}
                   idLabel={`Patient ID: ${maskIdNumber(p.id_number) ?? '—'}`}
                   lastVisitLabel={`Last visit: ${lastVisit ? formatDate(lastVisit) : 'No visits'}`}
                   recordsLabel={`${pRecords.length} record${pRecords.length !== 1 ? 's' : ''}`}
+                  extraBadges={[
+                    {
+                      label: originBadgeLabel(p.registration_source),
+                      tone: p.registration_source === 'RECEPTION_CREATED' ? 'info' : 'primary',
+                    },
+                    {
+                      label: portalBadgeLabel(p.portal_status),
+                      tone: p.portal_status === 'ACTIVE' ? 'success' : p.portal_status === 'INVITED' ? 'warning' : 'neutral',
+                    },
+                  ]}
                   onClick={() => router.push(`/admin/patients?patient=${p.id}`)}
                 />
               );

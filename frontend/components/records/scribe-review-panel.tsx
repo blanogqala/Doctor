@@ -140,6 +140,16 @@ export function ScribeReviewPanel({
     if (decision !== 'pending') setEditingKey(null);
   };
 
+  const beginEdit = (key: ScribeFieldKey) => {
+    setEdits((prev) =>
+      prev[key] === undefined
+        ? { ...prev, [key]: formatSuggestion(key, suggestions) }
+        : prev
+    );
+    setDecisions((prev) => ({ ...prev, [key]: 'accepted' }));
+    setEditingKey(key);
+  };
+
   const handleApply = () => {
     const acceptedKeys = visibleFields
       .filter((f) => decisions[f.key] === 'accepted')
@@ -253,6 +263,7 @@ export function ScribeReviewPanel({
                         }
                         rows={4}
                         className="mb-2"
+                        autoFocus
                       />
                     ) : (
                       <Input
@@ -261,6 +272,7 @@ export function ScribeReviewPanel({
                           setEdits((prev) => ({ ...prev, [field.key]: e.target.value }))
                         }
                         className="mb-2"
+                        autoFocus
                       />
                     )
                   ) : (
@@ -282,19 +294,21 @@ export function ScribeReviewPanel({
                         type="button"
                         size="sm"
                         variant="outline"
-                        onClick={() => {
-                          setEditingKey(field.key);
-                          if (edits[field.key] === undefined) {
-                            setEdits((prev) => ({
-                              ...prev,
-                              [field.key]: formatSuggestion(field.key, suggestions),
-                            }));
-                          }
-                          setDecision(field.key, 'accepted');
-                        }}
+                        onClick={() =>
+                          isEditing ? setEditingKey(null) : beginEdit(field.key)
+                        }
                       >
-                        <Pencil className="mr-1 h-3.5 w-3.5" />
-                        Edit
+                        {isEditing ? (
+                          <>
+                            <Check className="mr-1 h-3.5 w-3.5" />
+                            Done
+                          </>
+                        ) : (
+                          <>
+                            <Pencil className="mr-1 h-3.5 w-3.5" />
+                            Edit
+                          </>
+                        )}
                       </Button>
                     )}
                     <Button

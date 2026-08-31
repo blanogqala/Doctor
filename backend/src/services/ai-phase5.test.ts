@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { parseScribeExtractionJson } from '../services/scribeExtractionSchema';
 import {
   normalizeExtraction,
@@ -18,6 +20,21 @@ describe('scribe LLM model configuration', () => {
   it('does not use deprecated llama-3.3-70b-versatile for extraction', () => {
     expect(resolveScribeLlmModel()).not.toBe('llama-3.3-70b-versatile');
     expect(SCRIBE_MODELS.llm).not.toBe('llama-3.3-70b-versatile');
+  });
+
+  it('clinical and referral letter drafts use the same current chat model', () => {
+    const clinical = readFileSync(
+      join(__dirname, '../services/clinicalLetterService.ts'),
+      'utf8'
+    );
+    const referral = readFileSync(
+      join(__dirname, '../services/referralLetterService.ts'),
+      'utf8'
+    );
+    expect(clinical).toContain('resolveScribeLlmModel()');
+    expect(referral).toContain('resolveScribeLlmModel()');
+    expect(clinical).not.toContain('llama-3.3-70b-versatile');
+    expect(referral).not.toContain('llama-3.3-70b-versatile');
   });
 
   it('keeps Whisper ASR model unchanged', () => {

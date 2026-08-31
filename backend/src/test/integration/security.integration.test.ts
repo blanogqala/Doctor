@@ -136,6 +136,8 @@ describe.skipIf(!RUN)('security integration (requires RUN_INTEGRATION=1 and DB)'
         patient: {
           create: {
             practiceId,
+            firstName: 'Security',
+            lastName: 'PatientB',
             assignedDoctorId: doctorRowId,
             medicalHistory: 'Hypertension',
             allergies: 'Penicillin',

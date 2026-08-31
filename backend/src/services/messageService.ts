@@ -2,6 +2,7 @@ import { AppointmentStatus, MessageType, UserRole } from '@prisma/client';
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { messageInclude } from '../utils/includes';
+import { joinPersonName } from '../utils/personName';
 import { safeProfileRelation } from '../utils/safeProfile';
 
 const ACTIVE_BOOKING_STATUSES: AppointmentStatus[] = [
@@ -19,9 +20,22 @@ type AppointmentWithRelations = {
   doctorId: string;
   scheduledAt: Date;
   status: AppointmentStatus;
-  patient: { id: string; profileId: string; profile: { id: string; fullName: string } };
+  patient: {
+    id: string;
+    profileId: string | null;
+    firstName?: string;
+    lastName?: string;
+    profile: { id: string; fullName: string } | null;
+  };
   doctor: { id: string; profile: { fullName: string } };
 };
+
+function patientLabel(patient: AppointmentWithRelations['patient']): string {
+  if (patient.firstName || patient.lastName) {
+    return joinPersonName(patient.firstName ?? '', patient.lastName ?? '');
+  }
+  return patient.profile?.fullName ?? 'Patient';
+}
 
 function formatApptWhen(scheduledAt: Date) {
   const date = scheduledAt.toLocaleDateString('en-ZA', {
@@ -105,21 +119,23 @@ export async function notifyAppointmentBooked(appointmentId: string) {
   const adminId = await getPrimaryAdminProfileId(practiceId);
   const patientProfileId = appointment.patient.profileId;
   const doctor = doctorLabel(appointment.doctor.profile.fullName);
-  const patientName = appointment.patient.profile.fullName;
+  const patientName = patientLabel(appointment.patient);
   const { date, time } = formatApptWhen(appointment.scheduledAt);
 
-  await sendSystemMessage({
-    practiceId,
-    senderId: adminId,
-    recipientId: patientProfileId,
-    patientId: appointment.patientId,
-    appointmentId: appointment.id,
-    body: `We have received your appointment request with ${doctor} on ${date} at ${time}. Please do not be late. The clinic will review and confirm whether it will be in-person or telemedicine.`,
-  });
+  if (patientProfileId) {
+    await sendSystemMessage({
+      practiceId,
+      senderId: adminId,
+      recipientId: patientProfileId,
+      patientId: appointment.patientId,
+      appointmentId: appointment.id,
+      body: `We have received your appointment request with ${doctor} on ${date} at ${time}. Please do not be late. The clinic will review and confirm whether it will be in-person or telemedicine.`,
+    });
+  }
 
   await sendSystemMessage({
     practiceId,
-    senderId: patientProfileId,
+    senderId: patientProfileId ?? adminId,
     recipientId: adminId,
     patientId: appointment.patientId,
     appointmentId: appointment.id,
@@ -137,22 +153,24 @@ export async function notifyAppointmentReminder(appointmentId: string) {
   const doctor = doctorLabel(appointment.doctor.profile.fullName);
   const { date, time } = formatApptWhen(appointment.scheduledAt);
 
-  await sendSystemMessage({
-    practiceId,
-    senderId: adminId,
-    recipientId: patientProfileId,
-    patientId: appointment.patientId,
-    appointmentId: appointment.id,
-    body: `Reminder: your appointment with ${doctor} is on ${date} at ${time} (in about 30 minutes). Please do not be late. If you miss the scheduled time, the appointment will be cancelled as a no-show. You can reschedule from Book Appointment if needed.`,
-  });
+  if (patientProfileId) {
+    await sendSystemMessage({
+      practiceId,
+      senderId: adminId,
+      recipientId: patientProfileId,
+      patientId: appointment.patientId,
+      appointmentId: appointment.id,
+      body: `Reminder: your appointment with ${doctor} is on ${date} at ${time} (in about 30 minutes). Please do not be late. If you miss the scheduled time, the appointment will be cancelled as a no-show. You can reschedule from Book Appointment if needed.`,
+    });
+  }
 
   await sendSystemMessage({
     practiceId,
-    senderId: patientProfileId,
+    senderId: patientProfileId ?? adminId,
     recipientId: adminId,
     patientId: appointment.patientId,
     appointmentId: appointment.id,
-    body: `Reminder sent: ${appointment.patient.profile.fullName} has an appointment with ${doctor} on ${date} at ${time} (about 30 minutes).`,
+    body: `Reminder sent: ${patientLabel(appointment.patient)} has an appointment with ${doctor} on ${date} at ${time} (about 30 minutes).`,
   });
 }
 
@@ -164,21 +182,23 @@ export async function notifyAppointmentNoShow(appointmentId: string) {
   const adminId = await getPrimaryAdminProfileId(practiceId);
   const patientProfileId = appointment.patient.profileId;
   const doctor = doctorLabel(appointment.doctor.profile.fullName);
-  const patientName = appointment.patient.profile.fullName;
+  const patientName = patientLabel(appointment.patient);
   const { date, time } = formatApptWhen(appointment.scheduledAt);
 
-  await sendSystemMessage({
-    practiceId,
-    senderId: adminId,
-    recipientId: patientProfileId,
-    patientId: appointment.patientId,
-    appointmentId: appointment.id,
-    body: `Your appointment with ${doctor} on ${date} at ${time} was cancelled because you did not show up. Please book a new time if you still need to be seen.`,
-  });
+  if (patientProfileId) {
+    await sendSystemMessage({
+      practiceId,
+      senderId: adminId,
+      recipientId: patientProfileId,
+      patientId: appointment.patientId,
+      appointmentId: appointment.id,
+      body: `Your appointment with ${doctor} on ${date} at ${time} was cancelled because you did not show up. Please book a new time if you still need to be seen.`,
+    });
+  }
 
   await sendSystemMessage({
     practiceId,
-    senderId: patientProfileId,
+    senderId: patientProfileId ?? adminId,
     recipientId: adminId,
     patientId: appointment.patientId,
     appointmentId: appointment.id,
@@ -244,20 +264,22 @@ export async function notifyCheckUpBooked(appointmentId: string, isTelemedicine:
   if (!doctorProfile) return;
 
   const doctor = doctorLabel(doctorProfile.profile.fullName);
-  const patientName = appointment.patient.profile.fullName;
+  const patientName = patientLabel(appointment.patient);
   const { date, time } = formatApptWhen(appointment.scheduledAt);
   const mode = isTelemedicine ? 'telemedicine (video)' : 'in-person';
 
-  await sendSystemMessage({
-    practiceId,
-    senderId: adminId,
-    recipientId: patientProfileId,
-    patientId: appointment.patientId,
-    appointmentId: appointment.id,
-    body: isTelemedicine
-      ? `A check-up appointment with ${doctor} was booked for ${date} at ${time} as ${mode}. Please confirm the video call or choose to come in person instead.`
-      : `A check-up appointment with ${doctor} was booked for ${date} at ${time} (${mode}). Please do not be late.`,
-  });
+  if (patientProfileId) {
+    await sendSystemMessage({
+      practiceId,
+      senderId: adminId,
+      recipientId: patientProfileId,
+      patientId: appointment.patientId,
+      appointmentId: appointment.id,
+      body: isTelemedicine
+        ? `A check-up appointment with ${doctor} was booked for ${date} at ${time} as ${mode}. Please confirm the video call or choose to come in person instead.`
+        : `A check-up appointment with ${doctor} was booked for ${date} at ${time} (${mode}). Please do not be late.`,
+    });
+  }
 
   await sendSystemMessage({
     practiceId,
@@ -284,7 +306,7 @@ export async function notifyTelemedicineDecision(
   });
   if (!doctorProfile) return;
 
-  const patientName = appointment.patient.profile.fullName;
+  const patientName = patientLabel(appointment.patient);
   const { date, time } = formatApptWhen(appointment.scheduledAt);
   const decisionText =
     decision === 'ACCEPTED_VIDEO'
@@ -292,10 +314,11 @@ export async function notifyTelemedicineDecision(
       : 'chose to switch the appointment to in-person';
 
   const body = `${patientName} ${decisionText} for the appointment on ${date} at ${time}.`;
+  const senderId = appointment.patient.profileId ?? adminId;
 
   await sendSystemMessage({
     practiceId,
-    senderId: appointment.patient.profileId,
+    senderId,
     recipientId: adminId,
     patientId: appointment.patientId,
     appointmentId: appointment.id,
@@ -304,7 +327,7 @@ export async function notifyTelemedicineDecision(
 
   await sendSystemMessage({
     practiceId,
-    senderId: appointment.patient.profileId,
+    senderId,
     recipientId: doctorProfile.profileId,
     patientId: appointment.patientId,
     appointmentId: appointment.id,

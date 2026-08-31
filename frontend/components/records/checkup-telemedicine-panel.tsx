@@ -11,6 +11,7 @@ import { useTelemedicineJoin } from '@/hooks/useTelemedicineJoin';
 import { useToast } from '@/hooks/use-toast';
 import { usePollingRefresh } from '@/lib/use-polling-refresh';
 import type { Appointment } from '@/lib/types';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import { PreCallDeviceCheck } from '@/components/telemedicine/pre-call-device-check';
 import { TelemedicineUnavailable } from '@/components/telemedicine/telemedicine-unavailable';
 import { Video, Loader2, ShieldCheck } from 'lucide-react';
@@ -73,9 +74,9 @@ export function CheckupTelemedicinePanel({
         appointmentId: liveAppt.id,
         patientId: liveAppt.patient_id,
         patientName:
-          liveAppt.patient?.profile?.full_name ??
-          appointment.patient?.profile?.full_name ??
-          'Patient',
+          patientDisplayName(liveAppt.patient) !== 'Unknown'
+            ? patientDisplayName(liveAppt.patient)
+            : patientDisplayName(appointment.patient),
         recordId,
         reason: liveAppt.reason,
       });

@@ -1,15 +1,31 @@
 import { z } from 'zod';
 
-export const appointmentCreateSchema = z.object({
-  doctor_id: z.string().uuid().optional(),
-  patient_id: z.string().uuid().optional(),
-  scheduled_at: z.string().min(1),
-  duration_minutes: z.coerce.number().int().min(5).max(480).optional(),
-  type: z.enum(['IN_PERSON', 'TELEMEDICINE']).optional(),
-  status: z.string().optional(),
-  reason: z.string().max(2000).nullable().optional(),
-  notes: z.string().max(5000).nullable().optional(),
-});
+export const appointmentCreateSchema = z
+  .object({
+    doctor_id: z.string().uuid().optional(),
+    patient_id: z.string().uuid().optional(),
+    new_patient: z
+      .object({
+        first_name: z.string().trim().min(1, 'First name is required'),
+        last_name: z.string().trim().min(1, 'Surname is required'),
+      })
+      .optional(),
+    scheduled_at: z.string().min(1),
+    duration_minutes: z.coerce.number().int().min(5).max(480).optional(),
+    type: z.enum(['IN_PERSON', 'TELEMEDICINE']).optional(),
+    status: z.string().optional(),
+    reason: z.string().max(2000).nullable().optional(),
+    notes: z.string().max(5000).nullable().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.patient_id && data.new_patient) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Provide patient_id or new_patient, not both',
+        path: ['new_patient'],
+      });
+    }
+  });
 
 export const appointmentUpdateSchema = z
   .object({
@@ -66,7 +82,10 @@ export const aiFieldProvenanceEntrySchema = z.object({
   model: z.string().max(200).optional(),
   generatedAt: z.string().optional(),
   acceptedAt: z.string().optional(),
-  acceptedByDoctorId: z.string().uuid().optional(),
+  acceptedByDoctorId: z.preprocess(
+    (value) => (value === '' || value === null ? undefined : value),
+    z.string().uuid().optional()
+  ),
   modifiedAfterAcceptance: z.boolean().optional(),
 });
 
@@ -96,7 +115,26 @@ export const medicalRecordCreateSchema = z.object({
   doctor_notes_private: z.unknown().optional(),
   prescriptions: z.array(z.record(z.unknown())).optional(),
   referrals: z.array(referralNestedSchema).optional(),
-  ai_field_provenance: aiFieldProvenanceMapSchema.optional(),
+  clinical_letters: z
+    .array(
+      z
+        .object({
+          document_type: z
+            .enum(['MEDICAL_CERTIFICATE', 'WORK_ATTENDANCE', 'SCHOOL_ATTENDANCE'])
+            .optional()
+            .default('MEDICAL_CERTIFICATE'),
+          absence_start: z.string().max(40).nullable().optional(),
+          absence_end: z.string().max(40).nullable().optional(),
+          restrictions: z.string().max(5000).nullable().optional(),
+          include_diagnosis: z.boolean().optional(),
+          doctor_notes: z.string().max(5000).nullable().optional(),
+          letter: z.string().max(20000).optional().default(''),
+          approved: z.boolean().optional(),
+        })
+        .passthrough()
+    )
+    .optional(),
+  ai_field_provenance: aiFieldProvenanceMapSchema.nullable().optional(),
 });
 
 export const medicalRecordUpdateSchema = medicalRecordCreateSchema

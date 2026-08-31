@@ -41,6 +41,7 @@ import {
   startConsultation,
 } from '@/lib/appointments/start-consultation';
 import { formatDate, formatTime } from '@/lib/format';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import { useToast } from '@/hooks/use-toast';
 import type { Appointment, MedicalRecord } from '@/lib/types';
 import {
@@ -157,7 +158,7 @@ export default function DoctorDashboard() {
       }
       toast({
         title: 'Consultation started',
-        description: `${appt.patient?.profile?.full_name ?? 'Patient'} is now in consultation.`,
+        description: `${patientDisplayName(appt.patient)} is now in consultation.`,
       });
       router.push(result.href);
     } finally {
@@ -249,7 +250,7 @@ export default function DoctorDashboard() {
                         {formatTime(nextPatient.scheduled_at)}
                       </p>
                       <h3 className="text-xl font-semibold tracking-tight text-foreground break-words">
-                        {nextPatient.patient?.profile?.full_name ?? 'Unknown patient'}
+                        {patientDisplayName(nextPatient.patient)}
                       </h3>
                       <p className="text-sm text-muted-foreground">
                         {nextPatient.reason?.trim() || 'No reason provided'}
@@ -313,7 +314,7 @@ export default function DoctorDashboard() {
                     <ScheduleRow
                       key={appt.id}
                       appointment={appt}
-                      primary={appt.patient?.profile?.full_name ?? 'Unknown patient'}
+                      primary={patientDisplayName(appt.patient)}
                       secondary={appt.reason?.trim() || undefined}
                       href={`/doctor/records?patient=${appt.patient_id}`}
                     />
@@ -359,7 +360,7 @@ export default function DoctorDashboard() {
                             className="flex items-center justify-between gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm transition-colors hover:bg-muted/40"
                           >
                             <span className="min-w-0 truncate font-medium">
-                              {rec.patient?.profile?.full_name ?? 'Patient'}
+                              {patientDisplayName(rec.patient)}
                             </span>
                             <span className="shrink-0 text-xs text-muted-foreground">
                               {formatDate(rec.record_date)}
@@ -429,7 +430,7 @@ export default function DoctorDashboard() {
                     >
                       <div className="min-w-0">
                         <p className="truncate font-medium text-foreground">
-                          {rec.patient?.profile?.full_name ?? 'Patient'}
+                          {patientDisplayName(rec.patient)}
                         </p>
                         <p className="text-xs text-muted-foreground">{formatDate(rec.record_date)}</p>
                       </div>

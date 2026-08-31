@@ -9,13 +9,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, FileText, Loader2, Printer } from 'lucide-react';
 import { aiApi } from '@/lib/api/ai';
 import { useToast } from '@/hooks/use-toast';
+import {
+  LetterDocumentActionsMenu,
+  buildLetterDocumentHtml,
+  openPrintWindow,
+} from '@/components/records/letter-document-actions';
+import type {
+  ClinicalLetterDocumentType,
+  ClinicalLetterSaveState,
+} from '@/lib/clinical/consultation-save-payload';
 
-export type ClinicalLetterDocumentType =
-  | 'MEDICAL_CERTIFICATE'
-  | 'WORK_ATTENDANCE'
-  | 'SCHOOL_ATTENDANCE';
+export type { ClinicalLetterDocumentType };
 
-const DOC_LABELS: Record<ClinicalLetterDocumentType, string> = {
+export const DOC_LABELS: Record<ClinicalLetterDocumentType, string> = {
   MEDICAL_CERTIFICATE: 'Medical certificate / sick note',
   WORK_ATTENDANCE: 'Work attendance letter',
   SCHOOL_ATTENDANCE: 'School / university attendance letter',
@@ -28,12 +34,10 @@ interface ClinicalLetterComposerProps {
   practiceName?: string | null;
   consultationDate?: string | null;
   diagnosisText?: string | null;
+  value: ClinicalLetterSaveState;
+  onChange: (next: ClinicalLetterSaveState) => void;
 }
 
-/**
- * Session-only clinical letter drafts. AI generates wording; doctor must Approve before print.
- * Not persisted (no Document Centre in Phase 5).
- */
 export function ClinicalLetterComposer({
   patientId,
   patientDisplayName,
@@ -41,18 +45,26 @@ export function ClinicalLetterComposer({
   practiceName,
   consultationDate,
   diagnosisText,
+  value,
+  onChange,
 }: ClinicalLetterComposerProps) {
   const { toast } = useToast();
-  const [documentType, setDocumentType] =
-    useState<ClinicalLetterDocumentType>('MEDICAL_CERTIFICATE');
-  const [absenceStart, setAbsenceStart] = useState('');
-  const [absenceEnd, setAbsenceEnd] = useState('');
-  const [restrictions, setRestrictions] = useState('');
-  const [includeDiagnosis, setIncludeDiagnosis] = useState(false);
-  const [doctorNotes, setDoctorNotes] = useState('');
-  const [letter, setLetter] = useState('');
-  const [approved, setApproved] = useState(false);
   const [generating, setGenerating] = useState(false);
+
+  const {
+    document_type: documentType,
+    absence_start: absenceStart,
+    absence_end: absenceEnd,
+    restrictions,
+    include_diagnosis: includeDiagnosis,
+    doctor_notes: doctorNotes,
+    letter,
+    approved,
+  } = value;
+
+  const patch = (partial: Partial<ClinicalLetterSaveState>) => {
+    onChange({ ...value, ...partial });
+  };
 
   const canGenerate = useMemo(() => {
     if (documentType === 'MEDICAL_CERTIFICATE') {
@@ -71,7 +83,7 @@ export function ClinicalLetterComposer({
       return;
     }
     setGenerating(true);
-    setApproved(false);
+    patch({ approved: false });
     try {
       const res = await aiApi.clinicalLetterDraft({
         patient_id: patientId,
@@ -87,10 +99,10 @@ export function ClinicalLetterComposer({
         diagnosis_text: includeDiagnosis ? diagnosisText ?? null : null,
         doctor_notes: doctorNotes || null,
       });
-      setLetter(res.letter);
+      onChange({ ...value, letter: res.letter, approved: false });
       toast({
         title: 'Draft ready for review',
-        description: 'AI created a draft. Edit as needed, then Approve document before printing.',
+        description: 'AI created a draft. Edit as needed, then Approve document before printing. Save the record to keep this letter.',
       });
     } catch (err) {
       toast({
@@ -105,10 +117,10 @@ export function ClinicalLetterComposer({
 
   const handleApprove = () => {
     if (!letter.trim()) return;
-    setApproved(true);
+    patch({ approved: true });
     toast({
       title: 'Document approved',
-      description: 'You may print or copy this letter. You remain responsible for the final content.',
+      description: 'You may print or copy this letter. Save the record to keep it on the patient folder.',
     });
   };
 
@@ -121,16 +133,22 @@ export function ClinicalLetterComposer({
       });
       return;
     }
-    const w = window.open('', '_blank');
-    if (!w) return;
-    w.document.write(
-      `<pre style="font-family:Georgia,serif;white-space:pre-wrap;padding:24px">${letter
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')}</pre>`
-    );
-    w.document.close();
-    w.print();
+    if (!letter.trim()) return;
+    try {
+      openPrintWindow(
+        buildLetterDocumentHtml({
+          documentTitle: DOC_LABELS[documentType],
+          patientDisplayName,
+          letter,
+        })
+      );
+    } catch (err) {
+      toast({
+        title: 'Print failed',
+        description: err instanceof Error ? err.message : 'Could not open print view',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -139,8 +157,9 @@ export function ClinicalLetterComposer({
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
           AI Clinical Assistant creates a <strong className="font-medium text-foreground">draft</strong> only.
-          You choose absence dates and restrictions. Approve document before print. Not saved to a
-          document library.
+          You choose absence dates and restrictions. Approve document before print. Use{' '}
+          <strong className="font-medium text-foreground">Save Changes</strong> to keep the letter on this
+          consultation.
         </p>
       </div>
 
@@ -149,10 +168,7 @@ export function ClinicalLetterComposer({
           <button
             key={type}
             type="button"
-            onClick={() => {
-              setDocumentType(type);
-              setApproved(false);
-            }}
+            onClick={() => patch({ document_type: type, approved: false })}
             className={`rounded-md border px-3 py-2 text-left text-sm ${
               documentType === type
                 ? 'border-foreground bg-muted'
@@ -172,10 +188,7 @@ export function ClinicalLetterComposer({
               id="absence-start"
               type="date"
               value={absenceStart}
-              onChange={(e) => {
-                setAbsenceStart(e.target.value);
-                setApproved(false);
-              }}
+              onChange={(e) => patch({ absence_start: e.target.value, approved: false })}
             />
           </div>
           <div className="space-y-1">
@@ -184,10 +197,7 @@ export function ClinicalLetterComposer({
               id="absence-end"
               type="date"
               value={absenceEnd}
-              onChange={(e) => {
-                setAbsenceEnd(e.target.value);
-                setApproved(false);
-              }}
+              onChange={(e) => patch({ absence_end: e.target.value, approved: false })}
             />
           </div>
           <div className="space-y-1 sm:col-span-2">
@@ -195,10 +205,7 @@ export function ClinicalLetterComposer({
             <Input
               id="restrictions"
               value={restrictions}
-              onChange={(e) => {
-                setRestrictions(e.target.value);
-                setApproved(false);
-              }}
+              onChange={(e) => patch({ restrictions: e.target.value, approved: false })}
               placeholder="e.g. Light duties only"
             />
           </div>
@@ -209,10 +216,7 @@ export function ClinicalLetterComposer({
         <Checkbox
           id="include-dx"
           checked={includeDiagnosis}
-          onCheckedChange={(v) => {
-            setIncludeDiagnosis(!!v);
-            setApproved(false);
-          }}
+          onCheckedChange={(v) => patch({ include_diagnosis: !!v, approved: false })}
         />
         <Label htmlFor="include-dx" className="text-sm font-normal leading-snug">
           Include diagnosis in the letter (only if clinically and legally appropriate)
@@ -224,17 +228,14 @@ export function ClinicalLetterComposer({
         <Textarea
           id="letter-notes"
           value={doctorNotes}
-          onChange={(e) => {
-            setDoctorNotes(e.target.value);
-            setApproved(false);
-          }}
+          onChange={(e) => patch({ doctor_notes: e.target.value, approved: false })}
           rows={2}
           placeholder="Optional context for wording only — AI will not invent clinical facts"
         />
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" onClick={handleGenerate} disabled={generating || !canGenerate}>
+        <Button type="button" onClick={() => void handleGenerate()} disabled={generating || !canGenerate}>
           {generating ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -262,19 +263,27 @@ export function ClinicalLetterComposer({
       </div>
 
       {letter && (
-        <div className="space-y-1">
-          <Label htmlFor="letter-body">
-            Draft letter {approved ? '(approved)' : '(edit before approve)'}
-          </Label>
+        <div className="overflow-hidden rounded-lg border bg-background">
+          <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
+            <Label htmlFor="letter-body" className="flex-1 text-sm">
+              Draft letter {approved ? '(approved)' : '(edit before approve)'}
+            </Label>
+            <LetterDocumentActionsMenu
+              letter={letter}
+              patientDisplayName={patientDisplayName}
+              documentTitle={DOC_LABELS[documentType]}
+              filenamePrefix="Clinical-Letter"
+              emailSubject={`${DOC_LABELS[documentType]}: ${patientDisplayName}`}
+              requireApproved
+              approved={approved}
+            />
+          </div>
           <Textarea
             id="letter-body"
             value={letter}
-            onChange={(e) => {
-              setLetter(e.target.value);
-              setApproved(false);
-            }}
+            onChange={(e) => patch({ letter: e.target.value, approved: false })}
             rows={12}
-            className="font-serif text-sm"
+            className="rounded-none border-0 font-serif text-sm focus-visible:ring-0"
           />
         </div>
       )}

@@ -1,16 +1,9 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Source_Sans_3 } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth-context';
 import { TenantProvider } from '@/lib/tenant';
 import { TelemedicineSessionProvider } from '@/lib/telemedicine-session-context';
 import { Toaster } from '@/components/ui/toaster';
-
-const sourceSans = Source_Sans_3({
-  subsets: ['latin'],
-  variable: '--font-source-sans',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: 'MedSpace',
@@ -25,7 +18,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${sourceSans.variable} font-sans`} suppressHydrationWarning>
+      <body className="font-sans" suppressHydrationWarning>
         <TenantProvider>
           <AuthProvider>
             <TelemedicineSessionProvider>

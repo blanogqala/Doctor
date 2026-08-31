@@ -167,6 +167,8 @@ describe.skipIf(!RUN)('Block 6 adversarial security (RUN_INTEGRATION=1)', () => 
         data: {
           practiceId,
           profileId: patientProfile.id,
+          firstName: `Block6`,
+          lastName: `Patient${label}`,
           idNumber: `B6${label}${Date.now().toString().slice(-8)}`,
           dateOfBirth: new Date('1990-01-01'),
           gender: 'UNKNOWN',
@@ -501,6 +503,35 @@ describe.skipIf(!RUN)('Block 6 adversarial security (RUN_INTEGRATION=1)', () => 
         .set('X-Tenant-Subdomain', subdomainA)
         .send({ chief_complaint: 'should not stick', autosave: true });
       expect([400, 409]).toContain(res.status);
+    });
+
+    it('finalized record allows referral-only PATCH', async () => {
+      const auth = await issuePracticeAuth({
+        profileId: doctorAProfileId,
+        practiceId: practiceAId,
+      });
+      const res = await request(app)
+        .patch(`/api/medical-records/${finalizedRecordAId}`)
+        .set('Cookie', auth.cookie)
+        .set('X-CSRF-Token', auth.csrf)
+        .set('X-Tenant-Subdomain', subdomainA)
+        .send({
+          referrals: [
+            {
+              referred_to: 'Dr P Mene',
+              specialty: 'Endocrinology',
+              reason: 'Referral',
+              urgency: 'ROUTINE',
+              referred_to_institution: 'Netcare',
+              referred_to_contact: 'mene@netcare.com',
+              clinical_summary: 'Please review glycaemic control.',
+            },
+          ],
+        });
+      expect(res.status).toBe(200);
+      expect(res.body.chief_complaint).toBe('B6 final complaint');
+      expect(res.body.referrals?.[0]?.referred_to).toBe('Dr P Mene');
+      expect(res.body.referrals?.[0]?.clinical_summary).toBe('Please review glycaemic control.');
     });
 
     it('autosave cannot finalize', async () => {

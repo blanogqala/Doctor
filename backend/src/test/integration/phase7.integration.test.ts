@@ -180,11 +180,13 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
       },
     });
     const patient = await prisma.patient.create({
-      data: {
-        practiceId,
-        profileId: patientProfile.id,
-        dateOfBirth: new Date('1990-01-01'),
-      },
+        data: {
+          practiceId,
+          profileId: patientProfile.id,
+          firstName: 'Phase72',
+          lastName: 'Patient',
+          dateOfBirth: new Date('1990-01-01'),
+        },
     });
     await prisma.appointment.create({
       data: {

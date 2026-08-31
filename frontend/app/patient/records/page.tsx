@@ -11,18 +11,14 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ErrorState } from '@/components/ds/error-state';
 import { ClinicalTimeline } from '@/components/records/clinical-timeline';
+import { ConsultationCard } from '@/components/records/consultation-card';
 import { PatientFolderSkeleton } from '@/components/records/patient-folder-skeleton';
 import { PatientFolderSectionNav } from '@/components/records/patient-folder-section-nav';
-import { RecordStatusBadge } from '@/components/records/record-status';
-import { StatusBadge } from '@/components/ds/status-badge';
 import { useToast } from '@/hooks/use-toast';
 import { medicalRecordsApi } from '@/lib/api/medical-records';
-import { formatDate } from '@/lib/format';
 import {
   buildConsultationTree,
   buildPatientFacingTimeline,
-  doctorDisplayName,
-  recordComplaintSummary,
   type ClinicalTimelineEvent,
 } from '@/lib/clinical/patient-folder';
 import type { MedicalRecord } from '@/lib/types';
@@ -146,62 +142,20 @@ export default function PatientRecordsPage() {
             <TabsContent value="consultations" className="mt-4 space-y-4">
               {consultationTree.map(({ parent, followUps }) => (
                 <div key={parent.id} className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => openRecord(parent.id)}
-                    className="w-full rounded-lg border border-border bg-card p-4 text-left shadow-sm transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-foreground">
-                        Consultation · {formatDate(parent.record_date, true)}
-                      </p>
-                      {parent.is_draft ? (
-                        <StatusBadge tone="info" label="Scheduled" />
-                      ) : (
-                        <RecordStatusBadge record={parent} />
-                      )}
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      with {doctorDisplayName(parent.doctor?.profile?.full_name)}
-                    </p>
-                    {!parent.is_draft && (
-                      <p className="mt-2 line-clamp-2 text-sm text-foreground">
-                        {recordComplaintSummary(parent)}
-                      </p>
-                    )}
-                    <span className="mt-3 inline-block text-sm font-medium text-primary">
-                      View
-                    </span>
-                  </button>
-
+                  <ConsultationCard
+                    record={parent}
+                    onOpen={() => openRecord(parent.id)}
+                  />
                   {followUps.length > 0 && (
                     <div className="ml-3 space-y-2 border-l-2 border-primary/40 pl-3 sm:ml-5">
+                      <p className="text-xs font-medium text-muted-foreground">Follow-ups</p>
                       {followUps.map((child) => (
-                        <button
+                        <ConsultationCard
                           key={child.id}
-                          type="button"
-                          onClick={() => openRecord(child.id)}
-                          className="w-full rounded-lg border border-border bg-card p-3 text-left shadow-sm transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-medium">
-                              Follow-up · {formatDate(child.record_date, true)}
-                            </p>
-                            {child.is_draft ? (
-                              <StatusBadge tone="info" label="Upcoming" />
-                            ) : (
-                              <RecordStatusBadge record={child} />
-                            )}
-                          </div>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            with {doctorDisplayName(child.doctor?.profile?.full_name)}
-                          </p>
-                          {child.is_draft && (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Notes will appear after your visit
-                            </p>
-                          )}
-                        </button>
+                          record={child}
+                          variant="follow_up"
+                          onOpen={() => openRecord(child.id)}
+                        />
                       ))}
                     </div>
                   )}

@@ -1,9 +1,9 @@
 import { env } from '../config/env';
 import { AppError } from '../middleware/errorHandler';
 import { groqFetch } from './groqClient';
+import { resolveScribeLlmModel } from './groqScribeService';
 
 const GROQ_BASE = 'https://api.groq.com/openai/v1';
-const LLM_MODEL = 'llama-3.3-70b-versatile';
 
 function requireGroqKey(): string {
   if (!env.GROQ_API_KEY) {
@@ -25,7 +25,7 @@ async function chatCompletion(system: string, user: string): Promise<string> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: LLM_MODEL,
+      model: resolveScribeLlmModel(),
       temperature: 0.2,
       response_format: { type: 'json_object' },
       messages: [

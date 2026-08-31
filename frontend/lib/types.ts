@@ -24,6 +24,22 @@ export type PaymentMethod = 'CASH' | 'EFT' | 'CARD' | 'MEDICAL_AID';
 /** Canonical contract — must match Prisma ReferralUrgency. */
 export type ReferralUrgency = 'ROUTINE' | 'URGENT';
 
+export type ClinicalLetterDocumentType =
+  | 'MEDICAL_CERTIFICATE'
+  | 'WORK_ATTENDANCE'
+  | 'SCHOOL_ATTENDANCE';
+
+export interface ClinicalLetterSaved {
+  document_type?: ClinicalLetterDocumentType | string;
+  absence_start?: string | null;
+  absence_end?: string | null;
+  restrictions?: string | null;
+  include_diagnosis?: boolean;
+  doctor_notes?: string | null;
+  letter?: string;
+  approved?: boolean;
+}
+
 export const REFERRAL_URGENCY_VALUES = ['ROUTINE', 'URGENT'] as const satisfies readonly ReferralUrgency[];
 
 export type ScribeTranscriptStatus = 'PROCESSING' | 'READY' | 'FAILED';
@@ -79,9 +95,20 @@ export interface Doctor {
   profile?: Profile;
 }
 
+export type PatientRegistrationSource = 'SELF_REGISTERED' | 'RECEPTION_CREATED';
+export type PatientPortalStatus = 'NO_PORTAL_ACCESS' | 'INVITED' | 'ACTIVE' | 'DISABLED';
+
 export interface Patient {
   id: string;
-  profile_id: string;
+  profile_id: string | null;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+  email?: string | null;
+  phone?: string | null;
+  registration_source?: PatientRegistrationSource;
+  portal_status?: PatientPortalStatus;
+  portal_invitation_sent_at?: string | null;
   id_number: string | null;
   id_number_last4: string | null;
   date_of_birth: string | null;
@@ -101,7 +128,7 @@ export interface Patient {
   soft_deleted_at: string | null;
   created_at: string;
   updated_at: string;
-  profile?: Profile;
+  profile?: Profile | null;
   assigned_doctor?: Doctor;
 }
 
@@ -217,6 +244,7 @@ export interface MedicalRecord {
   prescriptions?: Prescription[];
   amendments?: MedicalRecordAmendment[];
   referrals?: Referral[];
+  clinical_letters?: ClinicalLetterSaved[] | null;
 }
 
 export interface MedicalRecordAmendment {

@@ -17,13 +17,23 @@ import { formatDate } from '@/lib/format';
 import type { MedicalRecord } from '@/lib/types';
 
 interface ConsultationEvidenceProps {
-  record: MedicalRecord;
+  record?: MedicalRecord | null;
+  localAudio?: Blob | null;
+  localTranscript?: string | null;
 }
 
-export function ConsultationEvidence({ record }: ConsultationEvidenceProps) {
-  const hasAudio = !!record.has_scribe_recording;
-  const transcript = record.scribe_transcript?.trim() || '';
-  const warnings = Array.isArray(record.scribe_warnings) ? record.scribe_warnings : [];
+export function ConsultationEvidence({
+  record,
+  localAudio = null,
+  localTranscript = null,
+}: ConsultationEvidenceProps) {
+  const hasLocalAudio = !!localAudio;
+  const hasServerAudio = !!record?.has_scribe_recording;
+  const hasAudio = hasLocalAudio || hasServerAudio;
+  const transcript =
+    (localTranscript ?? record?.scribe_transcript)?.trim() || '';
+  const warnings =
+    record && Array.isArray(record.scribe_warnings) ? record.scribe_warnings : [];
 
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioLoading, setAudioLoading] = useState(false);
@@ -31,9 +41,25 @@ export function ConsultationEvidence({ record }: ConsultationEvidenceProps) {
   const [transcriptOpen, setTranscriptOpen] = useState(false);
 
   useEffect(() => {
-    if (!hasAudio) return;
     let revoked: string | null = null;
     let cancelled = false;
+
+    if (localAudio) {
+      const url = URL.createObjectURL(localAudio);
+      setAudioUrl(url);
+      setAudioLoading(false);
+      setAudioError(null);
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    }
+
+    if (!hasServerAudio || !record?.id) {
+      setAudioUrl(null);
+      setAudioLoading(false);
+      setAudioError(null);
+      return;
+    }
 
     setAudioLoading(true);
     setAudioError(null);
@@ -61,7 +87,7 @@ export function ConsultationEvidence({ record }: ConsultationEvidenceProps) {
       cancelled = true;
       if (revoked) URL.revokeObjectURL(revoked);
     };
-  }, [hasAudio, record.id]);
+  }, [localAudio, hasServerAudio, record?.id]);
 
   if (!hasAudio && !transcript) return null;
 
@@ -71,11 +97,11 @@ export function ConsultationEvidence({ record }: ConsultationEvidenceProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex flex-wrap items-center gap-2 text-sm">
             <Headphones className="h-4 w-4 text-primary" />
-            Consultation Transcript
+            Consultation recording
             <Badge variant="secondary" className="text-[10px] font-normal">
               Doctor only
             </Badge>
-            {record.scribe_status && (
+            {record?.scribe_status && (
               <Badge variant="outline" className="text-[10px] font-normal">
                 {record.scribe_status === 'READY'
                   ? 'Ready'
@@ -84,7 +110,7 @@ export function ConsultationEvidence({ record }: ConsultationEvidenceProps) {
                     : 'Processing'}
               </Badge>
             )}
-            {record.scribe_recorded_at && (
+            {record?.scribe_recorded_at && (
               <span className="text-xs font-normal text-muted-foreground">
                 Recorded {formatDate(record.scribe_recorded_at, true)}
               </span>
@@ -93,9 +119,10 @@ export function ConsultationEvidence({ record }: ConsultationEvidenceProps) {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            AI-generated transcription. Review against the consultation if needed. Secondary to the
+            Play the consultation back to recap. AI transcription is secondary to the
             clinical record — not a substitute for the doctor&apos;s finalized note.
-          </p>          {hasAudio && (
+          </p>
+          {hasAudio && (
             <div className="space-y-2">
               {audioLoading && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -120,7 +147,7 @@ export function ConsultationEvidence({ record }: ConsultationEvidenceProps) {
                 <FileText className="mr-2 h-4 w-4" />
                 View AI Transcript
               </Button>
-              {record.scribe_detected_language && (
+              {record?.scribe_detected_language && (
                 <Badge variant="outline" className="text-xs font-normal">
                   Language: {record.scribe_detected_language}
                 </Badge>

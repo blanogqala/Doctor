@@ -10,7 +10,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-source-sans)', 'system-ui', 'sans-serif'],
+        sans: ['Arial', 'Helvetica', 'sans-serif'],
         display: ['var(--font-playfair)', 'Georgia', 'serif'],
         marketing: ['var(--font-poppins)', 'system-ui', 'sans-serif'],
       },

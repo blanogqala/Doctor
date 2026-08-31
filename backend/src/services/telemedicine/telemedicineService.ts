@@ -12,6 +12,7 @@ import {
 import { liveKitProvider } from './livekitProvider';
 import type { TelemedicineProvider } from './types';
 import { safeProfileRelation } from '../../utils/safeProfile';
+import { joinPersonName } from '../../utils/personName';
 
 export function roomNameForAppointment(appointmentId: string): string {
   return `medspace-appt-${appointmentId}`;
@@ -77,7 +78,7 @@ export function evaluateJoinWindow(
 async function assertTelemedicineParticipant(
   userId: string,
   role: UserRole,
-  appointment: Appointment & { patient: { profileId: string; id: string }; doctor: { profileId: string; id: string } }
+  appointment: Appointment & { patient: { profileId: string | null; id: string }; doctor: { profileId: string; id: string } }
 ) {
   if (role === UserRole.ADMIN) {
     throw new AppError(403, 'Access denied');
@@ -172,6 +173,15 @@ function participantIdentity(role: UserRole, userId: string): string {
   return role === UserRole.DOCTOR ? `doctor:${userId}` : `patient:${userId}`;
 }
 
+function appointmentPatientName(appointment: {
+  patient: { firstName?: string; lastName?: string; profile?: { fullName: string } | null };
+}): string {
+  if (appointment.patient.firstName || appointment.patient.lastName) {
+    return joinPersonName(appointment.patient.firstName ?? '', appointment.patient.lastName ?? '');
+  }
+  return appointment.patient.profile?.fullName ?? 'Patient';
+}
+
 function participantDisplayName(
   role: UserRole,
   appointment: Awaited<ReturnType<typeof loadAppointment>>
@@ -179,7 +189,7 @@ function participantDisplayName(
   if (role === UserRole.DOCTOR) {
     return appointment.doctor.profile.fullName ?? 'Doctor';
   }
-  return appointment.patient.profile.fullName ?? 'Patient';
+  return appointmentPatientName(appointment);
 }
 
 export class TelemedicineService {
@@ -211,7 +221,7 @@ export class TelemedicineService {
         scheduledAt: appointment.scheduledAt.toISOString(),
         status: appointment.status,
         doctorName: appointment.doctor.profile.fullName,
-        patientName: appointment.patient.profile.fullName,
+        patientName: appointmentPatientName(appointment),
         doctorJoinedAt: appointment.doctorJoinedAt?.toISOString() ?? null,
         patientJoinedAt: appointment.patientJoinedAt?.toISOString() ?? null,
         telemedicineEndedAt: appointment.telemedicineEndedAt?.toISOString() ?? null,
@@ -368,7 +378,7 @@ export class TelemedicineService {
         scheduledAt: updated.scheduledAt.toISOString(),
         status: updated.status,
         doctorName: updated.doctor.profile.fullName,
-        patientName: updated.patient.profile.fullName,
+        patientName: appointmentPatientName(updated),
         doctorJoinedAt: updated.doctorJoinedAt?.toISOString() ?? null,
         patientJoinedAt: updated.patientJoinedAt?.toISOString() ?? null,
         telemedicineStartedAt: updated.telemedicineStartedAt?.toISOString() ?? null,

@@ -91,6 +91,7 @@ describe.skipIf(!RUN)('Block 3 patient activation (RUN_INTEGRATION=1)', () => {
   afterAll(async () => {
     try {
       for (const id of createdPracticeIds) {
+        await prisma.patientPortalInvitation.deleteMany({ where: { practiceId: id } });
         await prisma.patientActivationToken.deleteMany({ where: { practiceId: id } });
         await prisma.practiceSession.deleteMany({ where: { practiceId: id } });
         await prisma.patient.deleteMany({ where: { practiceId: id } });
@@ -102,41 +103,66 @@ describe.skipIf(!RUN)('Block 3 patient activation (RUN_INTEGRATION=1)', () => {
     }
   });
 
-  async function createPendingViaApi(email: string) {
+  async function createPendingProfile(email: string) {
+    const profile = await prisma.profile.create({
+      data: {
+        practiceId,
+        email,
+        fullName: 'Pending Patient',
+        role: UserRole.PATIENT,
+        passwordHash: await bcrypt.hash('UnusablePass123!', 10),
+        isActive: false,
+        activatedAt: null,
+        patient: {
+          create: {
+            practiceId,
+            firstName: 'Pending',
+            lastName: 'Patient',
+            email,
+            registrationSource: 'RECEPTION_CREATED',
+            portalStatus: 'INVITED',
+            gender: 'UNKNOWN',
+          },
+        },
+      },
+    });
+    const tokenRow = await prisma.patientActivationToken.create({
+      data: {
+        profileId: profile.id,
+        practiceId,
+        tokenHash: hashToken(`seed-${email}`),
+        expiresAt: new Date(Date.now() + PATIENT_ACTIVATION_TTL_MS),
+      },
+    });
+    return { profile, tokenRow };
+  }
+
+  it('Reception chart create does not issue a portal account or session', async () => {
     const res = await request(app)
-      .post('/api/auth/admin/create-patient')
+      .post('/api/patients')
       .set('Cookie', receptionAuth.cookie)
       .set('X-CSRF-Token', receptionAuth.csrf)
       .set('X-Tenant-Subdomain', subdomain)
-      .send({
-        email,
-        full_name: 'Pending Patient',
-        patient: { gender: 'UNKNOWN' },
-      });
+      .send({ first_name: 'Pending', last_name: 'Patient' });
     expect(res.status).toBe(201);
     expectNoSensitiveFields(res.body);
-    expect(res.body.temp_password).toBeUndefined();
-    expect(res.body.activation_issued).toBe(true);
-    expect(res.body.message).toMatch(/Activation invitation issued/i);
+    expect(res.body.profile_id).toBeNull();
+    expect(res.body.registration_source).toBe('RECEPTION_CREATED');
+    expect(res.body.portal_status).toBe('NO_PORTAL_ACCESS');
+    expect(res.body.csrf_token).toBeUndefined();
+    expect(res.body.activation_issued).toBeUndefined();
 
-    const profile = await prisma.profile.findFirstOrThrow({
-      where: { practiceId, email },
-    });
-    const tokenRow = await prisma.patientActivationToken.findFirstOrThrow({
-      where: { profileId: profile.id, usedAt: null },
-      orderBy: { createdAt: 'desc' },
-    });
-    return { res, profile, tokenRow };
-  }
+    const row = await prisma.patient.findFirstOrThrow({ where: { id: res.body.id } });
+    expect(row.profileId).toBeNull();
+  });
 
-  it('Reception create returns no password and stores hashed activation token', async () => {
+  it('legacy pending profile stores hashed activation token', async () => {
     const email = `pending-${suffix}@medspace.test`;
-    const { profile, tokenRow } = await createPendingViaApi(email);
+    const { profile, tokenRow } = await createPendingProfile(email);
 
     expect(profile.isActive).toBe(false);
     expect(profile.activatedAt).toBeNull();
     expect(tokenRow.tokenHash).toBeTruthy();
-    // Raw token is not in DB
     expect(tokenRow.tokenHash.length).toBeGreaterThan(20);
   });
 
@@ -147,7 +173,7 @@ describe.skipIf(!RUN)('Block 3 patient activation (RUN_INTEGRATION=1)', () => {
 
   it('rejects expired activation token', async () => {
     const email = `expired-${suffix}@medspace.test`;
-    const { profile } = await createPendingViaApi(email);
+    const { profile } = await createPendingProfile(email);
     const raw = 'expired-activation-token-value-xyz';
     await prisma.patientActivationToken.updateMany({
       where: { profileId: profile.id, usedAt: null },
@@ -168,7 +194,7 @@ describe.skipIf(!RUN)('Block 3 patient activation (RUN_INTEGRATION=1)', () => {
 
   it('rejects already-used activation token', async () => {
     const email = `used-${suffix}@medspace.test`;
-    const { profile } = await createPendingViaApi(email);
+    const { profile } = await createPendingProfile(email);
     const raw = 'used-activation-token-value-abcdef';
     await prisma.patientActivationToken.updateMany({
       where: { profileId: profile.id, usedAt: null },
@@ -190,7 +216,7 @@ describe.skipIf(!RUN)('Block 3 patient activation (RUN_INTEGRATION=1)', () => {
 
   it('resend invalidates old token and issues a new one', async () => {
     const email = `resend-${suffix}@medspace.test`;
-    const { profile } = await createPendingViaApi(email);
+    const { profile } = await createPendingProfile(email);
     const oldRaw = 'old-activation-token-before-resend-99';
     await prisma.patientActivationToken.updateMany({
       where: { profileId: profile.id, usedAt: null },
@@ -236,7 +262,7 @@ describe.skipIf(!RUN)('Block 3 patient activation (RUN_INTEGRATION=1)', () => {
 
   it('rejects activation under wrong tenant header', async () => {
     const email = `tenant-${suffix}@medspace.test`;
-    const { profile } = await createPendingViaApi(email);
+    const { profile } = await createPendingProfile(email);
     const raw = 'tenant-bound-activation-token-abcdef12';
     await prisma.patientActivationToken.updateMany({
       where: { profileId: profile.id, usedAt: null },
@@ -259,7 +285,7 @@ describe.skipIf(!RUN)('Block 3 patient activation (RUN_INTEGRATION=1)', () => {
 
   it('rejects weak password on accept', async () => {
     const email = `weakpw-${suffix}@medspace.test`;
-    const { profile } = await createPendingViaApi(email);
+    const { profile } = await createPendingProfile(email);
     const raw = 'weak-password-activation-token-xyz99';
     await prisma.patientActivationToken.updateMany({
       where: { profileId: profile.id, usedAt: null },
@@ -283,7 +309,7 @@ describe.skipIf(!RUN)('Block 3 patient activation (RUN_INTEGRATION=1)', () => {
 
   it('activates patient, allows login, and rejects token reuse', async () => {
     const email = `activate-${suffix}@medspace.test`;
-    const { profile } = await createPendingViaApi(email);
+    const { profile } = await createPendingProfile(email);
     const raw = 'valid-activation-token-for-login-test99';
     await prisma.patientActivationToken.updateMany({
       where: { profileId: profile.id, usedAt: null },
@@ -327,7 +353,7 @@ describe.skipIf(!RUN)('Block 3 patient activation (RUN_INTEGRATION=1)', () => {
 
   it('pending patient cannot login before activation', async () => {
     const email = `nologin-${suffix}@medspace.test`;
-    await createPendingViaApi(email);
+    await createPendingProfile(email);
     const login = await request(app)
       .post('/api/auth/login')
       .set('X-Tenant-Subdomain', subdomain)

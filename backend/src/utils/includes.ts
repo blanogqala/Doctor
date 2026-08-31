@@ -3,6 +3,11 @@ import { safeProfileRelation } from './safeProfile';
 export const patientInclude = {
   profile: safeProfileRelation,
   assignedDoctor: { include: { profile: safeProfileRelation } },
+  portalInvitations: {
+    orderBy: { createdAt: 'desc' as const },
+    take: 5,
+    select: { createdAt: true, usedAt: true, revokedAt: true },
+  },
 } as const;
 
 export const doctorInclude = {

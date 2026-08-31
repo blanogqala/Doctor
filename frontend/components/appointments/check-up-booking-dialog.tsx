@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { SlotPicker } from '@/components/shared/slot-picker';
 import { useToast } from '@/hooks/use-toast';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import { appointmentsApi } from '@/lib/api/appointments';
 import type { AppointmentType, Doctor, MedicalRecord, Patient } from '@/lib/types';
 import { Building2, Loader2, Video } from 'lucide-react';
@@ -127,7 +128,7 @@ export function CheckUpBookingDialog({
           <DialogTitle>Book Check-up</DialogTitle>
           <DialogDescription>
             Book a check-up appointment linked to this visit for{' '}
-            {patient.profile?.full_name ?? 'the patient'}
+            {patientDisplayName(patient)}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -135,11 +136,9 @@ export function CheckUpBookingDialog({
             <Label>Patient *</Label>
             <Input
               value={
-                patient.profile?.full_name
-                  ? `${patient.profile.full_name}${
-                      patient.id_number_last4 ? ` (...${patient.id_number_last4})` : ''
-                    }`
-                  : 'Unknown'
+                `${patientDisplayName(patient)}${
+                  patient.id_number_last4 ? ` (...${patient.id_number_last4})` : ''
+                }`
               }
               disabled
               className="bg-muted/50"

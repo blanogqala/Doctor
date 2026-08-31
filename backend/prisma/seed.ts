@@ -133,6 +133,12 @@ const accounts = [
     fullName: 'Lindiwe Dlamini',
     phone: '+27 84 987 6543',
     patient: {
+      firstName: 'Lindiwe',
+      lastName: 'Dlamini',
+      email: 'patient@ecdoctor.co.za',
+      phone: '+27 84 987 6543',
+      registrationSource: 'SELF_REGISTERED' as const,
+      portalStatus: 'ACTIVE' as const,
       idNumber: '9001015800085',
       idNumberLast4: '0085',
       gender: 'FEMALE' as const,

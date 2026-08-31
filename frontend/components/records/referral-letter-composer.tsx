@@ -5,32 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { LetterDocumentActionsMenu, extractEmail } from '@/components/records/letter-document-actions';
 import { useToast } from '@/hooks/use-toast';
 import { aiApi } from '@/lib/api/ai';
 import { cn } from '@/lib/utils';
-import {
-  Copy,
-  FileDown,
-  FileText,
-  Loader2,
-  Mail,
-  MoreHorizontal,
-  Printer,
-  Sparkles,
-  Undo2,
-  Wand2,
-} from 'lucide-react';
-
-const MAILTO_SAFE_LEN = 1800;
+import { Loader2, Sparkles, Undo2, Wand2 } from 'lucide-react';
 
 const URGENCY_LABELS: Record<string, string> = {
   ROUTINE: 'Routine — within 2–4 weeks',
@@ -102,109 +81,6 @@ export interface ReferralLetterComposerProps {
   referringDoctor?: ReferralLetterReferringDoctor;
   patientContext?: ReferralLetterPatientContext;
   className?: string;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function buildLetterDocumentHtml(params: {
-  patientDisplayName: string;
-  referredTo?: string;
-  urgency?: string;
-  reason?: string;
-  letter: string;
-}): string {
-  const body = escapeHtml(params.letter).replace(/\n/g, '<br/>');
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Referral Letter — ${escapeHtml(params.patientDisplayName)}</title>
-  <style>
-    body { font-family: Georgia, 'Times New Roman', serif; color: #111; max-width: 720px; margin: 40px auto; padding: 0 24px; line-height: 1.55; }
-    h1 { font-size: 20px; margin: 0 0 8px; }
-    .meta { color: #444; font-size: 13px; margin-bottom: 24px; }
-    .letter { white-space: pre-wrap; font-size: 14px; }
-    @media print { body { margin: 16px; } }
-  </style>
-</head>
-<body>
-  <h1>Referral Letter</h1>
-  <div class="meta">
-    <div><strong>Patient:</strong> ${escapeHtml(params.patientDisplayName)}</div>
-    ${params.referredTo ? `<div><strong>Referred to:</strong> ${escapeHtml(params.referredTo)}</div>` : ''}
-    ${params.urgency ? `<div><strong>Urgency:</strong> ${escapeHtml(params.urgency)}</div>` : ''}
-    ${params.reason ? `<div><strong>Subject:</strong> ${escapeHtml(params.reason)}</div>` : ''}
-  </div>
-  <div class="letter">${body}</div>
-</body>
-</html>`;
-}
-
-function openPrintWindow(html: string) {
-  const win = window.open('', '_blank', 'noopener,noreferrer,width=800,height=900');
-  if (!win) {
-    throw new Error('Pop-up blocked. Allow pop-ups to print or export PDF.');
-  }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => {
-    win.print();
-  }, 250);
-}
-
-function downloadWordDoc(params: {
-  patientDisplayName: string;
-  referredTo?: string;
-  urgency?: string;
-  reason?: string;
-  letter: string;
-}) {
-  const paragraphs = escapeHtml(params.letter)
-    .split(/\n/)
-    .map((line) => `<p>${line || '&nbsp;'}</p>`)
-    .join('');
-
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
-xmlns:w="urn:schemas-microsoft-com:office:word"
-xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="utf-8"><title>Referral Letter</title></head>
-<body>
-  <h2>Referral Letter</h2>
-  <p><strong>Patient:</strong> ${escapeHtml(params.patientDisplayName)}</p>
-  ${params.referredTo ? `<p><strong>Referred to:</strong> ${escapeHtml(params.referredTo)}</p>` : ''}
-  ${params.urgency ? `<p><strong>Urgency:</strong> ${escapeHtml(params.urgency)}</p>` : ''}
-  ${params.reason ? `<p><strong>Subject:</strong> ${escapeHtml(params.reason)}</p>` : ''}
-  <hr/>
-  ${paragraphs}
-</body>
-</html>`;
-
-  const blob = new Blob(['\ufeff', html], {
-    type: 'application/msword',
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const safeName = params.patientDisplayName.replace(/[^\w\- ]+/g, '').trim() || 'Patient';
-  a.href = url;
-  a.download = `Referral-Letter-${safeName}.doc`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-function extractEmail(contact?: string): string {
-  if (!contact) return '';
-  const match = contact.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-  return match ? match[0] : '';
 }
 
 export function ReferralLetterComposer({
@@ -342,111 +218,8 @@ export function ReferralLetterComposer({
     }
   };
 
-  const handleCopy = async () => {
-    if (!letter.trim()) {
-      toast({ title: 'Nothing to copy', variant: 'destructive' });
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(letter);
-      toast({ title: 'Copied', description: 'Referral letter copied to clipboard.' });
-    } catch {
-      toast({
-        title: 'Copy failed',
-        description: 'Clipboard access was denied.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleMailto = () => {
-    if (!letter.trim()) {
-      toast({ title: 'Nothing to email', variant: 'destructive' });
-      return;
-    }
-    const to = extractEmail(referralMeta.contact);
-    const urgency =
-      urgencyLabelFor(referralMeta.urgency) || referralMeta.urgency || 'ROUTINE';
-    const subject = `Referral: ${patientDisplayName} — ${urgency}`;
-    let body = letter;
-    if (body.length > MAILTO_SAFE_LEN) {
-      body = `${body.slice(0, MAILTO_SAFE_LEN)}\n\n[Letter truncated for email — use Copy all text for the full letter.]`;
-      toast({
-        title: 'Letter truncated for email',
-        description: 'Use Copy all text if the specialist needs the full body.',
-      });
-    }
-    const href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = href;
-  };
-
-  const letterHtml = () =>
-    buildLetterDocumentHtml({
-      patientDisplayName,
-      referredTo: referralMeta.referred_to,
-      urgency: urgencyLabelFor(referralMeta.urgency) || referralMeta.urgency,
-      reason: reason || undefined,
-      letter,
-    });
-
-  const handlePrint = () => {
-    if (!letter.trim()) {
-      toast({ title: 'Nothing to print', variant: 'destructive' });
-      return;
-    }
-    try {
-      openPrintWindow(letterHtml());
-    } catch (err) {
-      toast({
-        title: 'Print failed',
-        description: err instanceof Error ? err.message : 'Could not open print view',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleExportPdf = () => {
-    if (!letter.trim()) {
-      toast({ title: 'Nothing to export', variant: 'destructive' });
-      return;
-    }
-    try {
-      openPrintWindow(letterHtml());
-      toast({
-        title: 'Save as PDF',
-        description: 'In the print dialog, choose “Save as PDF” or “Microsoft Print to PDF”.',
-      });
-    } catch (err) {
-      toast({
-        title: 'Export failed',
-        description: err instanceof Error ? err.message : 'Could not open print view',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleExportWord = () => {
-    if (!letter.trim()) {
-      toast({ title: 'Nothing to export', variant: 'destructive' });
-      return;
-    }
-    try {
-      downloadWordDoc({
-        patientDisplayName,
-        referredTo: referralMeta.referred_to,
-        urgency: urgencyLabelFor(referralMeta.urgency) || referralMeta.urgency,
-        reason: reason || undefined,
-        letter,
-      });
-      toast({ title: 'Word download started' });
-    } catch (err) {
-      toast({
-        title: 'Export failed',
-        description: err instanceof Error ? err.message : 'Could not download Word file',
-        variant: 'destructive',
-      });
-    }
-  };
+  const urgency =
+    urgencyLabelFor(referralMeta.urgency) || referralMeta.urgency || 'ROUTINE';
 
   return (
     <div className={cn('space-y-3', className)}>
@@ -505,44 +278,18 @@ export function ReferralLetterComposer({
             </Button>
           )}
           <div className="ml-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={busy}>
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">More</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={handleCopy}>
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copy all text
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleMailto}>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Email to
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handlePrint}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  Print
-                </DropdownMenuItem>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <FileDown className="mr-2 h-4 w-4" />
-                    Export as
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuItem onClick={handleExportPdf}>
-                      <FileText className="mr-2 h-4 w-4" />
-                      PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleExportWord}>
-                      <FileText className="mr-2 h-4 w-4" />
-                      Word
-                    </DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <LetterDocumentActionsMenu
+              letter={letter}
+              patientDisplayName={patientDisplayName}
+              documentTitle="Referral Letter"
+              filenamePrefix="Referral-Letter"
+              emailTo={extractEmail(referralMeta.contact)}
+              emailSubject={`Referral: ${patientDisplayName} — ${urgency}`}
+              referredTo={referralMeta.referred_to}
+              urgency={urgencyLabelFor(referralMeta.urgency) || referralMeta.urgency}
+              reason={reason || undefined}
+              disabled={busy}
+            />
           </div>
         </div>
 

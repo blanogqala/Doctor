@@ -22,6 +22,7 @@ import { medicalRecordsApi } from '@/lib/api/medical-records';
 import { patientsApi } from '@/lib/api/patients';
 import { formatDate } from '@/lib/format';
 import { maskIdNumber } from '@/lib/format';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import type { Patient, Doctor, ReferralUrgency } from '@/lib/types';
 import {
   ArrowLeft, Pill, ArrowRightLeft, CheckCircle, Mic, Square,
@@ -38,6 +39,7 @@ import {
   type ScribeFieldKey,
 } from '@/components/records/scribe-review-panel';
 import { ClinicalNotesEditor } from '@/components/records/clinical-notes-editor';
+import { ConsultationEvidence } from '@/components/records/consultation-evidence';
 import { ReferralLetterComposer } from '@/components/records/referral-letter-composer';
 import { ClinicalLetterComposer } from '@/components/records/clinical-letter-composer';
 import { useConsultationRecorder } from '@/hooks/useConsultationRecorder';
@@ -58,11 +60,17 @@ import {
   type AiFieldProvenanceMap,
   type MergeableSuggestions,
 } from '@/lib/ai-merge';
-import { buildConsultationSavePayload, type MedicationSaveItem } from '@/lib/clinical/consultation-save-payload';
+import { buildConsultationSavePayload, emptyClinicalLetterSave, type MedicationSaveItem } from '@/lib/clinical/consultation-save-payload';
 import {
   autosaveStatusLabel,
   useConsultationAutosave,
 } from '@/lib/clinical/use-consultation-autosave';
+import {
+  hasPendingRecordingWithoutConsent,
+  persistConsultationRecording,
+  saveConsultationWithRecording,
+  type PendingConsultationRecording,
+} from '@/lib/clinical/persist-consultation-recording';
 import {
   clearLegacyClinicalDraft,
   legacyClinicalDraftKey,
@@ -166,8 +174,10 @@ export default function NewClinicalNotePage() {
   const [activeTab, setActiveTab] = useState('clinical');
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [dirtySeq, setDirtySeq] = useState(0);
   const [draftRecordId, setDraftRecordId] = useState<string | null>(null);
   const [draftInitialized, setDraftInitialized] = useState(false);
+  const [loadedRecord, setLoadedRecord] = useState<MedicalRecord | null>(null);
   const appointmentId = searchParams.get('appointment') ?? searchParams.get('appointment_id');
 
   // AI Scribe state
@@ -203,6 +213,7 @@ export default function NewClinicalNotePage() {
     reason: '', urgency: 'ROUTINE' as ReferralUrgency,
     clinical_summary: '', specific_questions: '',
   });
+  const [clinicalLetter, setClinicalLetter] = useState(emptyClinicalLetterSave());
 
   const buildSavePayload = useCallback(
     (options?: { isDraft?: boolean; autosave?: boolean; expectedUpdatedAt?: string | null }) => {
@@ -213,6 +224,7 @@ export default function NewClinicalNotePage() {
         privateNotes,
         medications: medications as MedicationSaveItem[],
         referral,
+        clinicalLetter,
         aiProvenance,
         appointmentId,
         isDraft: options?.isDraft,
@@ -220,7 +232,7 @@ export default function NewClinicalNotePage() {
         expectedUpdatedAt: options?.expectedUpdatedAt,
       });
     },
-    [patient, clinical, privateNotes, medications, referral, aiProvenance, appointmentId]
+    [patient, clinical, privateNotes, medications, referral, clinicalLetter, aiProvenance, appointmentId]
   );
 
   const applyFormState = useCallback((state: ReturnType<typeof medicalRecordToFormState>) => {
@@ -228,6 +240,7 @@ export default function NewClinicalNotePage() {
     setPrivateNotes(state.privateNotes);
     setMedications(state.medications as MedicationItem[]);
     setReferral(state.referral);
+    setClinicalLetter(state.clinicalLetter);
     setAiProvenance(state.aiProvenance);
     setAiSourcedFields(
       new Set(
@@ -258,6 +271,7 @@ export default function NewClinicalNotePage() {
           const rec = drafts[0];
           applyFormState(medicalRecordToFormState(rec));
           setDraftRecordId(rec.id);
+          setLoadedRecord(rec);
           expectedUpdatedAtSetterRef.current(rec.updated_at);
           setDraftInitialized(true);
           return;
@@ -307,15 +321,18 @@ export default function NewClinicalNotePage() {
     recordId: draftRecordId,
     enabled: draftInitialized && Boolean(patient) && Boolean(user?.doctor?.id),
     hasChanges,
+    dirtySeq,
     buildPayload: () => buildSavePayload({ autosave: true }),
     onRecordCreated: (record: MedicalRecord) => {
       setDraftRecordId(record.id);
+      setLoadedRecord(record);
       clearLegacyClinicalDraft(String(params.patientId));
     },
     onServerRecordLoaded: (record) => {
       applyFormState(medicalRecordToFormState(record));
       setHasChanges(false);
     },
+    onSaved: () => setHasChanges(false),
   });
 
   expectedUpdatedAtSetterRef.current = autosave.setExpectedUpdatedAt;
@@ -346,7 +363,10 @@ export default function NewClinicalNotePage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [hasChanges]);
 
-  const markChanged = () => setHasChanges(true);
+  const markChanged = () => {
+    setDirtySeq((n) => n + 1);
+    setHasChanges(true);
+  };
 
   const updateClinical = (patch: Partial<ClinicalForm>, options?: { fromAi?: boolean; aiKeys?: string[] }) => {
     setClinical((prev) => ({ ...prev, ...patch }));
@@ -445,6 +465,39 @@ export default function NewClinicalNotePage() {
       setScribeResolved(false);
       setScribePhase('review');
       setReviewOpen(true);
+
+      if (draftRecordId) {
+        const pending: PendingConsultationRecording = {
+          audioBlob: blob,
+          aiTranscript: result.transcript,
+          consentId,
+          detectedLanguage: result.detectedLanguage,
+          aiWarnings: result.warnings || [],
+          aiConfidence: result.confidenceScores || {},
+        };
+        autosave.setPaused(true);
+        await autosave.waitUntilIdle();
+        try {
+          const updated = await persistConsultationRecording(draftRecordId, pending);
+          autosave.setExpectedUpdatedAt(updated.updated_at);
+          setLoadedRecord(updated);
+          toast({
+            title: 'Recording saved',
+            description: 'Consultation audio and transcript stored with this draft.',
+          });
+        } catch (uploadErr) {
+          toast({
+            title: 'Recording not saved yet',
+            description:
+              uploadErr instanceof Error
+                ? `${uploadErr.message} It will retry when you save.`
+                : 'Upload failed. It will retry when you save.',
+            variant: 'destructive',
+          });
+        } finally {
+          autosave.setPaused(false);
+        }
+      }
     } catch (err) {
       setScribePhase('idle');
       toast({
@@ -597,40 +650,43 @@ export default function NewClinicalNotePage() {
     if (!user?.doctor?.id || !patient) return;
     setSaving(true);
 
+    const pending: PendingConsultationRecording = {
+      audioBlob,
+      aiTranscript,
+      consentId,
+      detectedLanguage,
+      aiWarnings,
+      aiConfidence,
+    };
+
     try {
-      const payload = buildSavePayload({ isDraft });
+      const { record: data, recordingSaved, uploadFailed } = await saveConsultationWithRecording({
+        finalize: !isDraft,
+        pending,
+        saveRecord: async (draft) => {
+          const payload = buildSavePayload({ isDraft: draft });
+          if (draftRecordId) {
+            return medicalRecordsApi.update(draftRecordId, payload);
+          }
+          const created = await medicalRecordsApi.create(payload);
+          setDraftRecordId(created.id);
+          return created;
+        },
+      });
 
-      let data: MedicalRecord;
-      if (draftRecordId) {
-        data = await medicalRecordsApi.update(draftRecordId, payload);
-      } else {
-        data = await medicalRecordsApi.create(payload);
-        setDraftRecordId(data.id);
-      }
-
-      if (audioBlob && aiTranscript && consentId) {
-        try {
-          await medicalRecordsApi.uploadConsultationRecording({
-            recordId: data.id,
-            audio: audioBlob,
-            transcript: aiTranscript,
-            consentId,
-            detectedLanguage,
-            warnings: aiWarnings,
-            confidence: aiConfidence,
-            filename: `consultation-${data.id}.webm`,
-          });
-        } catch (uploadErr) {
-          toast({
-            title: 'Record saved, but recording upload failed',
-            description:
-              uploadErr instanceof Error
-                ? uploadErr.message
-                : 'Clinical note was saved without the consultation audio.',
-            variant: 'destructive',
-          });
+      if (uploadFailed) {
+        toast({
+          title: isDraft ? 'Draft saved, but recording upload failed' : 'Could not save recording',
+          description: isDraft
+            ? 'Clinical note was saved without the consultation audio.'
+            : 'The record remains a draft. Fix the issue and try completing again.',
+          variant: 'destructive',
+        });
+        if (!isDraft) {
+          setSaving(false);
+          return;
         }
-      } else if (audioBlob && aiTranscript && !consentId) {
+      } else if (hasPendingRecordingWithoutConsent(pending)) {
         toast({
           title: 'Record saved without recording',
           description: 'Consent id missing; consultation audio was not uploaded.',
@@ -647,20 +703,23 @@ export default function NewClinicalNotePage() {
           is_draft: isDraft,
           has_prescriptions: medications.length > 0,
           has_referral: !!referral.referred_to,
-          has_scribe_recording: !!(audioBlob && aiTranscript),
+          has_scribe_recording: recordingSaved || !!data.has_scribe_recording,
         },
       });
 
       clearLegacyClinicalDraft(String(params.patientId));
       setHasChanges(false);
       autosave.setExpectedUpdatedAt(data.updated_at);
+      setLoadedRecord(data);
       setSaving(false);
 
       toast({
         title: isDraft ? 'Draft saved' : 'Record completed',
         description: isDraft
-          ? 'You can continue editing later.'
-          : audioBlob && aiTranscript
+          ? recordingSaved || data.has_scribe_recording
+            ? 'Draft and consultation recording saved. You can continue editing later.'
+            : 'You can continue editing later.'
+          : recordingSaved || data.has_scribe_recording
             ? 'Clinical note, recording, and AI transcript saved.'
             : 'Clinical note, prescriptions, and referral saved.',
       });
@@ -707,7 +766,7 @@ export default function NewClinicalNotePage() {
   }
 
   const doctorName = doctor?.profile?.full_name ?? 'Unknown Doctor';
-  const patientName = patient.profile?.full_name ?? 'Unknown Patient';
+  const patientName = patientDisplayName(patient);
   const patientAge = patient.date_of_birth
     ? `${Math.floor((Date.now() - new Date(patient.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} years`
     : '—';
@@ -858,6 +917,11 @@ export default function NewClinicalNotePage() {
 
           {/* ─── TAB 1: Clinical Notes ─── */}
           <TabsContent value="clinical" className="mt-4 space-y-4 print:hidden">
+            <ConsultationEvidence
+              record={loadedRecord}
+              localAudio={audioBlob}
+              localTranscript={aiTranscript}
+            />
             <ClinicalNotesEditor
               value={clinical}
               onChange={(patch) => updateClinical(patch)}
@@ -1166,7 +1230,7 @@ export default function NewClinicalNotePage() {
               </TabsContent>
 
               <TabsContent value="other-letters" className="mt-0">
-                <SectionCard title="D. Clinical letters (session draft)" icon={<FileText className="h-4 w-4" />}>
+                <SectionCard title="D. Clinical letters" icon={<FileText className="h-4 w-4" />}>
                   <ClinicalLetterComposer
                     patientId={patient.id}
                     patientDisplayName={patientName}
@@ -1174,6 +1238,11 @@ export default function NewClinicalNotePage() {
                     practiceName={doctor?.practice_name || null}
                     consultationDate={new Date().toISOString().slice(0, 10)}
                     diagnosisText={clinical.primary_diagnosis || null}
+                    value={clinicalLetter}
+                    onChange={(next) => {
+                      setClinicalLetter(next);
+                      markChanged();
+                    }}
                   />
                 </SectionCard>
               </TabsContent>

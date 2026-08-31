@@ -1,5 +1,6 @@
 import { UserRole } from '@prisma/client';
 import { toSafeProfile } from './safeProfile';
+import { joinPersonName } from './personName';
 
 type DoctorLike = {
   id: string;
@@ -20,7 +21,13 @@ type DoctorLike = {
 
 type PatientLike = {
   id: string;
-  profileId: string;
+  profileId: string | null;
+  firstName?: string;
+  lastName?: string;
+  email?: string | null;
+  phone?: string | null;
+  registrationSource?: string;
+  portalStatus?: string;
   idNumber: string | null;
   idNumberLast4: string | null;
   dateOfBirth: Date | null;
@@ -40,8 +47,9 @@ type PatientLike = {
   softDeletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  profile?: Parameters<typeof toSafeProfile>[0];
+  profile?: Parameters<typeof toSafeProfile>[0] | null;
   assignedDoctor?: DoctorLike;
+  portalInvitations?: Array<{ createdAt: Date; usedAt: Date | null; revokedAt: Date | null }>;
 } | null;
 
 function toDoctorSummary(doctor: DoctorLike) {
@@ -52,11 +60,31 @@ function toDoctorSummary(doctor: DoctorLike) {
   };
 }
 
+function latestInviteAt(patient: NonNullable<PatientLike>): Date | null {
+  const invites = patient.portalInvitations;
+  if (!invites?.length) return null;
+  const open = invites.filter((i) => !i.usedAt && !i.revokedAt);
+  const pool = open.length ? open : invites;
+  return pool.reduce<Date | null>((latest, invite) => {
+    if (!latest || invite.createdAt > latest) return invite.createdAt;
+    return latest;
+  }, null);
+}
+
 function basePatientDto(patient: PatientLike) {
   if (!patient) return null;
+  const firstName = patient.firstName ?? '';
+  const lastName = patient.lastName ?? '';
   return {
     id: patient.id,
     profileId: patient.profileId,
+    firstName,
+    lastName,
+    email: patient.email ?? patient.profile?.email ?? null,
+    phone: patient.phone ?? patient.profile?.phone ?? null,
+    registrationSource: patient.registrationSource ?? 'SELF_REGISTERED',
+    portalStatus: patient.portalStatus ?? 'ACTIVE',
+    portalInvitationSentAt: latestInviteAt(patient),
     idNumber: patient.idNumber,
     idNumberLast4: patient.idNumberLast4,
     dateOfBirth: patient.dateOfBirth,
@@ -74,6 +102,7 @@ function basePatientDto(patient: PatientLike) {
     updatedAt: patient.updatedAt,
     profile: toSafeProfile(patient.profile),
     assignedDoctor: toDoctorSummary(patient.assignedDoctor ?? null),
+    fullName: joinPersonName(firstName, lastName) || patient.profile?.fullName || '',
   };
 }
 

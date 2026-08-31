@@ -43,13 +43,20 @@ import {
   type AiFieldProvenanceMap,
   type MergeableSuggestions,
 } from '@/lib/ai-merge';
-import { buildConsultationSavePayload, type MedicationSaveItem } from '@/lib/clinical/consultation-save-payload';
+import { buildConsultationSavePayload, emptyClinicalLetterSave, parseClinicalLetterSave, type MedicationSaveItem } from '@/lib/clinical/consultation-save-payload';
 import {
   autosaveStatusLabel,
   useConsultationAutosave,
 } from '@/lib/clinical/use-consultation-autosave';
+import {
+  hasPendingRecordingWithoutConsent,
+  persistConsultationRecording,
+  saveConsultationWithRecording,
+  type PendingConsultationRecording,
+} from '@/lib/clinical/persist-consultation-recording';
 import { medicalRecordToFormState } from '@/lib/clinical/consultation-form-state';
 import { formatDate } from '@/lib/format';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import type { Appointment, DoctorPrivateNote, MedicalRecord, ReferralUrgency } from '@/lib/types';
 import { AlertTriangle, ArrowRightLeft, CheckCircle, Loader2, Mic, Plus, Square, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -105,6 +112,7 @@ export default function EditClinicalRecordPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [dirtySeq, setDirtySeq] = useState(0);
   const [activeTab, setActiveTab] = useState('clinical');
   const [isCheckup, setIsCheckup] = useState(false);
   const [isTelemedicineCheckup, setIsTelemedicineCheckup] = useState(false);
@@ -146,6 +154,7 @@ export default function EditClinicalRecordPage() {
     clinical_summary: '',
     specific_questions: '',
   });
+  const [clinicalLetter, setClinicalLetter] = useState(emptyClinicalLetterSave());
 
   const [consentOpen, setConsentOpen] = useState(false);
   const [scribePhase, setScribePhase] = useState<
@@ -164,7 +173,7 @@ export default function EditClinicalRecordPage() {
   const recorder = useConsultationRecorder();
 
   const viewHref = `/doctor/records/${params.patientId}/view/${params.recordId}`;
-  const folderHref = `/doctor/records?patient=${params.patientId}`;
+  const folderHref = `/doctor/records?patient=${params.patientId}&section=consultations`;
   const canSave = isCheckup || clinical.chief_complaint.trim().length > 0;
   const scribeBlocksComplete = scribeUsed && !scribeResolved;
   const canComplete =
@@ -173,20 +182,25 @@ export default function EditClinicalRecordPage() {
     scribePhase !== 'recording' &&
     scribePhase !== 'processing';
 
-  const markChanged = () => setHasChanges(true);
+  const markChanged = () => {
+    setDirtySeq((n) => n + 1);
+    setHasChanges(true);
+  };
 
   const buildSavePayload = useCallback(
-    (options?: { isDraft?: boolean; autosave?: boolean }) =>
+    (options?: { isDraft?: boolean; autosave?: boolean; lettersOnly?: boolean }) =>
       buildConsultationSavePayload({
         patientId: params.patientId,
         clinical,
         privateNotes,
         medications: medications as MedicationSaveItem[],
         referral,
+        clinicalLetter,
         aiProvenance,
         appointmentId: linkedAppointment?.id ?? loadedRecord?.appointment_id ?? null,
         isDraft: options?.isDraft ?? isDraft,
         autosave: options?.autosave,
+        lettersOnly: options?.lettersOnly,
       }),
     [
       params.patientId,
@@ -194,6 +208,7 @@ export default function EditClinicalRecordPage() {
       privateNotes,
       medications,
       referral,
+      clinicalLetter,
       aiProvenance,
       linkedAppointment?.id,
       loadedRecord?.appointment_id,
@@ -205,6 +220,7 @@ export default function EditClinicalRecordPage() {
     recordId: params.recordId,
     enabled: !loading && isDraft && Boolean(user?.doctor?.id),
     hasChanges,
+    dirtySeq,
     buildPayload: () => buildSavePayload({ autosave: true, isDraft: true }),
     onRecordCreated: () => {},
     onServerRecordLoaded: (record) => {
@@ -213,9 +229,11 @@ export default function EditClinicalRecordPage() {
       setPrivateNotes(state.privateNotes);
       setMedications(state.medications as MedicationItem[]);
       setReferral(state.referral);
+      setClinicalLetter(state.clinicalLetter);
       setAiProvenance(state.aiProvenance);
       setHasChanges(false);
     },
+    onSaved: () => setHasChanges(false),
   });
 
   const updateClinical = (
@@ -256,7 +274,7 @@ export default function EditClinicalRecordPage() {
         return;
       }
 
-      setPatientName(rec.patient?.profile?.full_name ?? 'Unknown Patient');
+      setPatientName(patientDisplayName(rec.patient));
       setIdNumber(rec.patient?.id_number ?? null);
       setGender(rec.patient?.gender ?? null);
       setPatientAgeHint(
@@ -340,6 +358,7 @@ export default function EditClinicalRecordPage() {
           specific_questions: ref.specific_questions ?? '',
         });
       }
+      setClinicalLetter(parseClinicalLetterSave(rec.clinical_letters));
       autosave.setExpectedUpdatedAt(rec.updated_at);
       setHasChanges(false);
     } catch (err) {
@@ -434,6 +453,37 @@ export default function EditClinicalRecordPage() {
       setScribeResolved(false);
       setScribePhase('review');
       setReviewOpen(true);
+
+      const pending: PendingConsultationRecording = {
+        audioBlob: blob,
+        aiTranscript: result.transcript,
+        consentId,
+        detectedLanguage: result.detectedLanguage,
+        aiWarnings: result.warnings || [],
+        aiConfidence: result.confidenceScores || {},
+      };
+      autosave.setPaused(true);
+      await autosave.waitUntilIdle();
+      try {
+        const updated = await persistConsultationRecording(params.recordId, pending);
+        autosave.setExpectedUpdatedAt(updated.updated_at);
+        setLoadedRecord(updated);
+        toast({
+          title: 'Recording saved',
+          description: 'Consultation audio and transcript stored with this draft.',
+        });
+      } catch (uploadErr) {
+        toast({
+          title: 'Recording not saved yet',
+          description:
+            uploadErr instanceof Error
+              ? `${uploadErr.message} It will retry when you save.`
+              : 'Upload failed. It will retry when you save.',
+          variant: 'destructive',
+        });
+      } finally {
+        autosave.setPaused(false);
+      }
     } catch (err) {
       setScribePhase('idle');
       toast({
@@ -553,42 +603,64 @@ export default function EditClinicalRecordPage() {
   const handleSave = async () => {
     if (!canComplete) return;
     setSaving(true);
-    try {
-      await medicalRecordsApi.update(
-        params.recordId,
-        buildSavePayload({ isDraft: false })
-      );
 
-      if (audioBlob && aiTranscript && consentId) {
-        try {
-          const updated = await medicalRecordsApi.uploadConsultationRecording({
-            recordId: params.recordId,
-            audio: audioBlob,
-            transcript: aiTranscript,
-            consentId,
-            detectedLanguage,
-            warnings: aiWarnings,
-            confidence: aiConfidence,
-            filename: `consultation-${params.recordId}.webm`,
-          });
-          setLoadedRecord(updated);
-        } catch (uploadErr) {
-          toast({
-            title: 'Record saved, but recording upload failed',
-            description:
-              uploadErr instanceof Error
-                ? uploadErr.message
-                : 'Clinical note was saved without the new consultation audio.',
-            variant: 'destructive',
-          });
-        }
-      } else if (audioBlob && aiTranscript && !consentId) {
+    const pending: PendingConsultationRecording = {
+      audioBlob,
+      aiTranscript,
+      consentId,
+      detectedLanguage,
+      aiWarnings,
+      aiConfidence,
+    };
+
+    try {
+      if (!isDraft) {
+        const data = await medicalRecordsApi.update(
+          params.recordId,
+          buildSavePayload({ lettersOnly: true })
+        );
+        setLoadedRecord(data);
+        await logAudit({
+          action: 'UPDATE',
+          resource: 'medical_records',
+          resource_id: params.recordId,
+          patient_id: params.patientId,
+          new_value: { referrals: true },
+        });
+        toast({
+          title: 'Record saved',
+          description: 'Referral and clinical letters have been saved.',
+        });
+        router.push(`${viewHref}?tab=referral`);
+        return;
+      }
+
+      const { record: data, recordingSaved, uploadFailed } = await saveConsultationWithRecording({
+        finalize: true,
+        pending,
+        saveRecord: async (draft) =>
+          medicalRecordsApi.update(params.recordId, buildSavePayload({ isDraft: draft })),
+      });
+
+      if (uploadFailed) {
+        toast({
+          title: 'Could not save recording',
+          description: 'The record remains a draft. Fix the issue and try completing again.',
+          variant: 'destructive',
+        });
+        setSaving(false);
+        return;
+      }
+
+      if (hasPendingRecordingWithoutConsent(pending)) {
         toast({
           title: 'Record saved without recording',
           description: 'Consent id missing; consultation audio was not uploaded.',
           variant: 'destructive',
         });
       }
+
+      setLoadedRecord(data);
 
       await logAudit({
         action: 'UPDATE',
@@ -597,18 +669,18 @@ export default function EditClinicalRecordPage() {
         patient_id: params.patientId,
         new_value: {
           is_draft: false,
-          has_scribe_recording: !!(audioBlob && aiTranscript),
+          has_scribe_recording: recordingSaved || !!data.has_scribe_recording,
         },
       });
 
       toast({
         title: isDraft ? 'Record completed' : 'Record saved',
         description:
-          audioBlob && aiTranscript
+          recordingSaved || data.has_scribe_recording
             ? 'Changes and consultation recording saved.'
             : 'Changes have been saved.',
       });
-      router.push(viewHref);
+      router.push(`${viewHref}?tab=referral`);
     } catch (err) {
       toast({
         title: 'Failed to save',
@@ -817,7 +889,11 @@ export default function EditClinicalRecordPage() {
                 }}
               />
             )}
-            {loadedRecord && <ConsultationEvidence record={loadedRecord} />}
+            <ConsultationEvidence
+              record={loadedRecord}
+              localAudio={audioBlob}
+              localTranscript={aiTranscript}
+            />
             <ClinicalNotesEditor
               value={clinical}
               onChange={(patch) => updateClinical(patch)}
@@ -1107,7 +1183,7 @@ export default function EditClinicalRecordPage() {
               <TabsContent value="other-letters" className="mt-0">
                 <Card>
                   <CardContent className="space-y-3 p-4">
-                    <div className="text-sm font-semibold">D. Clinical letters (session draft)</div>
+                    <div className="text-sm font-semibold">D. Clinical letters</div>
                     <ClinicalLetterComposer
                       patientId={params.patientId}
                       patientDisplayName={patientName}
@@ -1115,6 +1191,11 @@ export default function EditClinicalRecordPage() {
                       practiceName={doctorPracticeName || null}
                       consultationDate={new Date().toISOString().slice(0, 10)}
                       diagnosisText={clinical.primary_diagnosis || null}
+                      value={clinicalLetter}
+                      onChange={(next) => {
+                        setClinicalLetter(next);
+                        markChanged();
+                      }}
                     />
                   </CardContent>
                 </Card>

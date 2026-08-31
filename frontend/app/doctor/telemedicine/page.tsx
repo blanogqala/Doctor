@@ -16,6 +16,7 @@ import { checkupRecordIdFromAppointment } from '@/lib/appointment-records';
 import { useTelemedicineJoin } from '@/hooks/useTelemedicineJoin';
 import { usePollingRefresh } from '@/lib/use-polling-refresh';
 import { formatDate, formatTime } from '@/lib/format';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import type { Appointment } from '@/lib/types';
 import { PreCallDeviceCheck } from '@/components/telemedicine/pre-call-device-check';
 import { Video, Loader2, Users, Clock } from 'lucide-react';
@@ -86,7 +87,7 @@ export default function DoctorTelemedicinePage() {
       await joinCall({
         appointmentId: appt.id,
         patientId: appt.patient_id,
-        patientName: appt.patient?.profile?.full_name ?? 'Patient',
+        patientName: patientDisplayName(appt.patient),
         reason: appt.reason,
         recordId: recordId ?? undefined,
       });
@@ -106,7 +107,7 @@ export default function DoctorTelemedicinePage() {
     <Card key={appt.id}>
       <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-medium">{appt.patient?.profile?.full_name ?? 'Patient'}</p>
+          <p className="font-medium">{patientDisplayName(appt.patient)}</p>
           <p className="text-sm text-muted-foreground">
             {formatDate(appt.scheduled_at)} at {formatTime(appt.scheduled_at)}
           </p>

@@ -30,6 +30,7 @@ import { medicalRecordsApi } from '@/lib/api/medical-records';
 import { patientsApi, doctorsApi } from '@/lib/api/patients';
 import { appointmentsApi } from '@/lib/api/appointments';
 import { formatDate, maskIdNumber } from '@/lib/format';
+import { patientDisplayName } from '@/lib/patients/display-name';
 import {
   PATIENT_FOLDER_SECTIONS,
   buildClinicalTimeline,
@@ -171,7 +172,7 @@ export default function DoctorRecordsPage() {
     if (!search) return patients;
     const q = search.toLowerCase();
     return patients.filter((p) => {
-      const name = p.profile?.full_name?.toLowerCase() ?? '';
+      const name = patientDisplayName(p).toLowerCase();
       const id = p.id_number?.toLowerCase() ?? '';
       return name.includes(q) || id.includes(q);
     });
@@ -365,9 +366,7 @@ export default function DoctorRecordsPage() {
                     <div key={parent.id} className="space-y-2">
                       <ConsultationCard
                         record={parent}
-                        onOpen={() =>
-                          openRecord(parent.id, parent.is_draft && !parent.is_erroneous)
-                        }
+                        onOpen={() => openRecord(parent.id)}
                       />
                       {followUps.length > 0 && (
                         <div className="ml-3 space-y-2 border-l-2 border-primary/40 pl-3 sm:ml-5">
@@ -379,9 +378,7 @@ export default function DoctorRecordsPage() {
                               key={child.id}
                               record={child}
                               variant="follow_up"
-                              onOpen={() =>
-                                openRecord(child.id, child.is_draft && !child.is_erroneous)
-                              }
+                              onOpen={() => openRecord(child.id)}
                             />
                           ))}
                         </div>
@@ -481,7 +478,7 @@ export default function DoctorRecordsPage() {
               return (
                 <PatientFolderCard
                   key={p.id}
-                  name={p.profile?.full_name ?? 'Unknown'}
+                  name={patientDisplayName(p)}
                   statusLabel={p.soft_deleted_at ? 'Archived' : 'Active'}
                   statusTone={p.soft_deleted_at ? 'neutral' : 'success'}
                   idLabel={`Patient ID: ${maskIdNumber(p.id_number) ?? '—'}`}
