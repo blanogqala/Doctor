@@ -275,7 +275,7 @@ export default function PracticeWorkspacePage() {
     <AppPage>
       <PageHeader
         title={practice.clinic_name}
-        description={`${practice.subdomain}.medspace.co.za · ${planLabel(practice.subscription_plan)}`}
+        description={`${practice.subdomain}.MediNathi.co.za · ${planLabel(practice.subscription_plan)}`}
         actions={
           <Button variant="ghost" size="sm" asChild>
             <Link href="/super-admin/practices">

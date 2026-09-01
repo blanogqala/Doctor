@@ -77,7 +77,7 @@ function writeStoredSession(session: TelemedicineSession | null) {
 
 /** @deprecated Use livekit.roomName from join response */
 export function roomNameForAppointment(appointmentId: string) {
-  return `medspace-appt-${appointmentId}`;
+  return `MediNathi-appt-${appointmentId}`;
 }
 
 export function TelemedicineSessionProvider({ children }: { children: ReactNode }) {

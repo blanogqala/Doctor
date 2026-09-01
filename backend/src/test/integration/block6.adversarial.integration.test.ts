@@ -71,12 +71,12 @@ describe.skipIf(!RUN)('Block 6 adversarial security (RUN_INTEGRATION=1)', () => 
   beforeAll(async () => {
     await assertDb();
 
-    storageRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'medspace-b6-'));
+    storageRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'MediNathi-b6-'));
     resetClinicalStorageForTests(createClinicalStorage({ driver: 'local', root: storageRoot }));
 
     const sa = await prisma.superAdmin.create({
       data: {
-        email: `sa-${suffix}@medspace.test`,
+        email: `sa-${suffix}@MediNathi.test`,
         name: 'Block6 SA',
         passwordHash: await bcrypt.hash('TestPass123!', 10),
       },
@@ -91,7 +91,7 @@ describe.skipIf(!RUN)('Block 6 adversarial security (RUN_INTEGRATION=1)', () => 
       data: {
         subdomain: subdomainA,
         clinicName: `Block6 A ${suffix}`,
-        email: `clinic-a-${suffix}@medspace.test`,
+        email: `clinic-a-${suffix}@MediNathi.test`,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionPlan: SubscriptionPlan.CLINIC,
         doctorSeatLimit: 5,
@@ -106,7 +106,7 @@ describe.skipIf(!RUN)('Block 6 adversarial security (RUN_INTEGRATION=1)', () => 
       data: {
         subdomain: subdomainB,
         clinicName: `Block6 B ${suffix}`,
-        email: `clinic-b-${suffix}@medspace.test`,
+        email: `clinic-b-${suffix}@MediNathi.test`,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionPlan: SubscriptionPlan.CLINIC,
         doctorSeatLimit: 5,
@@ -121,7 +121,7 @@ describe.skipIf(!RUN)('Block 6 adversarial security (RUN_INTEGRATION=1)', () => 
       const owner = await prisma.profile.create({
         data: {
           practiceId,
-          email: `owner-${label}-${suffix}@medspace.test`,
+          email: `owner-${label}-${suffix}@MediNathi.test`,
           fullName: `Owner ${label}`,
           role: UserRole.DOCTOR,
           passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -144,7 +144,7 @@ describe.skipIf(!RUN)('Block 6 adversarial security (RUN_INTEGRATION=1)', () => 
       const reception = await prisma.profile.create({
         data: {
           practiceId,
-          email: `reception-${label}-${suffix}@medspace.test`,
+          email: `reception-${label}-${suffix}@MediNathi.test`,
           fullName: `Reception ${label}`,
           role: UserRole.ADMIN,
           passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -155,7 +155,7 @@ describe.skipIf(!RUN)('Block 6 adversarial security (RUN_INTEGRATION=1)', () => 
       const patientProfile = await prisma.profile.create({
         data: {
           practiceId,
-          email: `patient-${label}-${suffix}@medspace.test`,
+          email: `patient-${label}-${suffix}@MediNathi.test`,
           fullName: `Patient ${label}`,
           role: UserRole.PATIENT,
           passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -635,7 +635,7 @@ describe.skipIf(!RUN)('Block 6 adversarial security (RUN_INTEGRATION=1)', () => 
       const disabled = await prisma.profile.create({
         data: {
           practiceId: practiceAId,
-          email: `disabled-${suffix}@medspace.test`,
+          email: `disabled-${suffix}@MediNathi.test`,
           fullName: 'Disabled Doc',
           role: UserRole.DOCTOR,
           passwordHash: await bcrypt.hash('TestPass123!', 10),

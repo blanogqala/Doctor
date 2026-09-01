@@ -13,12 +13,12 @@ import { MarketingHeading } from './marketing-heading';
 
 export const MARKETING_FAQS = [
   {
-    question: 'What is MedSpace?',
+    question: 'What is MediNathi?',
     answer:
-      'MedSpace is a modern practice workspace that connects appointments, patient folders, clinical documentation, reception workflows and patient access.',
+      'MediNathi is a modern practice workspace that connects appointments, patient folders, clinical documentation, reception workflows and patient access.',
   },
   {
-    question: 'Who is MedSpace built for?',
+    question: 'Who is MediNathi built for?',
     answer:
       'Independent doctors and growing medical practices that need a shared workspace for clinicians, reception and patients.',
   },
@@ -28,14 +28,14 @@ export const MARKETING_FAQS = [
       'Yes. Reception can book visits, create patient records during booking, manage arrivals and handle administrative updates — without access to the clinical chart.',
   },
   {
-    question: 'Can patients use MedSpace?',
+    question: 'Can patients use MediNathi?',
     answer:
       'Yes. Patients can book appointments and use the practice portal for the services that practice makes available, such as messages, records and payments.',
   },
   {
-    question: 'Does MedSpace support AI-assisted clinical notes?',
+    question: 'Does MediNathi support AI-assisted clinical notes?',
     answer:
-      'Yes. With patient consent, MedSpace can transcribe a consultation and propose a structured draft. The doctor reviews and decides what is saved.',
+      'Yes. With patient consent, MediNathi can transcribe a consultation and propose a structured draft. The doctor reviews and decides what is saved.',
   },
   {
     question: 'Does AI replace the doctor’s clinical judgement?',
@@ -49,7 +49,7 @@ export const MARKETING_FAQS = [
   {
     question: 'What happens during the trial?',
     answer:
-      'New practices start with a 14-day trial of the MedSpace workspace so you can explore the workflow with your team in mind. There are no setup fees.',
+      'New practices start with a 14-day trial of the MediNathi workspace so you can explore the workflow with your team in mind. There are no setup fees.',
   },
   {
     question: 'How does pricing work?',
@@ -62,7 +62,7 @@ export const MARKETING_FAQS = [
       'Yes. Move to a larger plan as your team grows. Enterprise covers 6 or more configured doctors.',
   },
   {
-    question: 'How does MedSpace handle role-based access?',
+    question: 'How does MediNathi handle role-based access?',
     answer:
       'Doctor, reception and patient roles have separate workspaces. Practice data is isolated from other practices, and audit logs record sensitive actions.',
   },

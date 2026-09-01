@@ -1,6 +1,6 @@
-export const SITE_ORIGIN = 'https://medspace.co.za';
+export const SITE_ORIGIN = 'https://MediNathi.co.za';
 
-export const DEFAULT_MARKETING_TITLE = 'MedSpace | Modern Practice Software for Doctors';
+export const DEFAULT_MARKETING_TITLE = 'MediNathi | Modern Practice Software for Doctors';
 
 export const DEFAULT_MARKETING_DESCRIPTION =
   'Manage appointments, patient folders, clinical documentation and practice workflows in one modern workspace.';
@@ -19,7 +19,7 @@ export function marketingMetadata(input: {
       title: input.title,
       description: input.description,
       url,
-      siteName: 'MedSpace',
+      siteName: 'MediNathi',
       type: 'website' as const,
     },
     twitter: {

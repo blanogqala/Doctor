@@ -219,7 +219,7 @@ export default function SuperAdminDashboardPage() {
     <AppPage>
       <PageHeader
         title="Platform overview"
-        description="Health and growth of the MedSpace SaaS platform."
+        description="Health and growth of the MediNathi SaaS platform."
         actions={
           <Button asChild>
             <Link href="/super-admin/practices/new">

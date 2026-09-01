@@ -2,19 +2,19 @@ import { describe, expect, it } from 'vitest';
 import {
   contrastRatio,
   ensureReadablePrimary,
-  MEDSPACE_PRIMARY_HEX,
+  MediNathi_PRIMARY_HEX,
   resolvePracticeTheme,
 } from './resolve-practice-theme';
 
 describe('resolvePracticeTheme', () => {
-  it('falls back to MedSpace primary for invalid/missing colors', () => {
+  it('falls back to MediNathi primary for invalid/missing colors', () => {
     const theme = resolvePracticeTheme(null);
-    expect(theme.brandHex).toBe(MEDSPACE_PRIMARY_HEX);
+    expect(theme.brandHex).toBe(MediNathi_PRIMARY_HEX);
     expect(theme.primary).toMatch(/^\d+ \d+% \d+%$/);
     expect(theme.adjusted).toBe(false);
   });
 
-  it('accepts MedSpace blue without adjustment', () => {
+  it('accepts MediNathi blue without adjustment', () => {
     const theme = resolvePracticeTheme('#1E40AF');
     expect(theme.brandHex).toBe('#1E40AF');
     expect(theme.adjusted).toBe(false);

@@ -32,7 +32,7 @@ export function AboutPageContent() {
               We’re building practice software around the people who actually use it.
             </MarketingHeading>
             <p className="mt-6 max-w-md text-lg leading-relaxed text-slate-600">
-              MedSpace is an early-stage product for independent doctors and growing medical
+              MediNathi is an early-stage product for independent doctors and growing medical
               practices.
             </p>
           </SectionReveal>

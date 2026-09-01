@@ -3,7 +3,7 @@
  * Status colors (success/warning/danger/info) are never overridden.
  */
 
-export const MEDSPACE_PRIMARY_HEX = '#1E40AF';
+export const MediNathi_PRIMARY_HEX = '#1E40AF';
 
 export interface ResolvedPracticeTheme {
   brandHex: string;
@@ -162,14 +162,14 @@ export function ensureReadablePrimary(hex: string): { hex: string; adjusted: boo
     }
   }
 
-  // Last resort: MedSpace primary
-  return { hex: MEDSPACE_PRIMARY_HEX, adjusted: true };
+  // Last resort: MediNathi primary
+  return { hex: MediNathi_PRIMARY_HEX, adjusted: true };
 }
 
 export function resolvePracticeTheme(
   brandColor: string | null | undefined
 ): ResolvedPracticeTheme {
-  const normalized = normalizeHex(brandColor) ?? MEDSPACE_PRIMARY_HEX;
+  const normalized = normalizeHex(brandColor) ?? MediNathi_PRIMARY_HEX;
   const { hex: safeHex, adjusted } = ensureReadablePrimary(normalized);
   const { r, g, b } = hexToRgb(safeHex);
   const hsl = rgbToHsl(r, g, b);

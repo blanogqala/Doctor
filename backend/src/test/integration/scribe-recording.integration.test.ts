@@ -57,7 +57,7 @@ describe.skipIf(!RUN)('scribe recording integration (RUN_INTEGRATION=1)', () => 
   beforeAll(async () => {
     await assertDb();
 
-    storageRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'medspace-scribe-'));
+    storageRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'MediNathi-scribe-'));
     resetClinicalStorageForTests(createClinicalStorage({ driver: 'local', root: storageRoot }));
 
     subdomain = `scribe-${Date.now().toString(36)}`;
@@ -65,7 +65,7 @@ describe.skipIf(!RUN)('scribe recording integration (RUN_INTEGRATION=1)', () => 
       data: {
         subdomain,
         clinicName: `Scribe IT ${suffix}`,
-        email: `scribe-clinic-${suffix}@medspace.test`,
+        email: `scribe-clinic-${suffix}@MediNathi.test`,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionPlan: SubscriptionPlan.CLINIC,
         doctorSeatLimit: 5,
@@ -79,7 +79,7 @@ describe.skipIf(!RUN)('scribe recording integration (RUN_INTEGRATION=1)', () => 
     const doctorProfile = await prisma.profile.create({
       data: {
         practiceId,
-        email: `doctor-${suffix}@medspace.test`,
+        email: `doctor-${suffix}@MediNathi.test`,
         fullName: 'Scribe IT Doctor',
         role: UserRole.DOCTOR,
         passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -106,7 +106,7 @@ describe.skipIf(!RUN)('scribe recording integration (RUN_INTEGRATION=1)', () => 
     const patientProfile = await prisma.profile.create({
       data: {
         practiceId,
-        email: `patient-${suffix}@medspace.test`,
+        email: `patient-${suffix}@MediNathi.test`,
         fullName: 'Scribe IT Patient',
         role: UserRole.PATIENT,
         passwordHash: await bcrypt.hash('TestPass123!', 10),

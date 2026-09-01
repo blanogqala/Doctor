@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from '../api';
 
-const CSRF_KEY = 'medspace_platform_csrf';
+const CSRF_KEY = 'MediNathi_platform_csrf';
 const LEGACY_TOKEN_KEY = 'super_admin_token';
 
 export class SuperAdminApiError extends Error {

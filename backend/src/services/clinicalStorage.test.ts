@@ -43,7 +43,7 @@ describe('FilesystemClinicalStorage (local adapter)', () => {
   let root = '';
 
   beforeEach(() => {
-    root = fs.mkdtempSync(path.join(os.tmpdir(), 'medspace-clinical-'));
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'MediNathi-clinical-'));
     resetClinicalStorageForTests();
   });
 
@@ -92,7 +92,7 @@ describe('consultationAudioStorage write key shape', () => {
   let root = '';
 
   beforeEach(() => {
-    root = fs.mkdtempSync(path.join(os.tmpdir(), 'medspace-consult-'));
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'MediNathi-consult-'));
   });
 
   afterEach(() => {

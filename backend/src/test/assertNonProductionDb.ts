@@ -29,9 +29,9 @@ export function assertNonProductionDatabaseUrl(databaseUrl = process.env.DATABAS
       );
     }
   }
-  if (!url.includes('localhost') && !url.includes('127.0.0.1') && !url.includes('medspace_test')) {
+  if (!url.includes('localhost') && !url.includes('127.0.0.1') && !url.includes('MediNathi_test')) {
     throw new Error(
-      'Refusing RUN_INTEGRATION: DATABASE_URL must target localhost/127.0.0.1 or a medspace_test database.'
+      'Refusing RUN_INTEGRATION: DATABASE_URL must target localhost/127.0.0.1 or a MediNathi_test database.'
     );
   }
 }

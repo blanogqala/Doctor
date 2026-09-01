@@ -77,7 +77,7 @@ export async function sendInquiryNotificationEmail(data: InquiryEmailData): Prom
   const safeReferral = data.referralSource ? escapeHtml(data.referralSource) : null;
   const safeMessage = data.message ? escapeHtml(data.message) : null;
 
-  const text = `New doctor wants to join MedSpace:
+  const text = `New doctor wants to join MediNathi:
 
 Name: ${data.fullName}
 Email: ${data.email}
@@ -182,29 +182,29 @@ export async function sendPracticeInvitationEmail(data: {
   const safePractice = escapeHtml(data.practiceName);
   const safeRole = escapeHtml(label);
   const subject = data.isResend
-    ? `Your MedSpace invitation was resent — ${data.practiceName}`
-    : `You're invited to ${data.practiceName} on MedSpace`;
+    ? `Your MediNathi invitation was resent — ${data.practiceName}`
+    : `You're invited to ${data.practiceName} on MediNathi`;
 
   const text = `Hi ${data.fullName},
 
-${data.isResend ? 'Here is a new invitation link' : 'You have been invited'} to join ${data.practiceName} on MedSpace as ${label}.
+${data.isResend ? 'Here is a new invitation link' : 'You have been invited'} to join ${data.practiceName} on MediNathi as ${label}.
 
 Activate your account and create your own password:
 ${inviteUrl}
 
 This link expires in 7 days and can only be used once.
 
-MedSpace will never email you a password.
+MediNathi will never email you a password.
 
-— MedSpace Team`;
+— MediNathi Team`;
 
   const html = `
     <p>Hi ${safeName},</p>
-    <p>${data.isResend ? 'Here is a new invitation link' : 'You have been invited'} to join <strong>${safePractice}</strong> on MedSpace as <strong>${safeRole}</strong>.</p>
+    <p>${data.isResend ? 'Here is a new invitation link' : 'You have been invited'} to join <strong>${safePractice}</strong> on MediNathi as <strong>${safeRole}</strong>.</p>
     <p><a href="${escapeHtml(inviteUrl)}">Activate your account and create your password</a></p>
     <p>This link expires in 7 days and can only be used once.</p>
-    <p>MedSpace will never email you a password.</p>
-    <p>— MedSpace Team</p>
+    <p>MediNathi will never email you a password.</p>
+    <p>— MediNathi Team</p>
   `;
 
   return sendEmail({
@@ -231,29 +231,29 @@ export async function sendPatientActivationEmail(data: {
   const safeName = escapeHtml(data.fullName);
   const safePractice = escapeHtml(data.practiceName);
   const subject = data.isResend
-    ? `Your MedSpace portal invitation was resent — ${data.practiceName}`
-    : `${data.practiceName} has invited you to activate your MedSpace patient portal`;
+    ? `Your MediNathi portal invitation was resent — ${data.practiceName}`
+    : `${data.practiceName} has invited you to activate your MediNathi patient portal`;
 
   const text = `Hi ${data.fullName},
 
-${data.practiceName} has created your patient profile on MedSpace.
+${data.practiceName} has created your patient profile on MediNathi.
 Activate your secure patient portal to manage your appointments and access the services available from your practice.
 
 ${activateUrl}
 
 This link expires in 7 days and can only be used once.
 
-MedSpace will never email you a password.
+MediNathi will never email you a password.
 
-— MedSpace Team`;
+— MediNathi Team`;
 
   const html = `
     <p>Hi ${safeName},</p>
-    <p><strong>${safePractice}</strong> has created your patient profile on MedSpace. Activate your secure patient portal to manage your appointments and access the services available from your practice.</p>
+    <p><strong>${safePractice}</strong> has created your patient profile on MediNathi. Activate your secure patient portal to manage your appointments and access the services available from your practice.</p>
     <p><a href="${escapeHtml(activateUrl)}">Activate Patient Portal</a></p>
     <p>This link expires in 7 days and can only be used once.</p>
-    <p>MedSpace will never email you a password.</p>
-    <p>— MedSpace Team</p>
+    <p>MediNathi will never email you a password.</p>
+    <p>— MediNathi Team</p>
   `;
 
   return sendEmail({
@@ -279,22 +279,22 @@ export async function sendPasswordResetEmail(data: {
 
   return sendEmail({
     to: data.email,
-    subject: 'Reset your MedSpace password',
+    subject: 'Reset your MediNathi password',
     text: `Hi ${data.fullName},
 
-We received a request to reset your MedSpace password.
+We received a request to reset your MediNathi password.
 
 ${resetUrl}
 
 This link expires in 1 hour. If you did not request a reset, you can ignore this email.
 
-— MedSpace Team`,
+— MediNathi Team`,
     html: `
       <p>Hi ${safeName},</p>
-      <p>We received a request to reset your MedSpace password.</p>
+      <p>We received a request to reset your MediNathi password.</p>
       <p><a href="${escapeHtml(resetUrl)}">Create a new password</a></p>
       <p>This link expires in 1 hour. If you did not request a reset, you can ignore this email.</p>
-      <p>— MedSpace Team</p>
+      <p>— MediNathi Team</p>
     `,
     logTag: 'password-reset-email',
   });
@@ -320,15 +320,15 @@ Invoice: ${data.invoiceNumber}
 Amount: ${amount}
 Reference: ${data.paymentReference}
 
-MedSpace will verify this payment. Your invoice will remain Payment reported until a Super Admin confirms it.
+MediNathi will verify this payment. Your invoice will remain Payment reported until a Super Admin confirms it.
 
-— MedSpace Team`,
+— MediNathi Team`,
     html: `
       <p>Hi ${escapeHtml(data.fullName)},</p>
       <p>We received your EFT payment report for <strong>${escapeHtml(data.practiceName)}</strong>.</p>
       <p>Invoice: ${escapeHtml(data.invoiceNumber)}<br/>Amount: ${escapeHtml(amount)}<br/>Reference: ${escapeHtml(data.paymentReference)}</p>
-      <p>MedSpace will verify this payment. Your invoice will remain <strong>Payment reported</strong> until a Super Admin confirms it.</p>
-      <p>— MedSpace Team</p>
+      <p>MediNathi will verify this payment. Your invoice will remain <strong>Payment reported</strong> until a Super Admin confirms it.</p>
+      <p>— MediNathi Team</p>
     `,
     logTag: 'payment-reported-email',
   });
@@ -353,12 +353,12 @@ Invoice: ${data.invoiceNumber}
 Amount: ${amount}
 Status: Paid
 
-— MedSpace Team`,
+— MediNathi Team`,
     html: `
       <p>Hi ${escapeHtml(data.fullName)},</p>
       <p>Your subscription payment for <strong>${escapeHtml(data.practiceName)}</strong> has been verified.</p>
       <p>Invoice: ${escapeHtml(data.invoiceNumber)}<br/>Amount: ${escapeHtml(amount)}<br/>Status: <strong>Paid</strong></p>
-      <p>— MedSpace Team</p>
+      <p>— MediNathi Team</p>
     `,
     logTag: 'payment-verified-email',
   });
@@ -380,7 +380,7 @@ export async function sendSubscriptionInvoiceCreatedEmail(data: {
     subject: `New subscription invoice ${data.invoiceNumber}`,
     text: `Hi ${data.fullName},
 
-A new MedSpace subscription invoice is ready for ${data.practiceName}.
+A new MediNathi subscription invoice is ready for ${data.practiceName}.
 
 Invoice: ${data.invoiceNumber}
 Amount: ${amount}
@@ -389,13 +389,13 @@ Due: ${due}
 View and report payment:
 ${data.billingUrl}
 
-— MedSpace Team`,
+— MediNathi Team`,
     html: `
       <p>Hi ${escapeHtml(data.fullName)},</p>
-      <p>A new MedSpace subscription invoice is ready for <strong>${escapeHtml(data.practiceName)}</strong>.</p>
+      <p>A new MediNathi subscription invoice is ready for <strong>${escapeHtml(data.practiceName)}</strong>.</p>
       <p>Invoice: ${escapeHtml(data.invoiceNumber)}<br/>Amount: ${escapeHtml(amount)}<br/>Due: ${escapeHtml(due)}</p>
       <p><a href="${escapeHtml(data.billingUrl)}">Open Subscription &amp; Billing</a></p>
-      <p>— MedSpace Team</p>
+      <p>— MediNathi Team</p>
     `,
     logTag: 'subscription-invoice-created-email',
   });

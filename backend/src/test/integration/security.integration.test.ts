@@ -15,8 +15,8 @@ import { issuePlatformAuth, issuePracticeAuth } from '../sessionAuth';
 import { PRACTICE_SESSION_COOKIE } from '../../utils/cookies';
 
 const RUN = Boolean(process.env.RUN_INTEGRATION);
-const PATIENT_B_EMAIL = 'security-it-patient-b@medspace.test';
-const RECEPTION_EMAIL = 'security-it-reception@medspace.test';
+const PATIENT_B_EMAIL = 'security-it-patient-b@MediNathi.test';
+const RECEPTION_EMAIL = 'security-it-reception@MediNathi.test';
 
 async function assertDb(): Promise<void> {
   assertNonProductionDatabaseUrl(process.env.DATABASE_URL || env.DATABASE_URL);
@@ -210,7 +210,7 @@ describe.skipIf(!RUN)('security integration (requires RUN_INTEGRATION=1 and DB)'
 
     const superAdmin = await prisma.superAdmin.create({
       data: {
-        email: `security-super-admin-${Date.now()}@medspace.test`,
+        email: `security-super-admin-${Date.now()}@MediNathi.test`,
         name: 'Security Super Admin',
         passwordHash: await bcrypt.hash('TestPass123!', 10),
       },

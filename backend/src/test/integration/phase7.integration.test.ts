@@ -64,7 +64,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
 
     const sa = await prisma.superAdmin.create({
       data: {
-        email: `sa-${suffix}@medspace.test`,
+        email: `sa-${suffix}@MediNathi.test`,
         name: 'Phase72 Super Admin',
         passwordHash: await bcrypt.hash('TestPass123!', 10),
       },
@@ -78,7 +78,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
       data: {
         subdomain,
         clinicName: `Phase72 Clinic ${suffix}`,
-        email: `clinic-${suffix}@medspace.test`,
+        email: `clinic-${suffix}@MediNathi.test`,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionPlan: SubscriptionPlan.CLINIC,
         doctorSeatLimit: 5,
@@ -92,7 +92,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
     const owner = await prisma.profile.create({
       data: {
         practiceId,
-        email: `owner-${suffix}@medspace.test`,
+        email: `owner-${suffix}@MediNathi.test`,
         fullName: 'Phase72 Owner',
         role: UserRole.DOCTOR,
         passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -116,7 +116,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
     const doctor = await prisma.profile.create({
       data: {
         practiceId,
-        email: `doctor-${suffix}@medspace.test`,
+        email: `doctor-${suffix}@MediNathi.test`,
         fullName: 'Phase72 Doctor',
         role: UserRole.DOCTOR,
         passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -136,7 +136,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
     const inactive = await prisma.profile.create({
       data: {
         practiceId,
-        email: `inactive-${suffix}@medspace.test`,
+        email: `inactive-${suffix}@MediNathi.test`,
         fullName: 'Phase72 Inactive Doctor',
         role: UserRole.DOCTOR,
         passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -156,7 +156,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
     const reception = await prisma.profile.create({
       data: {
         practiceId,
-        email: `reception-${suffix}@medspace.test`,
+        email: `reception-${suffix}@MediNathi.test`,
         fullName: 'Phase72 Reception',
         role: UserRole.ADMIN,
         passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -172,7 +172,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
     const patientProfile = await prisma.profile.create({
       data: {
         practiceId,
-        email: `patient-${suffix}@medspace.test`,
+        email: `patient-${suffix}@MediNathi.test`,
         fullName: 'Phase72 Patient',
         role: UserRole.PATIENT,
         passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -433,7 +433,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
         await prisma.practiceInvitation.create({
           data: {
             practiceId,
-            email: `alloc-${i}-${suffix}@medspace.test`,
+            email: `alloc-${i}-${suffix}@MediNathi.test`,
             fullName: `Alloc Doctor ${i}`,
             role: UserRole.DOCTOR,
             tokenHash: hashToken(tokens[i]),
@@ -523,7 +523,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
       data: { subscriptionStatus: SubscriptionStatus.SUSPENDED },
     });
 
-    process.env.EFT_ACCOUNT_HOLDER = 'MedSpace Test';
+    process.env.EFT_ACCOUNT_HOLDER = 'MediNathi Test';
     process.env.EFT_BANK = 'Test Bank';
     process.env.EFT_ACCOUNT_NUMBER = '1234567890';
     process.env.EFT_BRANCH_CODE = '250655';
@@ -573,7 +573,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
       data: {
         subdomain: `trial-${Date.now().toString(36)}`,
         clinicName: `Trial ${suffix}`,
-        email: `trial-${suffix}@medspace.test`,
+        email: `trial-${suffix}@MediNathi.test`,
         subscriptionStatus: SubscriptionStatus.TRIAL,
         trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         subscriptionPlan: SubscriptionPlan.SOLO,
@@ -744,7 +744,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
     const invite = await prisma.practiceInvitation.create({
       data: {
         practiceId,
-        email: `seat-doc-${suffix}@medspace.test`,
+        email: `seat-doc-${suffix}@MediNathi.test`,
         fullName: 'Seat Doctor',
         role: UserRole.DOCTOR,
         tokenHash: hashToken(token1),
@@ -766,7 +766,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
     const invite2 = await prisma.practiceInvitation.create({
       data: {
         practiceId,
-        email: `seat-doc2-${suffix}@medspace.test`,
+        email: `seat-doc2-${suffix}@MediNathi.test`,
         fullName: 'Seat Doctor 2',
         role: UserRole.DOCTOR,
         tokenHash: hashToken(token2),
@@ -782,7 +782,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
     const invite3 = await prisma.practiceInvitation.create({
       data: {
         practiceId,
-        email: `seat-doc3-${suffix}@medspace.test`,
+        email: `seat-doc3-${suffix}@MediNathi.test`,
         fullName: 'Seat Doctor 3',
         role: UserRole.DOCTOR,
         tokenHash: hashToken(token3),
@@ -823,7 +823,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
   });
 
   it('forced Owner invitation DB failure rolls Practice creation back', async () => {
-    const badEmail = `rollback-${suffix}@medspace.test`;
+    const badEmail = `rollback-${suffix}@MediNathi.test`;
     // Pre-create a conflicting pending owner invite on another practice path is hard;
     // instead force duplicate subdomain after first create attempt via unique email on same practice —
     // use reserved subdomain to fail before commit, then verify a mid-tx failure via invalid plan.
@@ -850,7 +850,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
       clinicName: `EmailFail ${suffix}`,
       subdomain,
       ownerFullName: 'Email Fail Owner',
-      ownerEmail: `emailfail-${suffix}@medspace.test`,
+      ownerEmail: `emailfail-${suffix}@MediNathi.test`,
       subscriptionPlan: SubscriptionPlan.SOLO,
       superAdminId,
     });
@@ -863,7 +863,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
         clinicName: `EmailFail Dup ${suffix}`,
         subdomain,
         ownerFullName: 'Email Fail Owner',
-        ownerEmail: `emailfail-dup-${suffix}@medspace.test`,
+        ownerEmail: `emailfail-dup-${suffix}@MediNathi.test`,
         subscriptionPlan: SubscriptionPlan.SOLO,
         superAdminId,
       })
@@ -887,7 +887,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
       clinicName: `Atomic ${suffix}`,
       subdomain: `atomic-${Date.now().toString(36)}`,
       ownerFullName: 'Atomic Owner',
-      ownerEmail: `atomic-owner-${suffix}@medspace.test`,
+      ownerEmail: `atomic-owner-${suffix}@MediNathi.test`,
       subscriptionPlan: SubscriptionPlan.SOLO,
       superAdminId,
     });
@@ -914,7 +914,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
       .set('X-Tenant-Subdomain', practice.subdomain)
       .send({
         full_name: 'Extra Doctor',
-        email: `extra-doc-${suffix}@medspace.test`,
+        email: `extra-doc-${suffix}@MediNathi.test`,
       });
     expect([409, 400]).toContain(denyDoctor.status);
 
@@ -924,7 +924,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
       .set('X-Tenant-Subdomain', practice.subdomain)
       .send({
         full_name: 'Extra Reception',
-        email: `extra-rec-${suffix}@medspace.test`,
+        email: `extra-rec-${suffix}@MediNathi.test`,
       });
     expect(receptionInvite.status).toBe(201);
 
@@ -948,7 +948,7 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
     await prisma.practiceInvitation.create({
       data: {
         practiceId,
-        email: `pending-${suffix}@medspace.test`,
+        email: `pending-${suffix}@MediNathi.test`,
         fullName: 'Pending Invitee',
         role: UserRole.ADMIN,
         tokenHash: hashToken(token),
@@ -958,6 +958,6 @@ describe.skipIf(!RUN)('Phase 7.3 integration (RUN_INTEGRATION=1)', () => {
     });
     const res = await request(app).get(`/api/invitations/validate?token=${token}`);
     expect(res.status).toBe(200);
-    expect(res.body.email).toBe(`pending-${suffix}@medspace.test`);
+    expect(res.body.email).toBe(`pending-${suffix}@MediNathi.test`);
   });
 });

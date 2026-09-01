@@ -13,7 +13,7 @@ export function CopilotSection() {
         <div className="grid items-center gap-12 lg:grid-cols-[0.85fr_1.15fr]">
           <SectionReveal>
             <SectionEyebrow className="text-[color:var(--ms-teal)]">
-              MedSpace Clinical AI Assistant
+              MediNathi Clinical AI Assistant
             </SectionEyebrow>
             <MarketingHeading className="mt-3 text-white">
               AI drafts.
@@ -21,7 +21,7 @@ export function CopilotSection() {
               You decide what enters the record.
             </MarketingHeading>
             <p className="mt-5 max-w-md text-base leading-relaxed text-white/75">
-              With patient consent, MedSpace can help structure consultation notes for clinician
+              With patient consent, MediNathi can help structure consultation notes for clinician
               review.
             </p>
             <p className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--ms-teal)]">

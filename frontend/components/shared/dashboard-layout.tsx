@@ -51,7 +51,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const clinicName = practice?.clinic_name || user?.practice?.clinic_name || 'MedSpace';
+  const clinicName = practice?.clinic_name || user?.practice?.clinic_name || 'MediNathi';
   const brandColor = practice?.brand_color || user?.practice?.brand_color || undefined;
   const resolvedLogo = logoSrc || absoluteApiUrl(user?.practice?.logo_url);
 

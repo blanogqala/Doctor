@@ -80,7 +80,7 @@ export async function draftClinicalLetter(input: {
   diagnosisText?: string | null;
   doctorNotes?: string | null;
 }): Promise<string> {
-  const system = `You are MedSpace AI Clinical Assistant drafting a clinical letter for a South African doctor.
+  const system = `You are MediNathi AI Clinical Assistant drafting a clinical letter for a South African doctor.
 Return ONLY JSON: { "letter": string }.
 
 Rules:

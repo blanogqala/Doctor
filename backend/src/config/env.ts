@@ -19,8 +19,8 @@ const envSchema = z.object({
   /** Groq chat model for structured SOAP / scribe extraction (not Whisper). */
   GROQ_SCRIBE_MODEL: z.string().min(1).default('openai/gpt-oss-120b'),
   RESEND_API_KEY: z.string().optional(),
-  INQUIRY_NOTIFICATION_EMAIL: z.string().email().default('owner@medspace.co.za'),
-  RESEND_FROM_EMAIL: z.string().default('MedSpace <notifications@medspace.co.za>'),
+  INQUIRY_NOTIFICATION_EMAIL: z.string().email().default('owner@MediNathi.co.za'),
+  RESEND_FROM_EMAIL: z.string().default('MediNathi <notifications@MediNathi.co.za>'),
   CORS_ALLOWED_ORIGINS: z.string().optional(),
   LIVEKIT_URL: z.string().optional(),
   LIVEKIT_API_KEY: z.string().optional(),

@@ -147,7 +147,7 @@ function ActivateForm() {
 export default function ActivatePage() {
   return (
     <AuthShell
-      title="Welcome to MedSpace"
+      title="Welcome to MediNathi"
       subtitle="Activate your existing patient profile"
       cardTitle="Activate Patient Portal"
       cardDescription="Create a password to access the portal for this practice"

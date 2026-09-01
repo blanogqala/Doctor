@@ -30,7 +30,7 @@ const PILLARS = [
   {
     id: 'ai',
     title: 'AI',
-    copy: 'With consent, MedSpace can draft structured notes for clinician review.',
+    copy: 'With consent, MediNathi can draft structured notes for clinician review.',
     chips: ['Transcription', 'Structured drafts', 'Clinician review'],
     visual: <CopilotPreview />,
   },

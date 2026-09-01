@@ -74,7 +74,7 @@ const baseAppointment = {
 describe('telemedicineService helpers', () => {
   it('builds opaque room names', () => {
     expect(roomNameForAppointment('00000000-0000-4000-8000-000000000001')).toBe(
-      'medspace-appt-00000000-0000-4000-8000-000000000001'
+      'MediNathi-appt-00000000-0000-4000-8000-000000000001'
     );
   });
 

@@ -147,7 +147,7 @@ export default function InvitePage() {
       title="Accept invitation"
       subtitle="Set your password to join the practice"
       cardTitle="Account setup"
-      cardDescription="MedSpace never emails passwords — you choose your own here."
+      cardDescription="MediNathi never emails passwords — you choose your own here."
       size="sm"
     >
       <Suspense fallback={<Loader2 className="mx-auto h-6 w-6 animate-spin" />}>

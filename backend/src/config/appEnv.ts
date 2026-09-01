@@ -3,7 +3,7 @@ import { env } from './env';
 export type AppEnv = 'development' | 'staging' | 'production' | 'test';
 
 /**
- * MedSpace operational tier. Prefer APP_ENV; fall back from NODE_ENV.
+ * MediNathi operational tier. Prefer APP_ENV; fall back from NODE_ENV.
  * Reads process.env first so tests and runtime overrides apply.
  */
 export function resolveAppEnv(

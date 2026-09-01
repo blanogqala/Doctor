@@ -1,7 +1,7 @@
 export const DEMO_PRACTICE_URL =
   process.env.NEXT_PUBLIC_DEMO_PRACTICE_URL || 'http://eastern-cape.localhost:3000';
 
-export const PLATFORM_DOMAIN = 'medspace.co.za';
+export const PLATFORM_DOMAIN = 'MediNathi.co.za';
 
 export const SA_PROVINCES = [
   'Eastern Cape',

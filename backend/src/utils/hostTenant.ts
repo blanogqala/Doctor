@@ -83,6 +83,6 @@ export function resolveTenantSubdomainFromHostname(
   }
 
   // No APP_BASE_DOMAIN match and not *.localhost → do not invent a tenant
-  // (avoids medspace-staging.netlify.app / *.onrender.com false positives).
+  // (avoids MediNathi-staging.netlify.app / *.onrender.com false positives).
   return null;
 }

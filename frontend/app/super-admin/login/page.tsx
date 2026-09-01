@@ -20,7 +20,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const REMEMBER_KEY = 'sa_remember_email';
-const SUPPORT_MAIL = 'mailto:support@medspace.co.za';
+const SUPPORT_MAIL = 'mailto:support@MediNathi.co.za';
 
 export default function SuperAdminLoginPage() {
   const router = useRouter();
@@ -87,7 +87,7 @@ export default function SuperAdminLoginPage() {
               <HeartPulse className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold tracking-tight text-slate-900">
-              MedSpace Admin
+              MediNathi Admin
             </span>
           </div>
           <p className="text-sm font-medium uppercase tracking-wide text-[#14B8A6]">
@@ -116,7 +116,7 @@ export default function SuperAdminLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                placeholder="owner@medspace.co.za"
+                placeholder="owner@MediNathi.co.za"
                 className={cn(
                   'h-11 border-slate-300 bg-white pl-10 text-base text-slate-900',
                   'placeholder:text-slate-400',
@@ -225,7 +225,7 @@ export default function SuperAdminLoginPage() {
             href="/"
             className="inline-block text-xs text-slate-400 transition-colors hover:text-teal-600"
           >
-            ← Back to MedSpace
+            ← Back to MediNathi
           </Link>
         </div>
       </div>

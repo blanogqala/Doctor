@@ -15,7 +15,7 @@ import { safeProfileRelation } from '../../utils/safeProfile';
 import { joinPersonName } from '../../utils/personName';
 
 export function roomNameForAppointment(appointmentId: string): string {
-  return `medspace-appt-${appointmentId}`;
+  return `MediNathi-appt-${appointmentId}`;
 }
 
 export function deriveSessionState(appointment: {

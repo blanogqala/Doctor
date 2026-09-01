@@ -6,8 +6,8 @@ import { TelemedicineSessionProvider } from '@/lib/telemedicine-session-context'
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://medspace.co.za'),
-  title: 'MedSpace | Modern Practice Software for Doctors',
+  metadataBase: new URL('https://MediNathi.co.za'),
+  title: 'MediNathi | Modern Practice Software for Doctors',
   description:
     'Manage appointments, patient folders, clinical documentation and practice workflows in one modern workspace.',
   viewport: {

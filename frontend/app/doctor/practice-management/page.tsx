@@ -488,7 +488,7 @@ export default function PracticeManagementPage() {
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    EFT payment instructions require production configuration. Contact MedSpace support
+                    EFT payment instructions require production configuration. Contact MediNathi support
                     for banking details, then report your payment reference below.
                   </p>
                 )}

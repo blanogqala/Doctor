@@ -388,7 +388,7 @@ export default function OnboardPracticePage() {
             <>
               {legacyAmbiguous && (
                 <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                  This legacy inquiry covers 2–5 Doctors. Select the appropriate MedSpace
+                  This legacy inquiry covers 2–5 Doctors. Select the appropriate MediNathi
                   subscription plan (Small Practice or Clinic).
                 </p>
               )}
@@ -525,11 +525,11 @@ export default function OnboardPracticePage() {
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Subdomain</dt>
-                <dd className="font-medium">{form.subdomain}.medspace.co.za</dd>
+                <dd className="font-medium">{form.subdomain}.MediNathi.co.za</dd>
               </div>
               <p className="rounded-lg border bg-muted/40 p-3 text-muted-foreground">
                 Creating this Practice will send a secure account setup invitation to the Practice Owner.
-                MedSpace will never email a password.
+                MediNathi will never email a password.
               </p>
             </dl>
           )}

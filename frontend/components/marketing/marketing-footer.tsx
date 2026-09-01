@@ -11,7 +11,7 @@ export function MarketingFooter() {
             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10 text-sm font-semibold text-white">
               M
             </span>
-            <span className="text-base font-semibold text-white">MedSpace</span>
+            <span className="text-base font-semibold text-white">MediNathi</span>
           </div>
           <p className="mt-4 max-w-xs text-sm text-slate-400">Modern practice software.</p>
         </div>
@@ -71,7 +71,7 @@ export function MarketingFooter() {
       </div>
       <div className="border-t border-white/10">
         <p className="mx-auto max-w-6xl px-4 py-5 text-xs text-slate-500 sm:px-6 lg:px-8">
-          © {year} MedSpace. All rights reserved.
+          © {year} MediNathi. All rights reserved.
         </p>
       </div>
     </footer>

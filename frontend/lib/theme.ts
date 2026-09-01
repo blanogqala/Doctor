@@ -1,5 +1,5 @@
 /**
- * MedSpace brand hex constants for rare inline styles.
+ * MediNathi brand hex constants for rare inline styles.
  * Prefer CSS tokens / Tailwind semantic classes for UI.
  */
 export const theme = {
@@ -28,5 +28,5 @@ export {
   resolvePracticeTheme,
   applyPracticeThemeToDocument,
   clearPracticeThemeFromDocument,
-  MEDSPACE_PRIMARY_HEX,
+  MediNathi_PRIMARY_HEX,
 } from '@/lib/theme/resolve-practice-theme';

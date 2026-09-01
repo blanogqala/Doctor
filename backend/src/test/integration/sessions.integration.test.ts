@@ -42,7 +42,7 @@ describe.skipIf(!RUN)('Block 2 session auth matrix (RUN_INTEGRATION=1)', () => {
 
     const sa = await prisma.superAdmin.create({
       data: {
-        email: `sa-${suffix}@medspace.test`,
+        email: `sa-${suffix}@MediNathi.test`,
         name: 'Block2 SA',
         passwordHash: await bcrypt.hash('TestPass123!', 10),
       },
@@ -54,7 +54,7 @@ describe.skipIf(!RUN)('Block 2 session auth matrix (RUN_INTEGRATION=1)', () => {
       data: {
         subdomain: `b2a-${Date.now().toString(36)}`,
         clinicName: `Block2 A ${suffix}`,
-        email: `clinic-a-${suffix}@medspace.test`,
+        email: `clinic-a-${suffix}@MediNathi.test`,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionPlan: SubscriptionPlan.CLINIC,
         doctorSeatLimit: 5,
@@ -68,7 +68,7 @@ describe.skipIf(!RUN)('Block 2 session auth matrix (RUN_INTEGRATION=1)', () => {
     const doctor = await prisma.profile.create({
       data: {
         practiceId,
-        email: `doc-${suffix}@medspace.test`,
+        email: `doc-${suffix}@MediNathi.test`,
         fullName: 'Block2 Doctor',
         role: UserRole.DOCTOR,
         passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -93,7 +93,7 @@ describe.skipIf(!RUN)('Block 2 session auth matrix (RUN_INTEGRATION=1)', () => {
       data: {
         subdomain: `b2b-${Date.now().toString(36)}`,
         clinicName: `Block2 B ${suffix}`,
-        email: `clinic-b-${suffix}@medspace.test`,
+        email: `clinic-b-${suffix}@MediNathi.test`,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionPlan: SubscriptionPlan.CLINIC,
         doctorSeatLimit: 5,
@@ -107,7 +107,7 @@ describe.skipIf(!RUN)('Block 2 session auth matrix (RUN_INTEGRATION=1)', () => {
     const otherDoc = await prisma.profile.create({
       data: {
         practiceId: otherPracticeId,
-        email: `otherdoc-${suffix}@medspace.test`,
+        email: `otherdoc-${suffix}@MediNathi.test`,
         fullName: 'Other Doctor',
         role: UserRole.DOCTOR,
         passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -253,7 +253,7 @@ describe.skipIf(!RUN)('Block 2 session auth matrix (RUN_INTEGRATION=1)', () => {
     const login = await request(app)
       .post('/api/auth/login')
       .set('X-Tenant-Subdomain', practice.subdomain)
-      .send({ email: `doc-${suffix}@medspace.test`, password: 'TestPass123!' });
+      .send({ email: `doc-${suffix}@MediNathi.test`, password: 'TestPass123!' });
 
     expect(login.status).toBe(200);
     expect(login.body.csrf_token).toBeTruthy();
@@ -266,7 +266,7 @@ describe.skipIf(!RUN)('Block 2 session auth matrix (RUN_INTEGRATION=1)', () => {
   it('platform login sets platform cookie not practice cookie', async () => {
     const login = await request(app)
       .post('/api/super-admin/login')
-      .send({ email: `sa-${suffix}@medspace.test`, password: 'TestPass123!' });
+      .send({ email: `sa-${suffix}@MediNathi.test`, password: 'TestPass123!' });
 
     expect(login.status).toBe(200);
     expect(login.body.csrf_token).toBeTruthy();

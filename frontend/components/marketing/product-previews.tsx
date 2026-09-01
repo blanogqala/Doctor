@@ -127,7 +127,7 @@ export function BrandingPreview() {
         </span>
         <div>
           <p className="text-base font-semibold">River Practice (demo)</p>
-          <p className="text-xs text-slate-500">your-practice.medspace.co.za</p>
+          <p className="text-xs text-slate-500">your-practice.MediNathi.co.za</p>
         </div>
       </div>
       <div className="mt-6 grid grid-cols-3 gap-2 text-center text-xs">

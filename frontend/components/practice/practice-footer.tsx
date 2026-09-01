@@ -58,12 +58,12 @@ export function PracticeFooter({ practice, logoSrc }: PracticeFooterProps) {
 
       <div className="border-t border-slate-800 py-4 text-center text-xs text-slate-500">
         <a
-          href="https://medspace.co.za"
+          href="https://MediNathi.co.za"
           target="_blank"
           rel="noreferrer"
           className="hover:text-slate-300"
         >
-          Powered by MedSpace
+          Powered by MediNathi
         </a>
       </div>
     </footer>

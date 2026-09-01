@@ -45,7 +45,7 @@ export function MarketingHeader() {
             M
           </span>
           <span className="text-base font-semibold tracking-tight text-[color:var(--ms-ink)]">
-            MedSpace
+            MediNathi
           </span>
         </Link>
 
@@ -95,7 +95,7 @@ export function MarketingHeader() {
           </SheetTrigger>
           <SheetContent side="right" className="w-[300px] font-marketing sm:w-[340px]">
             <SheetHeader>
-              <SheetTitle className="text-left">MedSpace</SheetTitle>
+              <SheetTitle className="text-left">MediNathi</SheetTitle>
             </SheetHeader>
             <nav className="mt-8 flex flex-col gap-1" aria-label="Mobile">
               {MARKETING_NAV.map((link) => (

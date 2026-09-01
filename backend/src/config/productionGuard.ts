@@ -42,7 +42,7 @@ function isLocalUrl(url: string): boolean {
 function isLocalOrTestDatabase(url: string): boolean {
   const lower = url.toLowerCase();
   if (lower.includes('localhost') || lower.includes('127.0.0.1')) return true;
-  if (lower.includes('medspace_test') || lower.includes('/test')) return true;
+  if (lower.includes('MediNathi_test') || lower.includes('/test')) return true;
   return false;
 }
 

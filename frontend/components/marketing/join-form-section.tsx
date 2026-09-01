@@ -132,12 +132,12 @@ export function JoinFormSection({
           <SectionReveal>
             <MarketingHeading>Let’s talk about your practice.</MarketingHeading>
             <p className="mt-4 max-w-sm text-base text-slate-600">
-              Tell us how your practice works today and we’ll show you where MedSpace can fit.
+              Tell us how your practice works today and we’ll show you where MediNathi can fit.
             </p>
             <p className="mt-6 text-sm text-slate-500">14-day trial · No setup fees</p>
             <p className="mt-2 text-sm text-slate-500">
-              <a href="mailto:support@medspace.co.za" className="hover:underline">
-                support@medspace.co.za
+              <a href="mailto:support@MediNathi.co.za" className="hover:underline">
+                support@MediNathi.co.za
               </a>
             </p>
             <p className="mt-6 text-sm text-slate-600">

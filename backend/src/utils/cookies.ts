@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { env } from '../config/env';
 
-export const PRACTICE_SESSION_COOKIE = 'medspace_practice_sid';
-export const PLATFORM_SESSION_COOKIE = 'medspace_platform_sid';
+export const PRACTICE_SESSION_COOKIE = 'MediNathi_practice_sid';
+export const PLATFORM_SESSION_COOKIE = 'MediNathi_platform_sid';
 
 const PRACTICE_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const PLATFORM_SESSION_TTL_MS = 12 * 60 * 60 * 1000;

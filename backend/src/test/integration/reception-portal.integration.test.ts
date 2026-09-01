@@ -44,7 +44,7 @@ describe.skipIf(!RUN)('Reception-created patients and portal activation (RUN_INT
       data: {
         subdomain,
         clinicName: `Reception Portal A ${suffix}`,
-        email: `clinic-a-${suffix}@medspace.test`,
+        email: `clinic-a-${suffix}@MediNathi.test`,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionPlan: SubscriptionPlan.CLINIC,
         doctorSeatLimit: 5,
@@ -58,7 +58,7 @@ describe.skipIf(!RUN)('Reception-created patients and portal activation (RUN_INT
     const doctorProfile = await prisma.profile.create({
       data: {
         practiceId,
-        email: `doc-${suffix}@medspace.test`,
+        email: `doc-${suffix}@MediNathi.test`,
         fullName: 'Dr Test',
         role: UserRole.DOCTOR,
         passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -73,7 +73,7 @@ describe.skipIf(!RUN)('Reception-created patients and portal activation (RUN_INT
     const reception = await prisma.profile.create({
       data: {
         practiceId,
-        email: `reception-${suffix}@medspace.test`,
+        email: `reception-${suffix}@MediNathi.test`,
         fullName: 'Reception',
         role: UserRole.ADMIN,
         passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -89,7 +89,7 @@ describe.skipIf(!RUN)('Reception-created patients and portal activation (RUN_INT
       data: {
         subdomain: otherSubdomain,
         clinicName: `Reception Portal B ${suffix}`,
-        email: `clinic-b-${suffix}@medspace.test`,
+        email: `clinic-b-${suffix}@MediNathi.test`,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionPlan: SubscriptionPlan.CLINIC,
         doctorSeatLimit: 5,
@@ -102,7 +102,7 @@ describe.skipIf(!RUN)('Reception-created patients and portal activation (RUN_INT
     const otherReception = await prisma.profile.create({
       data: {
         practiceId: otherPracticeId,
-        email: `reception-b-${suffix}@medspace.test`,
+        email: `reception-b-${suffix}@MediNathi.test`,
         fullName: 'Other Reception',
         role: UserRole.ADMIN,
         passwordHash: await bcrypt.hash('TestPass123!', 10),
@@ -203,7 +203,7 @@ describe.skipIf(!RUN)('Reception-created patients and portal activation (RUN_INT
     expect(noEmailInvite.status).toBe(400);
 
     const patched = await receptionReq('patch', `/api/patients/${patientId}`).send({
-      email: `nomsa-${suffix}@medspace.test`,
+      email: `nomsa-${suffix}@MediNathi.test`,
       date_of_birth: '1988-04-12',
       gender: 'FEMALE',
       phone: '0820000000',
@@ -211,7 +211,7 @@ describe.skipIf(!RUN)('Reception-created patients and portal activation (RUN_INT
       city: 'Mthatha',
     });
     expect(patched.status).toBe(200);
-    expect(patched.body.email).toBe(`nomsa-${suffix}@medspace.test`);
+    expect(patched.body.email).toBe(`nomsa-${suffix}@MediNathi.test`);
     expect(patched.body.profile_id).toBeNull();
 
     const invite = await receptionReq('post', `/api/patients/${patientId}/portal-invitations`);
@@ -236,7 +236,7 @@ describe.skipIf(!RUN)('Reception-created patients and portal activation (RUN_INT
       data: {
         practiceId,
         patientId,
-        email: `nomsa-${suffix}@medspace.test`,
+        email: `nomsa-${suffix}@MediNathi.test`,
         tokenHash: hashToken(expiredRaw),
         expiresAt: new Date(Date.now() - 1000),
         invitedByUserId: receptionId,
@@ -252,7 +252,7 @@ describe.skipIf(!RUN)('Reception-created patients and portal activation (RUN_INT
       data: {
         practiceId,
         patientId,
-        email: `nomsa-${suffix}@medspace.test`,
+        email: `nomsa-${suffix}@MediNathi.test`,
         tokenHash: hashToken(revokedRaw),
         expiresAt: new Date(Date.now() + PATIENT_PORTAL_INVITATION_TTL_MS),
         revokedAt: new Date(),
@@ -290,7 +290,7 @@ describe.skipIf(!RUN)('Reception-created patients and portal activation (RUN_INT
       .post('/api/auth/register')
       .set('X-Tenant-Subdomain', subdomain)
       .send({
-        email: `nomsa-${suffix}@medspace.test`,
+        email: `nomsa-${suffix}@MediNathi.test`,
         password: 'SecurePass123!',
         full_name: 'Nomsa Duplicate',
       });
@@ -322,7 +322,7 @@ describe.skipIf(!RUN)('Reception-created patients and portal activation (RUN_INT
     const login = await request(app)
       .post('/api/auth/login')
       .set('X-Tenant-Subdomain', subdomain)
-      .send({ email: `nomsa-${suffix}@medspace.test`, password: 'SecurePass123!' });
+      .send({ email: `nomsa-${suffix}@MediNathi.test`, password: 'SecurePass123!' });
     expect(login.status).toBe(200);
 
     const used = await request(app)
@@ -456,7 +456,7 @@ describe.skipIf(!RUN)('Reception-created patients and portal activation (RUN_INT
   });
 
   it('self-registered patients still create an active portal account', async () => {
-    const email = `self-${suffix}@medspace.test`;
+    const email = `self-${suffix}@MediNathi.test`;
     const res = await request(app)
       .post('/api/auth/register')
       .set('X-Tenant-Subdomain', subdomain)

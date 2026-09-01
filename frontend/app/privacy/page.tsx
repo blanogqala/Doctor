@@ -3,9 +3,9 @@ import { LegalPage } from '@/components/marketing/legal-page';
 import { marketingMetadata } from '@/lib/marketing/seo';
 
 export const metadata = marketingMetadata({
-  title: 'Privacy | MedSpace',
+  title: 'Privacy | MediNathi',
   description:
-    'How MedSpace handles public inquiry information and role-based access in a practice workspace.',
+    'How MediNathi handles public inquiry information and role-based access in a practice workspace.',
   path: '/privacy',
 });
 
@@ -14,7 +14,7 @@ export default function PrivacyPage() {
     <MarketingShell>
       <LegalPage title="Privacy">
         <p>
-          MedSpace is an early-stage practice workspace. This page describes how we handle
+          MediNathi is an early-stage practice workspace. This page describes how we handle
           information you submit through the public website. It is not a certification of
           compliance with any particular statute.
         </p>
@@ -29,8 +29,8 @@ export default function PrivacyPage() {
         </p>
         <p>
           Questions:{' '}
-          <a href="mailto:support@medspace.co.za" className="underline">
-            support@medspace.co.za
+          <a href="mailto:support@MediNathi.co.za" className="underline">
+            support@MediNathi.co.za
           </a>
         </p>
       </LegalPage>

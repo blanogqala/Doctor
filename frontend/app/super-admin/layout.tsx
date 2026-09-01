@@ -49,7 +49,7 @@ function SuperAdminShell({ children }: { children: React.ReactNode }) {
   return (
     <AppShell
       brand={{
-        title: 'MedSpace Admin',
+        title: 'MediNathi Admin',
         subtitle: 'Platform Owner',
         homeHref: BASE_PATH,
         fallbackIcon: Shield,

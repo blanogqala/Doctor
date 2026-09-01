@@ -31,7 +31,7 @@ export function ContactRoute({
         questions={[
           'What happens during the trial?',
           'Can reception manage appointments?',
-          'Does MedSpace support AI-assisted clinical notes?',
+          'Does MediNathi support AI-assisted clinical notes?',
           'How does pricing work?',
         ]}
       />

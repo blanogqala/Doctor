@@ -20,7 +20,7 @@ describe('collectProductionConfigProblems', () => {
     const problems = collectProductionConfigProblems({
       appEnv: 'production',
       jwtSecret: 'change-me-to-a-long-random-secret-at-least-32-chars',
-      databaseUrl: 'postgresql://u:p@localhost:5432/medspace_test',
+      databaseUrl: 'postgresql://u:p@localhost:5432/MediNathi_test',
       frontendUrl: 'http://localhost:3000',
       clinicalStorageDriver: 'local',
       enableUatInvitationLinks: 'true',
@@ -37,8 +37,8 @@ describe('collectProductionConfigProblems', () => {
     const problems = collectProductionConfigProblems({
       appEnv: 'production',
       jwtSecret: strongSecret,
-      databaseUrl: 'postgresql://u:p@dpg-xxx-a.oregon-postgres.render.com/medspace',
-      frontendUrl: 'https://app.medspace.co.za',
+      databaseUrl: 'postgresql://u:p@dpg-xxx-a.oregon-postgres.render.com/MediNathi',
+      frontendUrl: 'https://app.MediNathi.co.za',
       clinicalStorageDriver: 'render-disk',
       enableUatInvitationLinks: '',
       cookieSameSite: 'none',

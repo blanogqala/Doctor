@@ -18,7 +18,7 @@ export function getApiBaseUrl(): string {
 
 const API_URL = getApiBaseUrl(); // call-site preferred: getApiBaseUrl()
 
-const CSRF_KEY = 'medspace_csrf';
+const CSRF_KEY = 'MediNathi_csrf';
 const LEGACY_TOKEN_KEY = 'token';
 
 export class ApiError extends Error {
