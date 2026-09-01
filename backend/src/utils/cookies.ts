@@ -50,26 +50,33 @@ function serializeCookie(
     path?: string;
   }
 ): string {
+  const sameSite = cookieSameSite();
+  const secure = cookieSecure();
   const parts = [
     `${name}=${encodeURIComponent(value)}`,
     `Path=${options.path ?? '/'}`,
     `Max-Age=${Math.floor(options.maxAgeMs / 1000)}`,
-    `SameSite=${cookieSameSite()}`,
+    `SameSite=${sameSite}`,
   ];
   if (options.httpOnly) parts.push('HttpOnly');
-  if (cookieSecure()) parts.push('Secure');
+  if (secure) parts.push('Secure');
+  // CHIPS: Netlify (site) → Render (API) is cross-site; Chrome otherwise drops the cookie.
+  if (sameSite === 'None' && secure) parts.push('Partitioned');
   return parts.join('; ');
 }
 
 function clearCookieHeader(name: string): string {
+  const sameSite = cookieSameSite();
+  const secure = cookieSecure();
   const parts = [
     `${name}=`,
     'Path=/',
     'Max-Age=0',
-    `SameSite=${cookieSameSite()}`,
+    `SameSite=${sameSite}`,
     'HttpOnly',
   ];
-  if (cookieSecure()) parts.push('Secure');
+  if (secure) parts.push('Secure');
+  if (sameSite === 'None' && secure) parts.push('Partitioned');
   return parts.join('; ');
 }
 

@@ -56,6 +56,12 @@ export function SuperAdminAuthProvider({ children }: { children: ReactNode }) {
       // Drop legacy JWT authority.
       localStorage.removeItem('super_admin_token');
 
+      const path = window.location.pathname.replace(/\/$/, '') || '/';
+      if (path === '/super-admin/login') {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+
       try {
         const data = await superAdminApi.me();
         if (!cancelled) {

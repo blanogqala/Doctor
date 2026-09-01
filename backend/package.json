@@ -11,7 +11,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "admin:create": "ts-node scripts/create-super-admin.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
