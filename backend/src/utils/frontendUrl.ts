@@ -1,9 +1,43 @@
 import { env } from '../config/env';
 
+export type TenantRoutingMode = 'canonical' | 'subdomain';
+
+export type FrontendUrlOptions = {
+  frontendUrl?: string;
+  platformFrontendUrl?: string;
+  tenantRoutingMode?: TenantRoutingMode;
+};
+
+function frontendBase(options?: FrontendUrlOptions): string {
+  return (options?.frontendUrl ?? env.FRONTEND_URL).replace(/\/$/, '');
+}
+
+function platformBase(options?: FrontendUrlOptions): string {
+  const platform = options?.platformFrontendUrl ?? env.PLATFORM_FRONTEND_URL;
+  return (platform || frontendBase(options)).replace(/\/$/, '');
+}
+
+function normalizePath(path: string): string {
+  return path.startsWith('/') ? path : `/${path}`;
+}
+
+function routingMode(options?: FrontendUrlOptions): TenantRoutingMode {
+  return options?.tenantRoutingMode ?? env.TENANT_ROUTING_MODE;
+}
+
+/** Canonical platform origin + path. Does not put a practice slug into the hostname. */
+export function canonicalFrontendUrl(path: string, options?: FrontendUrlOptions): string {
+  return `${platformBase(options)}${normalizePath(path)}`;
+}
+
 /** Build a Practice-tenant frontend URL (subdomain host). No secrets/tokens. */
-export function practiceFrontendUrl(subdomain: string, path: string): string {
-  const base = env.FRONTEND_URL.replace(/\/$/, '');
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+export function practiceFrontendUrl(
+  subdomain: string,
+  path: string,
+  options?: FrontendUrlOptions
+): string {
+  const base = frontendBase(options);
+  const normalizedPath = normalizePath(path);
   if (base.includes('localhost:3000')) {
     return `${base.replace('localhost:3000', `${subdomain}.localhost:3000`)}${normalizedPath}`;
   }
@@ -15,4 +49,19 @@ export function practiceFrontendUrl(subdomain: string, path: string): string {
   } catch {
     return `${base}${normalizedPath}`;
   }
+}
+
+/**
+ * Token-based account activation / credential emails.
+ * Canonical mode uses the platform frontend; subdomain mode uses practice hosts.
+ */
+export function accountActivationUrl(
+  subdomain: string,
+  path: string,
+  options?: FrontendUrlOptions
+): string {
+  if (routingMode(options) === 'subdomain') {
+    return practiceFrontendUrl(subdomain, path, options);
+  }
+  return canonicalFrontendUrl(path, options);
 }

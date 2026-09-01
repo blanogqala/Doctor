@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from '../api';
+import { ApiError, getApiBaseUrl } from '../api';
 
 export interface InvitationPreview {
   practice_name: string;
@@ -11,17 +11,22 @@ export interface InvitationPreview {
 }
 
 async function inviteFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${getApiBaseUrl()}${endpoint}`, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string> | undefined),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBaseUrl()}${endpoint}`, {
+      ...options,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers as Record<string, string> | undefined),
+      },
+    });
+  } catch {
+    throw new ApiError('MediNathi is temporarily unavailable. Please try again in a few minutes.', 503);
+  }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(body.error || 'Request failed');
+    throw new ApiError(body.error || 'Request failed', res.status, body.code, body);
   }
   return body as T;
 }

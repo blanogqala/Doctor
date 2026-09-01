@@ -17,6 +17,8 @@ interface AuthShellProps {
   size?: Extract<PageContainerSize, 'sm' | 'md'>;
   footer?: React.ReactNode;
   showBackLink?: boolean;
+  /** Overrides practice-hostname branding (e.g. canonical invite on the platform host). */
+  brandName?: string;
 }
 
 export function AuthShell({
@@ -28,9 +30,10 @@ export function AuthShell({
   size = 'sm',
   footer,
   showBackLink = true,
+  brandName,
 }: AuthShellProps) {
   const { practice } = useTenant();
-  const clinicName = practice?.clinic_name;
+  const clinicName = brandName ?? practice?.clinic_name;
 
   return (
     <PageContainer

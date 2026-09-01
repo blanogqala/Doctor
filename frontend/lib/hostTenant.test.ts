@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { resolveTenantSubdomainFromHostname } from './hostTenant';
+import {
+  resolveApiTenantSubdomain,
+  resolveTenantSubdomainFromHostname,
+  resolveUiTenantSubdomain,
+} from './hostTenant';
 
 describe('resolveTenantSubdomainFromHostname (frontend)', () => {
   const stagingOpts = {
@@ -27,5 +31,59 @@ describe('resolveTenantSubdomainFromHostname (frontend)', () => {
 
   it('keeps eastern-cape.localhost', () => {
     expect(resolveTenantSubdomainFromHostname('eastern-cape.localhost')).toBe('eastern-cape');
+  });
+});
+
+const prodOpts = {
+  platformHostnames: 'medinathi.co.za,www.medinathi.co.za',
+  appBaseDomain: 'medinathi.co.za',
+};
+
+describe('canonical ?tenant= on platform hosts', () => {
+  it('apex login ?tenant=pilot resolves for UI and API headers', () => {
+    expect(resolveUiTenantSubdomain('medinathi.co.za', '?tenant=pilot', prodOpts)).toBe('pilot');
+    expect(
+      resolveApiTenantSubdomain({
+        hostname: 'medinathi.co.za',
+        search: '?tenant=pilot',
+        cookieValue: null,
+        localStorageValue: 'stale-clinic',
+        options: prodOpts,
+      })
+    ).toBe('pilot');
+  });
+
+  it('does not treat the apex host itself as a tenant', () => {
+    expect(resolveTenantSubdomainFromHostname('medinathi.co.za', prodOpts)).toBeNull();
+  });
+
+  it('practice hostname still wins over a conflicting ?tenant=', () => {
+    expect(
+      resolveApiTenantSubdomain({
+        hostname: 'clinic-a.medinathi.co.za',
+        search: '?tenant=clinic-b',
+        cookieValue: 'clinic-b',
+        options: prodOpts,
+      })
+    ).toBe('clinic-a');
+  });
+
+  it('localhost still honors ?tenant= and ignores stale storage', () => {
+    expect(
+      resolveApiTenantSubdomain({
+        hostname: 'localhost',
+        search: '?tenant=pilot',
+        cookieValue: 'other',
+        localStorageValue: 'other',
+      })
+    ).toBe('pilot');
+    expect(
+      resolveApiTenantSubdomain({
+        hostname: 'localhost',
+        search: '',
+        cookieValue: 'pilot',
+        localStorageValue: 'pilot',
+      })
+    ).toBeNull();
   });
 });

@@ -13,6 +13,12 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
   /** Optional dedicated Super Admin / platform frontend origin. Defaults to FRONTEND_URL. */
   PLATFORM_FRONTEND_URL: z.string().url().optional(),
+  /**
+   * How practice tenant links are built for token emails (invite / activate / reset).
+   * canonical: PLATFORM_FRONTEND_URL || FRONTEND_URL (no practice hostname).
+   * subdomain: https://{slug}.{FRONTEND_URL host} (future wildcard DNS).
+   */
+  TENANT_ROUTING_MODE: z.enum(['canonical', 'subdomain']).default('canonical'),
   GROQ_API_KEY: z.string().optional(),
   /** Groq HTTP timeout in ms (ASR + LLM). */
   GROQ_TIMEOUT_MS: z.coerce.number().int().positive().default(90_000),

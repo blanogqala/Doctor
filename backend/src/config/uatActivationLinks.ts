@@ -1,4 +1,4 @@
-import { practiceFrontendUrl } from '../utils/frontendUrl';
+import { accountActivationUrl } from '../utils/frontendUrl';
 import { isUatInvitationLinksEnabled } from './uatInvitationLinks';
 
 /**
@@ -14,5 +14,5 @@ export function buildUatActivationUrlIfEnabled(
 ): string | undefined {
   if (!isUatActivationLinksEnabled()) return undefined;
   if (!token || !subdomain) return undefined;
-  return practiceFrontendUrl(subdomain, `/activate?token=${encodeURIComponent(token)}`);
+  return accountActivationUrl(subdomain, `/activate?token=${encodeURIComponent(token)}`);
 }

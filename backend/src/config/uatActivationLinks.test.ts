@@ -31,5 +31,6 @@ describe('isUatActivationLinksEnabled (APP_ENV authoritative)', () => {
     process.env.ENABLE_UAT_INVITATION_LINKS = 'true';
     expect(isUatActivationLinksEnabled()).toBe(true);
     expect(buildUatActivationUrlIfEnabled('cape-test', 'tok')).toContain('/activate?token=');
+    expect(buildUatActivationUrlIfEnabled('cape-test', 'tok')).not.toContain('cape-test.');
   });
 });

@@ -39,6 +39,7 @@ describe('isUatInvitationLinksEnabled (APP_ENV authoritative)', () => {
     expect(isUatInvitationLinksEnabled()).toBe(true);
     const url = buildUatInvitationUrlIfEnabled('cape-test', 'secret-token-value');
     expect(url).toContain('/invite?token=');
+    expect(url).not.toContain('cape-test.');
   });
 
   it('allows development + flag true', () => {

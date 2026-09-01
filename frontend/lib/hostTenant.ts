@@ -75,6 +75,53 @@ export function resolveTenantSubdomainFromHostname(
   return null;
 }
 
+export function tenantFromQuery(search: string): string | null {
+  const query = search.startsWith('?') ? search.slice(1) : search;
+  const raw = new URLSearchParams(query).get('tenant');
+  if (!raw) return null;
+  return raw.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 63) || null;
+}
+
+/** UI tenant: practice hostname wins; otherwise explicit ?tenant= on platform/apex hosts. */
+export function resolveUiTenantSubdomain(
+  hostname: string,
+  search: string,
+  options: HostTenantOptions = {}
+): string | null {
+  const fromHost = resolveTenantSubdomainFromHostname(hostname, options);
+  if (fromHost) return fromHost;
+  return tenantFromQuery(search);
+}
+
+/**
+ * API X-Tenant-Subdomain: practice hostname wins; then ?tenant= on platform hosts;
+ * cookie/localStorage only as apex fallbacks (ignored on bare localhost).
+ */
+export function resolveApiTenantSubdomain(input: {
+  hostname: string;
+  search: string;
+  cookieValue?: string | null;
+  localStorageValue?: string | null;
+  options?: HostTenantOptions;
+}): string | null {
+  const hostname = input.hostname.toLowerCase();
+  const fromHost = resolveTenantSubdomainFromHostname(hostname, input.options);
+  if (fromHost) return fromHost;
+
+  const fromQuery = tenantFromQuery(input.search);
+  if (fromQuery) return fromQuery;
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return null;
+  }
+
+  const cookie = input.cookieValue?.trim();
+  if (cookie) return cookie.toLowerCase();
+  const stored = input.localStorageValue?.trim();
+  if (stored) return stored.toLowerCase();
+  return null;
+}
+
 /** Options from Next public env (middleware + browser). */
 export function hostTenantOptionsFromEnv(
   env: NodeJS.ProcessEnv = process.env

@@ -50,10 +50,10 @@ function ActivateForm() {
     try {
       const result = await activationsApi.accept(token, password);
       authApi.setToken(result.csrf_token);
-      if (preview?.subdomain) {
-        localStorage.setItem('practice_subdomain', preview.subdomain);
-      }
-      router.push('/dashboard');
+      const tenant = preview?.subdomain
+        ? `?tenant=${encodeURIComponent(preview.subdomain.toLowerCase())}`
+        : '';
+      router.replace(`/dashboard${tenant}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not activate account');
     } finally {

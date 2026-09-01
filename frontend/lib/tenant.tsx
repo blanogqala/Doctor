@@ -16,10 +16,7 @@ import {
 } from '@/lib/theme/resolve-practice-theme';
 
 import { getApiBaseUrl } from '@/lib/api';
-import {
-  hostTenantOptionsFromEnv,
-  resolveTenantSubdomainFromHostname,
-} from '@/lib/hostTenant';
+import { hostTenantOptionsFromEnv, resolveUiTenantSubdomain } from '@/lib/hostTenant';
 
 export interface PracticeOfficeHours {
   monFri?: string;
@@ -88,16 +85,11 @@ const STORAGE_KEY = 'practice_subdomain';
 
 export function resolveSubdomainFromHost(): string | null {
   if (typeof window === 'undefined') return null;
-  const host = window.location.hostname.toLowerCase();
-  // Bare localhost = platform marketing host. Only honor explicit ?tenant=.
-  // Do NOT read localStorage here — a leftover demo tenant was hiding the marketing page.
-  if (host === 'localhost' || host === '127.0.0.1') {
-    const params = new URLSearchParams(window.location.search);
-    const fromQuery = params.get('tenant');
-    if (fromQuery) return fromQuery.toLowerCase();
-    return null;
-  }
-  return resolveTenantSubdomainFromHostname(host, hostTenantOptionsFromEnv());
+  return resolveUiTenantSubdomain(
+    window.location.hostname,
+    window.location.search,
+    hostTenantOptionsFromEnv()
+  );
 }
 
 export function getTenantSubdomain(): string | null {

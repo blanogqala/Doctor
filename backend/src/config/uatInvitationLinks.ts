@@ -1,4 +1,4 @@
-import { practiceFrontendUrl } from '../utils/frontendUrl';
+import { accountActivationUrl } from '../utils/frontendUrl';
 import { resolveAppEnv } from './appEnv';
 
 /**
@@ -21,5 +21,5 @@ export function buildUatInvitationUrlIfEnabled(
 ): string | undefined {
   if (!isUatInvitationLinksEnabled()) return undefined;
   if (!token || !subdomain) return undefined;
-  return practiceFrontendUrl(subdomain, `/invite?token=${encodeURIComponent(token)}`);
+  return accountActivationUrl(subdomain, `/invite?token=${encodeURIComponent(token)}`);
 }

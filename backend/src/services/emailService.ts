@@ -4,9 +4,9 @@ import { env } from '../config/env';
 import { isResendSendEnabled } from '../config/resendDelivery';
 import { getPlanDefaults } from '../config/subscriptionPlans';
 import { escapeHtml } from '../utils/escapeHtml';
-import { practiceFrontendUrl } from '../utils/frontendUrl';
+import { accountActivationUrl } from '../utils/frontendUrl';
 
-export { practiceFrontendUrl } from '../utils/frontendUrl';
+export { practiceFrontendUrl, accountActivationUrl } from '../utils/frontendUrl';
 
 let resendClient: Resend | null = null;
 
@@ -176,7 +176,10 @@ export async function sendPracticeInvitationEmail(data: {
   token: string;
   isResend?: boolean;
 }): Promise<boolean> {
-  const inviteUrl = practiceFrontendUrl(data.subdomain, `/invite?token=${encodeURIComponent(data.token)}`);
+  const inviteUrl = accountActivationUrl(
+    data.subdomain,
+    `/invite?token=${encodeURIComponent(data.token)}`
+  );
   const label = roleLabel(data.role, data.isPracticeOwner);
   const safeName = escapeHtml(data.fullName);
   const safePractice = escapeHtml(data.practiceName);
@@ -224,7 +227,7 @@ export async function sendPatientActivationEmail(data: {
   token: string;
   isResend?: boolean;
 }): Promise<boolean> {
-  const activateUrl = practiceFrontendUrl(
+  const activateUrl = accountActivationUrl(
     data.subdomain,
     `/activate?token=${encodeURIComponent(data.token)}`
   );
@@ -271,7 +274,7 @@ export async function sendPasswordResetEmail(data: {
   subdomain: string;
   token: string;
 }): Promise<boolean> {
-  const resetUrl = practiceFrontendUrl(
+  const resetUrl = accountActivationUrl(
     data.subdomain,
     `/reset-password?token=${encodeURIComponent(data.token)}`
   );

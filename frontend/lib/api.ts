@@ -1,7 +1,4 @@
-import {
-  hostTenantOptionsFromEnv,
-  resolveTenantSubdomainFromHostname,
-} from './hostTenant';
+import { hostTenantOptionsFromEnv, resolveApiTenantSubdomain } from './hostTenant';
 
 /**
  * API origin for credentialed fetches.
@@ -36,23 +33,22 @@ export class ApiError extends Error {
 export function getTenantHeader(): Record<string, string> {
   if (typeof window === 'undefined') return {};
   const host = window.location.hostname.toLowerCase();
-
-  // Bare platform host: only honor explicit ?tenant= (ignore stale cookie/localStorage)
-  if (host === 'localhost' || host === '127.0.0.1') {
-    const params = new URLSearchParams(window.location.search);
-    const fromQuery = params.get('tenant');
-    return fromQuery ? { 'X-Tenant-Subdomain': fromQuery.toLowerCase() } : {};
-  }
-
-  // Prefer cookie set by middleware, then localStorage, then host subdomain
   const cookieMatch = document.cookie.match(/(?:^|;\s*)practice_subdomain=([^;]+)/);
-  let subdomain = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
-  if (!subdomain) {
-    subdomain = localStorage.getItem('practice_subdomain');
+  const cookieValue = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+  let localStorageValue: string | null = null;
+  try {
+    localStorageValue = localStorage.getItem('practice_subdomain');
+  } catch {
+    localStorageValue = null;
   }
-  if (!subdomain) {
-    subdomain = resolveTenantSubdomainFromHostname(host, hostTenantOptionsFromEnv());
-  }
+
+  const subdomain = resolveApiTenantSubdomain({
+    hostname: host,
+    search: window.location.search,
+    cookieValue,
+    localStorageValue,
+    options: hostTenantOptionsFromEnv(),
+  });
   return subdomain ? { 'X-Tenant-Subdomain': subdomain } : {};
 }
 
