@@ -7,7 +7,6 @@ import { practiceManagementApi, type PracticeManagementSummary } from '@/lib/api
 import { planLabel } from '@/lib/subscription-plans';
 import { AppPage } from '@/components/layout/app-page';
 import { PageHeader } from '@/components/layout/page-header';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { StatusBadge, type StatusTone } from '@/components/ds/status-badge';
 import { MetricCard, MetricGrid } from '@/components/ds/cards';
 import { Button } from '@/components/ui/button';
@@ -202,24 +201,20 @@ export default function PracticeManagementPage() {
 
   if (authLoading || loading) {
     return (
-      <DashboardLayout>
         <AppPage>
           <div className="flex items-center justify-center py-24 text-muted-foreground">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             Loading…
           </div>
         </AppPage>
-      </DashboardLayout>
     );
   }
 
   if (error || !data) {
     return (
-      <DashboardLayout>
         <AppPage>
           <p className="text-destructive">{error ?? 'Unable to load practice management'}</p>
         </AppPage>
-      </DashboardLayout>
     );
   }
 
@@ -229,7 +224,6 @@ export default function PracticeManagementPage() {
   );
 
   return (
-    <DashboardLayout>
       <AppPage>
       <PageHeader
         title="Practice Management"
@@ -562,6 +556,5 @@ export default function PracticeManagementPage() {
         </TabsContent>
       </Tabs>
       </AppPage>
-    </DashboardLayout>
   );
 }

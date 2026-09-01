@@ -1,123 +1,79 @@
-'use client';
-
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Check } from 'lucide-react';
-import { SectionReveal } from './section-reveal';
-import { cn } from '@/lib/utils';
+import { demoHref, trialHref } from '@/lib/marketing/routes';
 import {
   SUBSCRIPTION_PLANS,
-  HIGHLIGHTED_MARKETING_PLAN,
   marketingPlanLabel,
-  marketingTagline,
+  marketingAudienceLabel,
+  marketingSeatDescription,
   formatPlanPrice,
-  planFeaturesForMarketing,
-  type SubscriptionPlan,
+  MARKETING_INCLUSION_STRIP,
 } from '@/lib/subscription-plans';
+import { MarketingContainer } from './marketing-container';
+import { MarketingHeading } from './marketing-heading';
+import { SectionReveal } from './section-reveal';
 
-interface PricingSectionProps {
-  onGetStarted: (plan: SubscriptionPlan | null) => void;
-}
-
-export function PricingSection({ onGetStarted }: PricingSectionProps) {
+export function PricingSection() {
   return (
-    <section id="pricing" className="relative overflow-hidden bg-white py-16 sm:py-20">
-      <div
-        className="pointer-events-none absolute -left-20 top-20 h-64 w-64 rounded-full bg-secondary/10 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-20 bottom-10 h-72 w-72 rounded-full bg-primary/10 blur-3xl"
-        aria-hidden
-      />
-
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section id="pricing" className="ms-bg-hero py-16 sm:py-20 border-b-2 border-b-[#12A89D]">
+      <MarketingContainer>
         <SectionReveal>
-          <div className="text-center">
-            <h2 className="text-3xl font-semibold tracking-tight text-slate-800 sm:text-4xl">
-              Simple Pricing for Every Practice Size
-            </h2>
-            <p className="mt-4 text-base text-slate-500 sm:text-lg">
-              Transparent monthly pricing. No setup fees.
-            </p>
-          </div>
+          <MarketingHeading>Simple pricing for practices of different sizes.</MarketingHeading>
+          <p className="mt-4 max-w-xl text-base text-slate-600">
+            Choose the practice size that fits your team. 14-day trial. No setup fees.
+          </p>
         </SectionReveal>
 
-        <div className="mt-14 grid items-stretch gap-6 sm:grid-cols-2 sm:gap-8 xl:grid-cols-4">
+        <div className="mt-10 rounded-2xl border-2 border-[#12A89D] bg-white px-6 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#12A89D]">
+            Every plan includes
+          </p>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {MARKETING_INCLUSION_STRIP.map((item) => (
+              <li
+                key={item}
+                className="rounded-full bg-[color:var(--ms-canvas)] px-3 py-1 text-sm text-slate-700"
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-10 grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {SUBSCRIPTION_PLANS.map((tier, i) => {
-            const highlighted = tier.plan === HIGHLIGHTED_MARKETING_PLAN;
             const { price, period } = formatPlanPrice(tier.plan);
-            const features = planFeaturesForMarketing(tier.plan);
+            const isEnterprise = tier.plan === 'ENTERPRISE';
 
             return (
-              <SectionReveal key={tier.plan} delayMs={i * 80}>
-                <div
-                  className={cn(
-                    'relative flex h-full flex-col rounded-2xl border bg-white p-6 transition-all duration-300 sm:p-8',
-                    highlighted
-                      ? 'z-10 border-2 border-secondary shadow-xl shadow-slate-200/80 xl:scale-105'
-                      : 'border-slate-200 shadow-sm hover:-translate-y-1 hover:shadow-md'
-                  )}
-                >
-                  {highlighted && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-4 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                      Most Popular
-                    </span>
-                  )}
-
-                  <h3 className="text-xl font-semibold text-slate-800">
-                    {marketingPlanLabel(tier.plan)}
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-500">{marketingTagline(tier.plan)}</p>
-
+              <SectionReveal key={tier.plan} delayMs={i * 50}>
+                <div className="flex h-full min-h-[280px] flex-col rounded-2xl border-2 border-[#12A89D] bg-white p-6 shadow-[0_16px_40px_-28px_rgba(11,31,51,0.35)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#12A89D]">
+                    {marketingAudienceLabel(tier.plan)}
+                  </p>
+                  <h3 className="mt-3 text-xl font-semibold">{marketingPlanLabel(tier.plan)}</h3>
                   <div className="mt-6">
-                    <span className="text-3xl font-bold tracking-tight text-slate-800 sm:text-4xl">
-                      {price}
-                    </span>
-                    {period && (
-                      <span className="ml-1 text-base text-slate-500">{period}</span>
-                    )}
+                    <span className="text-3xl font-semibold tracking-tight">{price}</span>
+                    {period && <span className="ml-1 text-sm text-slate-500">{period}</span>}
                   </div>
-
-                  <ul className="mt-8 flex-1 space-y-3">
-                    {features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2 text-sm text-slate-600">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Button
-                    size="lg"
-                    className={cn(
-                      'mt-8 w-full transition-transform hover:scale-[1.02]',
-                      highlighted
-                        ? 'bg-accent text-white hover:bg-accent/90'
-                        : 'border-2 border-secondary bg-transparent text-secondary hover:bg-secondary hover:text-white'
-                    )}
-                    variant={highlighted ? 'default' : 'outline'}
-                    onClick={() => onGetStarted(tier.plan)}
-                  >
-                    Get Started
-                  </Button>
+                  <p className="mt-3 text-sm text-slate-600">{marketingSeatDescription(tier.plan)}</p>
+                  <div className="mt-auto pt-8">
+                    <Button
+                      size="lg"
+                      className="w-full bg-[#2F63F5] text-white hover:bg-[#2F63F5]/90"
+                      asChild
+                    >
+                      <Link href={isEnterprise ? demoHref(tier.plan) : trialHref(tier.plan)}>
+                        {isEnterprise ? 'Talk to us' : 'Start free trial'}
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               </SectionReveal>
             );
           })}
         </div>
-
-        <SectionReveal>
-          <div className="mt-12 text-center">
-            <Button
-              size="lg"
-              className="bg-primary text-white hover:bg-primary/90"
-              onClick={() => onGetStarted(null)}
-            >
-              Request Your 14-Day Free Trial
-            </Button>
-          </div>
-        </SectionReveal>
-      </div>
+      </MarketingContainer>
     </section>
   );
 }

@@ -56,8 +56,8 @@ export default function SuperAdminPracticesPage() {
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     setError(null);
     try {
       const list = await superAdminApi.listPractices();
@@ -77,7 +77,7 @@ export default function SuperAdminPracticesPage() {
     setActingId(id);
     try {
       await superAdminApi.updatePractice(id, { subscription_status });
-      await load();
+      await load({ silent: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed');
     } finally {
@@ -144,11 +144,13 @@ export default function SuperAdminPracticesPage() {
       <TableSection
         title="All practices"
         description={
-          loading ? 'Loading…' : `${practices.length} practice${practices.length === 1 ? '' : 's'}`
+          loading && practices.length === 0
+            ? 'Loading…'
+            : `${practices.length} practice${practices.length === 1 ? '' : 's'}${loading ? ' · Refreshing…' : ''}`
         }
         framed={false}
       >
-          {loading ? (
+          {loading && practices.length === 0 ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : practices.length === 0 ? (
             <p className="text-sm text-muted-foreground">No practices yet.</p>

@@ -99,7 +99,7 @@ async function superAdminLogin(page) {
 }
 
 async function checkPricing(page) {
-  await page.goto(`${BASE}/#pricing`, { waitUntil: 'networkidle2', timeout: 60000 });
+  await page.goto(`${BASE}/pricing`, { waitUntil: 'networkidle2', timeout: 60000 });
   const text = await page.evaluate(() => document.body.innerText);
   const checks = {
     solo: /Solo/i.test(text) && /R\s*800|R800/i.test(text),
@@ -118,7 +118,7 @@ async function checkPricing(page) {
 }
 
 async function checkInquiryPrefill(page) {
-  await page.goto(`${BASE}/#join`, { waitUntil: 'networkidle2', timeout: 60000 });
+  await page.goto(`${BASE}/contact`, { waitUntil: 'networkidle2', timeout: 60000 });
   const hasForm = await page.$('form, #join');
   record(
     'Inquiry form visible',
@@ -192,8 +192,8 @@ async function checkPublicSuspendedMessage(page) {
 
 async function responsiveSweep(page) {
   const paths = [
-    { name: 'pricing', url: `${BASE}/#pricing` },
-    { name: 'inquiry', url: `${BASE}/#join` },
+    { name: 'pricing', url: `${BASE}/pricing` },
+    { name: 'inquiry', url: `${BASE}/contact` },
     { name: 'sa-dashboard', url: `${BASE}/super-admin/dashboard` },
     { name: 'sa-practices', url: `${BASE}/super-admin/practices` },
     { name: 'sa-billing', url: `${BASE}/super-admin/billing` },

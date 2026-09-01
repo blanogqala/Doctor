@@ -1,0 +1,10 @@
+{
+  "results": [
+    {
+      "flow": "Marketing QA",
+      "result": "FAIL",
+      "notes": "Waiting failed: 20000ms exceeded"
+    }
+  ],
+  "generatedAt": "2026-08-31T15:07:56.188Z"
+}

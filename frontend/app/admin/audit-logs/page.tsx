@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -95,7 +94,6 @@ export default function AdminAuditLogsPage() {
   };
 
   return (
-    <DashboardLayout>
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -208,6 +206,5 @@ export default function AdminAuditLogsPage() {
           Showing {filtered.length} of {logs.length} entries (max 200 loaded)
         </p>
       </div>
-    </DashboardLayout>
   );
 }

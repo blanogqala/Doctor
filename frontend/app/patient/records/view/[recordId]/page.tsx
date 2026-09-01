@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
@@ -66,24 +65,20 @@ export default function PatientRecordViewPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
         <AppPage>
           <ClinicalRecordSkeleton />
         </AppPage>
-      </DashboardLayout>
     );
   }
 
   if (!record) {
     return (
-      <DashboardLayout>
         <div className="py-12 text-center">
           <p className="text-muted-foreground">Record not found.</p>
           <Button variant="outline" onClick={() => router.push(listHref)} className="mt-4">
             Back to My Records
           </Button>
         </div>
-      </DashboardLayout>
     );
   }
 
@@ -92,7 +87,6 @@ export default function PatientRecordViewPage() {
   const isFollowUp = Boolean(record.parent_record_id);
 
   return (
-    <DashboardLayout>
       <AppPage>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <RecordViewChrome
@@ -165,6 +159,5 @@ export default function PatientRecordViewPage() {
           </div>
         </Tabs>
       </AppPage>
-    </DashboardLayout>
   );
 }

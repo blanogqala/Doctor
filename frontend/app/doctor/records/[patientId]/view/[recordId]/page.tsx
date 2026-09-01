@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { AppPage } from '@/components/layout/app-page';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
@@ -92,17 +91,14 @@ export default function ViewClinicalRecordPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
         <AppPage>
           <ClinicalRecordSkeleton />
         </AppPage>
-      </DashboardLayout>
     );
   }
 
   if (!record) {
     return (
-      <DashboardLayout>
         <AppPage>
           <ErrorState
             kind="not_found"
@@ -111,7 +107,6 @@ export default function ViewClinicalRecordPage() {
             onRetry={() => router.push(folderHref)}
           />
         </AppPage>
-      </DashboardLayout>
     );
   }
 
@@ -122,7 +117,6 @@ export default function ViewClinicalRecordPage() {
   }`;
 
   return (
-    <DashboardLayout>
       <AppPage>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <RecordViewChrome
@@ -262,6 +256,5 @@ export default function ViewClinicalRecordPage() {
           </div>
         </Tabs>
       </AppPage>
-    </DashboardLayout>
   );
 }

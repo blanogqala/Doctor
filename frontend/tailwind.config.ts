@@ -11,8 +11,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ['Arial', 'Helvetica', 'sans-serif'],
-        display: ['var(--font-playfair)', 'Georgia', 'serif'],
-        marketing: ['var(--font-poppins)', 'system-ui', 'sans-serif'],
+        marketing: ['var(--font-source-sans)', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

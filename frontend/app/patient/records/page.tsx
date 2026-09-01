@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { AppPage } from '@/components/layout/app-page';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -99,7 +98,6 @@ export default function PatientRecordsPage() {
   };
 
   return (
-    <DashboardLayout>
       <AppPage>
         <PageHeader
           title="My Medical Records"
@@ -180,6 +178,5 @@ export default function PatientRecordsPage() {
           
         )}
       </AppPage>
-    </DashboardLayout>
   );
 }

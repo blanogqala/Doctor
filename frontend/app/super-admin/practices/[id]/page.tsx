@@ -100,8 +100,8 @@ export default function PracticeWorkspacePage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     setError(null);
     try {
       const data = await superAdminApi.getPractice(practiceId);
@@ -127,7 +127,7 @@ export default function PracticeWorkspacePage() {
       } else {
         setUatInvitationUrl(null);
       }
-      await load();
+      await load({ silent: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Resend failed');
     } finally {
@@ -150,7 +150,7 @@ export default function PracticeWorkspacePage() {
     try {
       await superAdminApi.revokeInvitation(practiceId, invitation.id);
       toast.success('Invitation revoked');
-      await load();
+      await load({ silent: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Revoke failed');
     } finally {
@@ -163,7 +163,7 @@ export default function PracticeWorkspacePage() {
     try {
       await superAdminApi.updatePractice(practiceId, { verify_doctor_id: doctorId });
       toast.success('Doctor verified');
-      await load();
+      await load({ silent: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Verification failed');
     } finally {
@@ -183,7 +183,7 @@ export default function PracticeWorkspacePage() {
       } else {
         toast.success('Payment verified');
       }
-      await load();
+      await load({ silent: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Verify failed');
     } finally {
@@ -239,7 +239,7 @@ export default function PracticeWorkspacePage() {
       });
       toast.success('Subscription agreement updated');
       setEditOpen(false);
-      await load();
+      await load({ silent: true });
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'Update failed');
     } finally {
@@ -247,7 +247,7 @@ export default function PracticeWorkspacePage() {
     }
   };
 
-  if (loading) {
+  if (loading && !workspace) {
     return (
       <AppPage>
         <div className="flex items-center justify-center py-24 text-muted-foreground">

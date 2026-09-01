@@ -44,17 +44,35 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanInfo[] = [
   },
 ];
 
-export const HIGHLIGHTED_MARKETING_PLAN: SubscriptionPlan = 'CLINIC';
-
 export const MARKETING_CORE_FEATURES = [
   'Reception & staff access',
-  'Unlimited patients',
+  'Patient records for your practice',
   'Practice portal & white-label branding',
   'Clinical records',
   'Telemedicine',
-  'MedSpace AI Scribe',
+  'AI-assisted clinical documentation',
   '14-day free trial',
 ] as const;
+
+export const MARKETING_INCLUSION_STRIP = [
+  'Patient folders',
+  'Reception',
+  'Patient portal',
+  'Telemedicine',
+  'Clinical Copilot',
+  'Practice branding',
+] as const;
+
+export const MARKETING_AUDIENCE_LABELS: Record<SubscriptionPlan, string> = {
+  SOLO: 'For solo practitioners',
+  SMALL_PRACTICE: 'For small practices',
+  CLINIC: 'For growing clinics',
+  ENTERPRISE: 'For larger groups',
+};
+
+export function marketingAudienceLabel(plan: SubscriptionPlan | string): string {
+  return MARKETING_AUDIENCE_LABELS[plan as SubscriptionPlan] ?? '';
+}
 
 const MARKETING_LABELS: Record<SubscriptionPlan, string> = {
   SOLO: 'Solo Practitioner',

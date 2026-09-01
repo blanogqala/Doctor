@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { AppPage } from '@/components/layout/app-page';
 import { PageHeader } from '@/components/layout/page-header';
 import { Card, CardContent } from '@/components/ui/card';
@@ -514,7 +513,6 @@ export default function AdminPatientsPage() {
 
   if (selectedPatientId && selectedPatient) {
     return (
-      <DashboardLayout>
         <AppPage>
           <Button variant="outline" onClick={() => router.push('/admin/patients')} className="group">
             <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
@@ -765,19 +763,16 @@ export default function AdminPatientsPage() {
         {createEditDialog}
         {archiveDialog}
         </AppPage>
-      </DashboardLayout>
     );
   }
 
   if (selectedPatientId && loading) {
     return (
-      <DashboardLayout>
         <AppPage>
           <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
           {createEditDialog}
           {archiveDialog}
         </AppPage>
-      </DashboardLayout>
     );
   }
 
@@ -793,7 +788,6 @@ export default function AdminPatientsPage() {
   };
 
   return (
-    <DashboardLayout>
       <AppPage>
         <PageHeader
           title="Patients"
@@ -891,6 +885,5 @@ export default function AdminPatientsPage() {
         {createEditDialog}
         {archiveDialog}
       </AppPage>
-    </DashboardLayout>
   );
 }

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { AppPage } from '@/components/layout/app-page';
 import { PageHeader } from '@/components/layout/page-header';
 import { ActionCard } from '@/components/ds/cards';
@@ -93,7 +92,6 @@ export default function PatientDashboard() {
   const greeting = timeOfDayGreeting();
 
   return (
-    <DashboardLayout>
       <AppPage>
         <PageHeader
           title={`${greeting}, ${firstName}`}
@@ -297,6 +295,5 @@ export default function PatientDashboard() {
           </DashboardSection>
         </div>
       </AppPage>
-    </DashboardLayout>
   );
 }

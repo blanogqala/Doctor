@@ -6,7 +6,6 @@ import { useAuth } from '@/lib/auth-context';
 import { practiceApi } from '@/lib/api/practice';
 import { AppPage } from '@/components/layout/app-page';
 import { PageHeader } from '@/components/layout/page-header';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -79,19 +78,16 @@ export default function DoctorProfilePage() {
 
   if (authLoading || !user?.doctor) {
     return (
-      <DashboardLayout>
         <AppPage>
           <div className="flex items-center justify-center py-24 text-muted-foreground">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             Loading…
           </div>
         </AppPage>
-      </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout>
       <AppPage>
         <PageHeader
           title="My profile"
@@ -156,6 +152,5 @@ export default function DoctorProfilePage() {
           </CardContent>
         </Card>
       </AppPage>
-    </DashboardLayout>
   );
 }

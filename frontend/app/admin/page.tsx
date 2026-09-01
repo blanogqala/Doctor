@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { AppPage } from '@/components/layout/app-page';
 import { PageHeader } from '@/components/layout/page-header';
 import { MetricCard, MetricGrid } from '@/components/ds/cards';
@@ -117,8 +116,7 @@ export default function AdminDashboard() {
   const greeting = timeOfDayGreeting();
 
   return (
-    <DashboardLayout>
-      <AppPage>
+    <AppPage>
         <PageHeader
           title={`${greeting}, ${firstName}`}
           description={`Practice operations · ${formatDate(new Date(), true)}`}
@@ -320,8 +318,7 @@ export default function AdminDashboard() {
             )}
           </DashboardSection>
         </div>
-      </AppPage>
-    </DashboardLayout>
+    </AppPage>
   );
 }
 

@@ -4,6 +4,7 @@ import {
   hostTenantOptionsFromEnv,
   resolveTenantSubdomainFromHostname,
 } from './lib/hostTenant';
+import { isMarketingOnlyPath } from './lib/marketing/routes';
 
 function extractSubdomain(host: string): string | null {
   return resolveTenantSubdomainFromHostname(host, hostTenantOptionsFromEnv());
@@ -12,6 +13,31 @@ function extractSubdomain(host: string): string | null {
 export function middleware(request: NextRequest) {
   const host = request.headers.get('host') || '';
   const subdomain = extractSubdomain(host);
+  const tenantParam = request.nextUrl.searchParams.get('tenant');
+  const onPracticeHost = Boolean(subdomain || tenantParam);
+
+  if (onPracticeHost && isMarketingOnlyPath(request.nextUrl.pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    const redirect = NextResponse.redirect(url);
+    if (subdomain) {
+      redirect.cookies.set('practice_subdomain', subdomain, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
+    } else if (tenantParam) {
+      redirect.cookies.set('practice_subdomain', tenantParam.toLowerCase(), {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
+    }
+    return redirect;
+  }
+
   const response = NextResponse.next();
 
   if (subdomain) {
@@ -23,7 +49,6 @@ export function middleware(request: NextRequest) {
     });
   } else {
     // Explicit local override: ?tenant=eastern-cape
-    const tenantParam = request.nextUrl.searchParams.get('tenant');
     if (tenantParam) {
       response.cookies.set('practice_subdomain', tenantParam.toLowerCase(), {
         httpOnly: false,

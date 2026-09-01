@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -358,7 +357,7 @@ export default function AdminAppointmentsPage() {
     ['PENDING', 'PENDING_IN_PERSON', 'CONFIRMED', 'CONFIRMED_IN_PERSON', 'CONFIRMED_TELEMEDICINE'].includes(status);
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -776,6 +775,6 @@ export default function AdminAppointmentsPage() {
         reasonLabel="Cancellation Reason"
         onConfirm={handleCancel}
       />
-    </DashboardLayout>
+    </>
   );
 }

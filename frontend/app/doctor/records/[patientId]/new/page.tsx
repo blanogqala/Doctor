@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -744,24 +743,20 @@ export default function NewClinicalNotePage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
         <div className="flex items-center justify-center py-24">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </DashboardLayout>
     );
   }
 
   if (!patient) {
     return (
-      <DashboardLayout>
         <div className="py-12 text-center">
           <p className="text-muted-foreground">Patient not found.</p>
           <Button variant="outline" onClick={() => router.push('/doctor/records')} className="mt-4">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Records
           </Button>
         </div>
-      </DashboardLayout>
     );
   }
 
@@ -835,7 +830,7 @@ export default function NewClinicalNotePage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="print:hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <RecordStickyHeader
@@ -1300,7 +1295,7 @@ export default function NewClinicalNotePage() {
           />
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

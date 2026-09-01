@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PaymentStatusBadge, PaymentMethodBadge } from '@/components/shared/badges';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -31,7 +30,6 @@ export default function PatientPaymentsPage() {
   const totalUnpaid = payments.filter((p) => p.status === 'UNPAID').reduce((s, p) => s + p.amount_cents, 0);
 
   return (
-    <DashboardLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Payments</h1>
@@ -102,6 +100,5 @@ export default function PatientPaymentsPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
   );
 }

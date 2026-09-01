@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   SUBSCRIPTION_PLANS,
-  HIGHLIGHTED_MARKETING_PLAN,
   inquiryTypeToPlan,
   planLabel,
   resolveInquiryPlanPrefill,
@@ -30,8 +29,8 @@ describe('subscription plan config', () => {
     expect(planLabel('SMALL_PRACTICE')).toBe('Small Practice');
   });
 
-  it('highlights Clinic for marketing', () => {
-    expect(HIGHLIGHTED_MARKETING_PLAN).toBe('CLINIC');
+  it('does not mark a plan as most popular', () => {
+    expect(formatInterestedPlanDisplay('CLINIC')).toBe('Clinic · 5 Doctor seats');
   });
 });
 

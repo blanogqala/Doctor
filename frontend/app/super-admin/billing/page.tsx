@@ -60,8 +60,8 @@ export default function SuperAdminBillingPage() {
   const [actingId, setActingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     setError(null);
     try {
       const data = await superAdminApi.billing({
@@ -79,7 +79,9 @@ export default function SuperAdminBillingPage() {
   }, [statusFilter, search]);
 
   useEffect(() => {
-    const timer = setTimeout(load, search ? 300 : 0);
+    const timer = setTimeout(() => {
+      void load({ silent: true });
+    }, search ? 300 : 0);
     return () => clearTimeout(timer);
   }, [load, search]);
 
@@ -88,7 +90,7 @@ export default function SuperAdminBillingPage() {
     try {
       const result = await superAdminApi.generateInvoices();
       toast.success(`Created ${result.created_count} invoice(s), skipped ${result.skipped_count}`);
-      await load();
+      await load({ silent: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Generation failed');
     } finally {
@@ -101,7 +103,7 @@ export default function SuperAdminBillingPage() {
     try {
       await superAdminApi.verifyInvoice(id);
       toast.success('Payment verified');
-      await load();
+      await load({ silent: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Verify failed');
     } finally {
@@ -201,7 +203,11 @@ export default function SuperAdminBillingPage() {
 
       <TableSection
         title="All invoices"
-        description={loading ? 'Loading…' : `${invoices.length} invoice(s)`}
+        description={
+          loading && invoices.length === 0
+            ? 'Loading…'
+            : `${invoices.length} invoice(s)${loading ? ' · Refreshing…' : ''}`
+        }
         action={
           <div className="flex flex-wrap gap-2">
             <Input
@@ -226,7 +232,7 @@ export default function SuperAdminBillingPage() {
           </div>
         }
       >
-          {loading ? (
+          {loading && invoices.length === 0 ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : invoices.length === 0 ? (
             <p className="text-sm text-muted-foreground">No invoices match your filters.</p>

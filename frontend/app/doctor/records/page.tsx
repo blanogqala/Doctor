@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { AppPage, Section } from '@/components/layout/app-page';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -204,7 +203,6 @@ export default function DoctorRecordsPage() {
 
   if (selectedPatientId && selectedPatient) {
     return (
-      <DashboardLayout>
         <AppPage>
           <PatientFolderHeader
             patient={selectedPatient}
@@ -406,13 +404,11 @@ export default function DoctorRecordsPage() {
             />
           )}
         </AppPage>
-      </DashboardLayout>
     );
   }
 
   if (selectedPatientId && !loading && !selectedPatient) {
     return (
-      <DashboardLayout>
         <AppPage>
           <ErrorState
             kind="not_found"
@@ -421,12 +417,10 @@ export default function DoctorRecordsPage() {
             onRetry={() => router.push('/doctor/records')}
           />
         </AppPage>
-      </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout>
       <AppPage>
         <PageHeader
           title="Patient Folders"
@@ -493,6 +487,5 @@ export default function DoctorRecordsPage() {
           </div>
         )}
       </AppPage>
-    </DashboardLayout>
   );
 }

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { AppPage } from '@/components/layout/app-page';
 import { PageHeader } from '@/components/layout/page-header';
 import { MetricCard, MetricGrid } from '@/components/ds/cards';
@@ -167,7 +166,6 @@ export default function DoctorDashboard() {
   };
 
   return (
-    <DashboardLayout>
       <AppPage>
         <PageHeader
           title={`${greeting}, Dr ${firstName}`}
@@ -446,6 +444,5 @@ export default function DoctorDashboard() {
           </div>
         </div>
       </AppPage>
-    </DashboardLayout>
   );
 }

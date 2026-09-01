@@ -26,10 +26,16 @@ export function useInView<T extends HTMLElement = HTMLDivElement>(threshold = 0.
           observer.unobserve(entry.target);
         }
       },
-      { threshold, rootMargin: '0px 0px -40px 0px' }
+      { threshold: 0, rootMargin: '80px 0px 80px 0px' }
     );
 
     observer.observe(node);
+
+    const rect = node.getBoundingClientRect();
+    if (rect.top < window.innerHeight + 80 && rect.bottom > -80) {
+      setInView(true);
+      observer.unobserve(node);
+    }
     return () => observer.disconnect();
   }, [threshold]);
 

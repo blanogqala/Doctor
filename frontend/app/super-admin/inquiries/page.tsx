@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { superAdminApi, type InquirySummary } from '@/lib/api/super-admin';
@@ -55,26 +55,34 @@ export default function SuperAdminInquiriesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
-  const load = () => {
-    setLoading(true);
-    superAdminApi
-      .listInquiries(statusFilter === 'all' ? undefined : statusFilter)
-      .then(setInquiries)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load'))
-      .finally(() => setLoading(false));
-  };
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    const requestId = ++requestIdRef.current;
+    if (!opts?.silent) setLoading(true);
+    setError(null);
+    const filter = statusFilter === 'all' ? undefined : statusFilter;
+    try {
+      const list = await superAdminApi.listInquiries(filter);
+      if (requestId !== requestIdRef.current) return;
+      setInquiries(list);
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+      setError(err instanceof Error ? err.message : 'Failed to load');
+    } finally {
+      if (requestId === requestIdRef.current) setLoading(false);
+    }
+  }, [statusFilter]);
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter]);
+    void load({ silent: true });
+  }, [load]);
 
   const updateStatus = async (id: string, status: string) => {
     try {
       await superAdminApi.updateInquiry(id, status);
       toast.success(`Inquiry marked as ${status.toLowerCase()}`);
-      load();
+      await load({ silent: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Update failed');
     }
@@ -125,11 +133,13 @@ export default function SuperAdminInquiriesPage() {
         <CardHeader>
           <CardTitle>Inquiries</CardTitle>
           <CardDescription>
-            {loading ? 'Loading…' : `${inquiries.length} inquiry(ies)`}
+            {loading && inquiries.length === 0
+              ? 'Loading…'
+              : `${inquiries.length} inquiry(ies)${loading ? ' · Refreshing…' : ''}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {loading && inquiries.length === 0 ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : inquiries.length === 0 ? (
             <p className="text-sm text-muted-foreground">No inquiries yet.</p>

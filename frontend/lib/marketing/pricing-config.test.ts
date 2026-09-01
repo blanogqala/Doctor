@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   SUBSCRIPTION_PLANS,
-  HIGHLIGHTED_MARKETING_PLAN,
   marketingPlanLabel,
   marketingSeatDescription,
+  marketingAudienceLabel,
   formatPlanPrice,
   planFeaturesForMarketing,
   MARKETING_CORE_FEATURES,
+  MARKETING_INCLUSION_STRIP,
 } from '../subscription-plans';
 
 describe('marketing pricing config', () => {
@@ -42,6 +43,17 @@ describe('marketing pricing config', () => {
 
   it('uses accurate shared core features', () => {
     expect(MARKETING_CORE_FEATURES).toContain('Reception & staff access');
-    expect(MARKETING_CORE_FEATURES).toContain('MedSpace AI Scribe');
+    expect(MARKETING_CORE_FEATURES).toContain('AI-assisted clinical documentation');
+    expect(MARKETING_CORE_FEATURES).not.toContain('Unlimited patients');
+  });
+
+  it('uses audience labels instead of popularity badges', () => {
+    expect(marketingAudienceLabel('SOLO')).toBe('For solo practitioners');
+    expect(marketingAudienceLabel('CLINIC')).toBe('For growing clinics');
+  });
+
+  it('exposes a shared inclusion strip without per-plan feature lists in UI config', () => {
+    expect(MARKETING_INCLUSION_STRIP).toContain('Patient folders');
+    expect(MARKETING_INCLUSION_STRIP).toContain('Clinical Copilot');
   });
 });

@@ -1,15 +1,8 @@
-import { Poppins, Playfair_Display } from 'next/font/google';
+import { Source_Sans_3 } from 'next/font/google';
 
-export const poppins = Poppins({
+export const sourceSans = Source_Sans_3({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-poppins',
-  display: 'swap',
-});
-
-export const playfair = Playfair_Display({
-  subsets: ['latin'],
-  weight: ['600', '700'],
-  variable: '--font-playfair',
+  variable: '--font-source-sans',
   display: 'swap',
 });

@@ -97,7 +97,7 @@ export default function SuperAdminDashboardPage() {
   useEffect(() => {
     if (authLoading || !token) return;
 
-    setLoading(true);
+    let cancelled = false;
     setError(null);
     setPracticesError(null);
 
@@ -106,6 +106,8 @@ export default function SuperAdminDashboardPage() {
         superAdminApi.dashboard(),
         superAdminApi.listPractices(),
       ]);
+
+      if (cancelled) return;
 
       if (dashResult.status === 'fulfilled') {
         setStats(dashResult.value.stats);
@@ -122,11 +124,15 @@ export default function SuperAdminDashboardPage() {
       if (practicesResult.status === 'fulfilled') {
         setPractices(practicesResult.value);
       } else {
-        setPracticesError('We couldn\'t load the practice overview.');
+        setPracticesError("We couldn't load the practice overview.");
       }
 
       setLoading(false);
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [authLoading, token]);
 
   const patientTotal = useMemo(
@@ -179,9 +185,34 @@ export default function SuperAdminDashboardPage() {
   }, [stats]);
 
   const retry = () => {
-    setLoading(true);
     setError(null);
-    window.location.reload();
+    setPracticesError(null);
+    if (!stats) setLoading(true);
+    void (async () => {
+      const [dashResult, practicesResult] = await Promise.allSettled([
+        superAdminApi.dashboard(),
+        superAdminApi.listPractices(),
+      ]);
+      if (dashResult.status === 'fulfilled') {
+        setStats(dashResult.value.stats);
+        setRecent(dashResult.value.recent_signups);
+        setRecentInquiries(dashResult.value.recent_inquiries ?? []);
+        setError(null);
+      } else {
+        setError(
+          dashResult.reason instanceof Error
+            ? dashResult.reason.message
+            : 'Failed to load dashboard'
+        );
+      }
+      if (practicesResult.status === 'fulfilled') {
+        setPractices(practicesResult.value);
+        setPracticesError(null);
+      } else {
+        setPracticesError("We couldn't load the practice overview.");
+      }
+      setLoading(false);
+    })();
   };
 
   return (
@@ -201,7 +232,7 @@ export default function SuperAdminDashboardPage() {
 
       {error && <ErrorState kind="api" message={error} onRetry={retry} />}
 
-      {loading ? (
+      {loading && !stats ? (
         <MetricGridSkeleton count={4} />
       ) : (
         <MetricGrid>
@@ -310,7 +341,7 @@ export default function SuperAdminDashboardPage() {
             <CardDescription>Practice counts by subscription status</CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {loading && statusChartData.length === 0 ? (
               <DashboardListSkeleton rows={3} />
             ) : statusChartData.length === 0 ? (
               <EmptyState
@@ -360,7 +391,7 @@ export default function SuperAdminDashboardPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {loading && recentInquiries.length === 0 ? (
               <DashboardListSkeleton rows={4} />
             ) : recentInquiries.length === 0 ? (
               <EmptyState
@@ -400,7 +431,7 @@ export default function SuperAdminDashboardPage() {
           </Button>
         }
       >
-        {loading ? (
+        {loading && practices.length === 0 && !practicesError ? (
           <DashboardListSkeleton rows={5} />
         ) : practicesError ? (
           <ErrorState kind="api" message={practicesError} onRetry={retry} />

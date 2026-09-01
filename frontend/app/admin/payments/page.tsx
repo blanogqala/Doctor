@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -196,7 +195,7 @@ export default function AdminPaymentsPage() {
   );
 
   return (
-    <DashboardLayout>
+    <>
       <AppPage>
         <PageHeader
           title="Payments"
@@ -424,6 +423,6 @@ export default function AdminPaymentsPage() {
         reasonLabel="Reason for Voiding"
         onConfirm={handleVoid}
       />
-    </DashboardLayout>
+    </>
   );
 }

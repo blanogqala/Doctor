@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AppointmentStatusBadge, AppointmentTypeBadge } from '@/components/shared/badges';
@@ -354,7 +353,7 @@ export default function DoctorQueuePage() {
   );
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -493,6 +492,6 @@ export default function DoctorQueuePage() {
         reasonLabel="Reason (e.g. Patient did not arrive, Patient cancelled)"
         onConfirm={handleNoShow}
       />
-    </DashboardLayout>
+    </>
   );
 }
