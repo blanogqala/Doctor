@@ -68,4 +68,14 @@ describe('accountActivationUrl', () => {
     });
     expect(url).toBe('https://pilot.medinathi.co.za/invite?token=raw-token');
   });
+
+  it('subdomain mode prefers APP_BASE_DOMAIN over FRONTEND_URL host', () => {
+    const url = accountActivationUrl('pilot', '/invite?token=raw-token', {
+      frontendUrl: 'https://www.medinathi.co.za',
+      platformFrontendUrl: 'https://www.medinathi.co.za',
+      tenantRoutingMode: 'subdomain',
+      appBaseDomain: 'medinathi.co.za',
+    });
+    expect(url).toBe('https://pilot.medinathi.co.za/invite?token=raw-token');
+  });
 });

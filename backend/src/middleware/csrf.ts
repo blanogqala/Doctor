@@ -1,32 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { env } from '../config/env';
 import { verifyCsrfToken } from '../services/sessionService';
+import { isAllowedBrowserOrigin, originFromReferer } from '../utils/browserOrigin';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-export function isAllowedBrowserOrigin(origin: string | undefined): boolean {
-  if (!origin) return false;
-  if (origin === env.FRONTEND_URL) return true;
-  if (env.PLATFORM_FRONTEND_URL && origin === env.PLATFORM_FRONTEND_URL) return true;
-  if (env.NODE_ENV !== 'production') {
-    if (/^https?:\/\/([a-z0-9-]+\.)*localhost(:\d+)?$/i.test(origin)) return true;
-    if (/^https?:\/\/127\.0\.0\.1(:\d+)?$/i.test(origin)) return true;
-  }
-  if (env.CORS_ALLOWED_ORIGINS) {
-    const extras = env.CORS_ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean);
-    if (extras.includes(origin)) return true;
-  }
-  return false;
-}
-
-function originFromReferer(referer: string | undefined): string | undefined {
-  if (!referer) return undefined;
-  try {
-    return new URL(referer).origin;
-  } catch {
-    return undefined;
-  }
-}
+export { isAllowedBrowserOrigin };
 
 /**
  * CSRF protection for cookie-authenticated browser mutations.

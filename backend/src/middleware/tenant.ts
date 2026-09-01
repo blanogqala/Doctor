@@ -2,18 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import { SubscriptionStatus } from '@prisma/client';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
-import { resolveTenantSubdomainFromHostname } from '../utils/hostTenant';
+import { DEFAULT_RESERVED, resolveTenantSubdomainFromHostname } from '../utils/hostTenant';
 
-export const RESERVED_SUBDOMAINS = new Set([
-  'www',
-  'admin',
-  'app',
-  'api',
-  'super-admin',
-  'mail',
-  'static',
-  'localhost',
-]);
+export const RESERVED_SUBDOMAINS: ReadonlySet<string> = DEFAULT_RESERVED;
 
 export interface PracticeContext {
   id: string;

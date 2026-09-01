@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { invitationHostAction, practiceDashboardPath } from '@/lib/invite/invitation-ui';
 
 function ActivateForm() {
   const router = useRouter();
@@ -30,7 +31,20 @@ function ActivateForm() {
     }
     activationsApi
       .validate(token)
-      .then(setPreview)
+      .then((data) => {
+        const hostAction = invitationHostAction(data.subdomain, '/activate', token, {
+          hostname: typeof window !== 'undefined' ? window.location.hostname : '',
+        });
+        if (hostAction.type === 'redirect') {
+          window.location.replace(hostAction.href);
+          return;
+        }
+        if (hostAction.type === 'invalid_host') {
+          setError('This activation is not valid on this practice site.');
+          return;
+        }
+        setPreview(data);
+      })
       .catch((err) => setError(err instanceof Error ? err.message : 'Invalid activation link'))
       .finally(() => setLoading(false));
   }, [token]);
@@ -50,10 +64,12 @@ function ActivateForm() {
     try {
       const result = await activationsApi.accept(token, password);
       authApi.setToken(result.csrf_token);
-      const tenant = preview?.subdomain
-        ? `?tenant=${encodeURIComponent(preview.subdomain.toLowerCase())}`
-        : '';
-      router.replace(`/dashboard${tenant}`);
+      const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+      router.replace(
+        preview?.subdomain
+          ? practiceDashboardPath(preview.subdomain, { hostname })
+          : '/dashboard'
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not activate account');
     } finally {

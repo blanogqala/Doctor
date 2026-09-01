@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import { hostTenantOptionsFromEnv, resolveUiTenantSubdomain } from '@/lib/hostTenant';
+import { practiceDashboardPath } from '@/lib/invite/invitation-ui';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,7 +30,19 @@ export default function LoginPage() {
       setError(error);
       return;
     }
-    router.push('/dashboard');
+    const tenant =
+      typeof window !== 'undefined'
+        ? resolveUiTenantSubdomain(
+            window.location.hostname,
+            window.location.search,
+            hostTenantOptionsFromEnv()
+          )
+        : null;
+    router.push(
+      tenant
+        ? practiceDashboardPath(tenant, { hostname: window.location.hostname })
+        : '/dashboard'
+    );
   };
 
   return (

@@ -1,6 +1,7 @@
 /**
  * Frontend mirror of backend host→tenant resolution.
  * Platform / staging apex hosts must be configured via NEXT_PUBLIC_* env.
+ * Reserved labels must stay aligned with backend/src/utils/hostTenant.ts.
  */
 
 export type HostTenantOptions = {
@@ -9,7 +10,7 @@ export type HostTenantOptions = {
   reserved?: ReadonlySet<string> | readonly string[];
 };
 
-const DEFAULT_RESERVED = new Set([
+export const DEFAULT_RESERVED_HOST_LABELS = [
   'www',
   'admin',
   'app',
@@ -18,7 +19,9 @@ const DEFAULT_RESERVED = new Set([
   'mail',
   'static',
   'localhost',
-]);
+] as const;
+
+const DEFAULT_RESERVED = new Set<string>(DEFAULT_RESERVED_HOST_LABELS);
 
 export function normalizeHostname(host: string): string {
   return host.split(':')[0].trim().toLowerCase();
@@ -30,7 +33,7 @@ function parseHostnameList(value: string | string[] | null | undefined): string[
   return raw.map((h) => normalizeHostname(h)).filter(Boolean);
 }
 
-function reservedSet(reserved?: HostTenantOptions['reserved']): Set<string> {
+function reservedSet(reserved?: HostTenantOptions['reserved']): ReadonlySet<string> {
   if (!reserved) return DEFAULT_RESERVED;
   if (reserved instanceof Set) return reserved;
   return new Set([...DEFAULT_RESERVED, ...reserved]);

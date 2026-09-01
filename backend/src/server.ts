@@ -14,6 +14,7 @@ import { csrfProtect } from './middleware/csrf';
 import { requestContext } from './middleware/requestContext';
 import { createRequestLogger } from './middleware/requestLogger';
 import { detectTenant, requireTenant } from './middleware/tenant';
+import { isCorsAllowedOrigin } from './utils/browserOrigin';
 import authRoutes from './routes/auth';
 import patientRoutes from './routes/patients';
 import doctorRoutes from './routes/doctors';
@@ -50,18 +51,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 function isAllowedOrigin(origin: string | undefined): boolean {
-  if (!origin) return true;
-  if (origin === env.FRONTEND_URL) return true;
-  if (env.PLATFORM_FRONTEND_URL && origin === env.PLATFORM_FRONTEND_URL) return true;
-  if (env.NODE_ENV !== 'production') {
-    if (/^https?:\/\/([a-z0-9-]+\.)*localhost(:\d+)?$/i.test(origin)) return true;
-    if (/^https?:\/\/127\.0\.0\.1(:\d+)?$/i.test(origin)) return true;
-  }
-  if (env.CORS_ALLOWED_ORIGINS) {
-    const extras = env.CORS_ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean);
-    if (extras.includes(origin)) return true;
-  }
-  return false;
+  return isCorsAllowedOrigin(origin);
 }
 
 app.use(

@@ -4,7 +4,7 @@ import {
   hostTenantOptionsFromEnv,
   resolveTenantSubdomainFromHostname,
 } from './lib/hostTenant';
-import { isMarketingOnlyPath } from './lib/marketing/routes';
+import { isMarketingOnlyPath, shouldClearPlatformTenantCookie } from './lib/marketing/routes';
 
 function extractSubdomain(host: string): string | null {
   return resolveTenantSubdomainFromHostname(host, hostTenantOptionsFromEnv());
@@ -47,19 +47,15 @@ export function middleware(request: NextRequest) {
       sameSite: 'lax',
       path: '/',
     });
-  } else {
-    // Explicit local override: ?tenant=eastern-cape
-    if (tenantParam) {
-      response.cookies.set('practice_subdomain', tenantParam.toLowerCase(), {
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-      });
-    } else {
-      // Bare platform host — clear stale demo tenant cookie so marketing page shows
-      response.cookies.delete('practice_subdomain');
-    }
+  } else if (tenantParam) {
+    response.cookies.set('practice_subdomain', tenantParam.toLowerCase(), {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
+  } else if (shouldClearPlatformTenantCookie(request.nextUrl.pathname)) {
+    response.cookies.delete('practice_subdomain');
   }
 
   return response;

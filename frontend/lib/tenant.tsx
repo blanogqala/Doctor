@@ -136,9 +136,14 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     const sub = resolveSubdomainFromHost();
-    setSubdomain(sub);
-    if (sub) {
-      localStorage.setItem(STORAGE_KEY, sub);
+    let resolved = sub;
+    if (!resolved && typeof document !== 'undefined') {
+      const cookieMatch = document.cookie.match(/(?:^|;\s*)practice_subdomain=([^;]+)/);
+      resolved = cookieMatch ? decodeURIComponent(cookieMatch[1]).toLowerCase() : null;
+    }
+    setSubdomain(resolved);
+    if (resolved) {
+      localStorage.setItem(STORAGE_KEY, resolved);
     } else if (typeof window !== 'undefined') {
       const host = window.location.hostname.toLowerCase();
       if (host === 'localhost' || host === '127.0.0.1') {
@@ -156,7 +161,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (!sub) {
+    if (!resolved) {
       setPractice(null);
       setLoading(false);
       setError(null);
@@ -166,7 +171,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
     try {
-      const info = await fetchPracticeInfo(sub);
+      const info = await fetchPracticeInfo(resolved);
       setPractice(info);
       setError(null);
       applyPracticeThemeToDocument(resolvePracticeTheme(info.brand_color));

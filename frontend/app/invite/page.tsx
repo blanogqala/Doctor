@@ -14,6 +14,7 @@ import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import {
   invitationRoleLabel,
   invitationUserMessage,
+  invitationHostAction,
   practiceLoginPath,
 } from '@/lib/invite/invitation-ui';
 import { PASSWORD_REQUIREMENTS_HINT, validatePasswordClient } from '@/lib/password-policy';
@@ -77,7 +78,21 @@ function InviteAcceptForm() {
     }
     invitationsApi
       .validate(token)
-      .then(setPreview)
+      .then((data) => {
+        const hostAction = invitationHostAction(data.subdomain, '/invite', token, {
+          hostname: typeof window !== 'undefined' ? window.location.hostname : '',
+        });
+        if (hostAction.type === 'redirect') {
+          window.location.replace(hostAction.href);
+          return;
+        }
+        if (hostAction.type === 'invalid_host') {
+          setFatalTitle('Invitation unavailable');
+          setError(invitationUserMessage({ code: 'INVITATION_HOST_MISMATCH' }));
+          return;
+        }
+        setPreview(data);
+      })
       .catch((err) => {
         const code = err instanceof ApiError ? err.code : undefined;
         const status = err instanceof ApiError ? err.status : undefined;
@@ -136,7 +151,9 @@ function InviteAcceptForm() {
   }
 
   if (activated && preview) {
-    const loginHref = practiceLoginPath(preview.subdomain);
+    const loginHref = practiceLoginPath(preview.subdomain, {
+      hostname: typeof window !== 'undefined' ? window.location.hostname : '',
+    });
     return (
       <div className="space-y-5" role="status">
         <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-4 text-sm">

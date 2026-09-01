@@ -15,8 +15,8 @@ const envSchema = z.object({
   PLATFORM_FRONTEND_URL: z.string().url().optional(),
   /**
    * How practice tenant links are built for token emails (invite / activate / reset).
-   * canonical: PLATFORM_FRONTEND_URL || FRONTEND_URL (no practice hostname).
-   * subdomain: https://{slug}.{FRONTEND_URL host} (future wildcard DNS).
+   * canonical: PLATFORM_FRONTEND_URL || FRONTEND_URL (operational fallback; ?tenant= UX).
+   * subdomain: https://{slug}.{APP_BASE_DOMAIN || FRONTEND_URL host} (production wildcard).
    */
   TENANT_ROUTING_MODE: z.enum(['canonical', 'subdomain']).default('canonical'),
   GROQ_API_KEY: z.string().optional(),

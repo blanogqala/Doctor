@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_RESERVED_HOST_LABELS,
   resolveApiTenantSubdomain,
   resolveTenantSubdomainFromHostname,
   resolveUiTenantSubdomain,
@@ -85,5 +86,29 @@ describe('canonical ?tenant= on platform hosts', () => {
         localStorageValue: 'pilot',
       })
     ).toBeNull();
+  });
+});
+
+describe('production practice hostnames (frontend)', () => {
+  it('allows one-label practice hosts', () => {
+    expect(resolveTenantSubdomainFromHostname('pilot.medinathi.co.za', prodOpts)).toBe('pilot');
+    expect(resolveTenantSubdomainFromHostname('cape-medical.medinathi.co.za', prodOpts)).toBe(
+      'cape-medical'
+    );
+  });
+
+  it('denies reserved, nested, and lookalike hosts', () => {
+    expect(resolveTenantSubdomainFromHostname('api.medinathi.co.za', prodOpts)).toBeNull();
+    expect(resolveTenantSubdomainFromHostname('mail.medinathi.co.za', prodOpts)).toBeNull();
+    expect(resolveTenantSubdomainFromHostname('www.medinathi.co.za', prodOpts)).toBeNull();
+    expect(resolveTenantSubdomainFromHostname('a.b.medinathi.co.za', prodOpts)).toBeNull();
+    expect(resolveTenantSubdomainFromHostname('medinathi.co.za.evil.com', prodOpts)).toBeNull();
+    expect(resolveTenantSubdomainFromHostname('evilmedinathi.co.za', prodOpts)).toBeNull();
+  });
+
+  it('mirrors the backend reserved label list', () => {
+    expect([...DEFAULT_RESERVED_HOST_LABELS].sort()).toEqual(
+      ['admin', 'api', 'app', 'localhost', 'mail', 'static', 'super-admin', 'www'].sort()
+    );
   });
 });

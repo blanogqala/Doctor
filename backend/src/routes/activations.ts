@@ -10,8 +10,26 @@ import {
 import { buildAuthUser } from '../services/authService';
 import { setPracticeSessionCookie } from '../utils/cookies';
 import { checkRateLimit, clientIp } from '../utils/rateLimit';
+import { browserOriginFromHeaders, isInvitationOriginMismatch } from '../utils/browserOrigin';
 
 const router = Router();
+
+function requestBrowserOrigin(req: Request): string | undefined {
+  return browserOriginFromHeaders({
+    origin: req.get('origin') || undefined,
+    referer: req.get('referer') || undefined,
+  });
+}
+
+function assertActivationOrigin(req: Request, practiceSubdomain: string) {
+  if (isInvitationOriginMismatch(requestBrowserOrigin(req), practiceSubdomain)) {
+    throw new AppError(
+      403,
+      'This activation is not valid on this practice site.',
+      'INVITATION_HOST_MISMATCH'
+    );
+  }
+}
 
 router.get(
   '/validate',
@@ -22,6 +40,7 @@ router.get(
     }
     const token = String(req.query.token ?? '');
     const preview = await validatePatientActivationToken(token);
+    assertActivationOrigin(req, preview.subdomain);
 
     // Optional wrong-tenant detection when a tenant header is present.
     if (req.practiceContext && req.practiceContext.id !== preview.practiceId) {
@@ -53,6 +72,8 @@ router.post(
       throw new AppError(429, 'Too many requests. Please try again later.');
     }
     const { token, password } = acceptSchema.parse(req.body);
+    const preview = await validatePatientActivationToken(token);
+    assertActivationOrigin(req, preview.subdomain);
     const result = await activateAndCreateSession({
       token,
       password,

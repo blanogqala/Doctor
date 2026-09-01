@@ -6,6 +6,7 @@ export type FrontendUrlOptions = {
   frontendUrl?: string;
   platformFrontendUrl?: string;
   tenantRoutingMode?: TenantRoutingMode;
+  appBaseDomain?: string | null;
 };
 
 function frontendBase(options?: FrontendUrlOptions): string {
@@ -23,6 +24,11 @@ function normalizePath(path: string): string {
 
 function routingMode(options?: FrontendUrlOptions): TenantRoutingMode {
   return options?.tenantRoutingMode ?? env.TENANT_ROUTING_MODE;
+}
+
+function configuredAppBaseDomain(options?: FrontendUrlOptions): string {
+  const raw = options?.appBaseDomain ?? env.APP_BASE_DOMAIN ?? '';
+  return raw.trim().toLowerCase().replace(/^\.+/, '').replace(/^www\./, '');
 }
 
 /** Canonical platform origin + path. Does not put a practice slug into the hostname. */
@@ -43,7 +49,7 @@ export function practiceFrontendUrl(
   }
   try {
     const url = new URL(base);
-    const host = url.hostname.replace(/^www\./, '');
+    const host = configuredAppBaseDomain(options) || url.hostname.replace(/^www\./, '');
     url.hostname = `${subdomain}.${host}`;
     return `${url.origin}${normalizedPath}`;
   } catch {

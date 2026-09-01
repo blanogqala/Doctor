@@ -14,7 +14,8 @@ export type HostTenantOptions = {
   reserved?: ReadonlySet<string> | readonly string[];
 };
 
-const DEFAULT_RESERVED = new Set([
+/** Keep in sync with frontend/lib/hostTenant.ts DEFAULT_RESERVED_HOST_LABELS. */
+export const DEFAULT_RESERVED_HOST_LABELS = [
   'www',
   'admin',
   'app',
@@ -23,7 +24,9 @@ const DEFAULT_RESERVED = new Set([
   'mail',
   'static',
   'localhost',
-]);
+] as const;
+
+export const DEFAULT_RESERVED: ReadonlySet<string> = new Set(DEFAULT_RESERVED_HOST_LABELS);
 
 export function normalizeHostname(host: string): string {
   return host.split(':')[0].trim().toLowerCase();
@@ -35,7 +38,7 @@ function parseHostnameList(value: string | string[] | null | undefined): string[
   return raw.map((h) => normalizeHostname(h)).filter(Boolean);
 }
 
-function reservedSet(reserved?: HostTenantOptions['reserved']): Set<string> {
+function reservedSet(reserved?: HostTenantOptions['reserved']): ReadonlySet<string> {
   if (!reserved) return DEFAULT_RESERVED;
   if (reserved instanceof Set) return reserved;
   return new Set([...DEFAULT_RESERVED, ...reserved]);

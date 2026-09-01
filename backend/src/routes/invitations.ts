@@ -8,8 +8,26 @@ import { acceptInvitation, validateInvitationToken } from '../services/invitatio
 import { createPracticeSession } from '../services/sessionService';
 import { setPracticeSessionCookie } from '../utils/cookies';
 import { checkRateLimit, clientIp } from '../utils/rateLimit';
+import { browserOriginFromHeaders, isInvitationOriginMismatch } from '../utils/browserOrigin';
 
 const router = Router();
+
+function requestBrowserOrigin(req: Request): string | undefined {
+  return browserOriginFromHeaders({
+    origin: req.get('origin') || undefined,
+    referer: req.get('referer') || undefined,
+  });
+}
+
+function assertInvitationOrigin(req: Request, practiceSubdomain: string) {
+  if (isInvitationOriginMismatch(requestBrowserOrigin(req), practiceSubdomain)) {
+    throw new AppError(
+      403,
+      'This invitation is not valid on this practice site.',
+      'INVITATION_HOST_MISMATCH'
+    );
+  }
+}
 
 router.get(
   '/validate',
@@ -20,6 +38,7 @@ router.get(
     }
     const token = String(req.query.token ?? '');
     const invitation = await validateInvitationToken(token);
+    assertInvitationOrigin(req, invitation.practice.subdomain);
     res.json(
       toSnakeCase({
         practiceName: invitation.practice.clinicName,
@@ -47,6 +66,8 @@ router.post(
       throw new AppError(429, 'Too many requests. Please try again later.');
     }
     const { token, password } = acceptSchema.parse(req.body);
+    const preview = await validateInvitationToken(token);
+    assertInvitationOrigin(req, preview.practice.subdomain);
     const result = await acceptInvitation(token, password);
     const auth = await login(result.profile.email, password, result.practice.id);
     const session = await createPracticeSession({
