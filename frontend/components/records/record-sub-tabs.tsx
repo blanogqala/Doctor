@@ -5,7 +5,8 @@ import { Stethoscope, Pill, ArrowRightLeft, Lock, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const RECORD_TAB_TRIGGER_CLASS = cn(
-  'gap-1.5 transition-colors duration-200',
+  'min-w-0 gap-1 px-2 transition-colors duration-200 sm:gap-1.5 sm:px-3',
+  '[&>svg]:shrink-0 [&>span]:truncate',
   'data-[state=inactive]:bg-transparent data-[state=inactive]:text-slate-600',
   'data-[state=inactive]:hover:bg-primary/10',
   'data-[state=active]:bg-primary data-[state=active]:font-semibold data-[state=active]:text-primary-foreground data-[state=active]:shadow-none'

@@ -418,20 +418,20 @@ export default function AdminAppointmentsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="mb-2 grid grid-cols-7 gap-1">
+                <div className="mb-2 grid grid-cols-7 gap-0.5 sm:gap-1">
                   {WEEKDAYS.map((day) => (
-                    <div key={day} className="py-2 text-center text-xs font-semibold text-muted-foreground">
+                    <div key={day} className="min-w-0 truncate py-2 text-center text-xs font-semibold text-muted-foreground">
                       {day}
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
                   {calendarDays.map((dayInfo, i) => (
                     <button
                       key={i}
                       onClick={() => handleDateSelect(dayInfo.date)}
                       className={cn(
-                        'relative flex min-h-[80px] flex-col items-center rounded-lg border p-2 text-center transition-all duration-200 hover:scale-[1.02] hover:shadow-md',
+                        'relative flex min-h-[56px] min-w-0 flex-col items-center overflow-hidden rounded-lg border p-1 text-center transition-all duration-200 hover:scale-[1.02] hover:shadow-md sm:min-h-[80px] sm:p-2',
                         isCurrentMonth(dayInfo.date) ? 'bg-card' : 'bg-muted/30',
                         isToday(dayInfo.date) ? 'border-primary ring-1 ring-primary/30' : 'border-border hover:border-primary/40'
                       )}
@@ -447,7 +447,7 @@ export default function AdminAppointmentsPage() {
                       {dayInfo.total > 0 && (
                         <div className="mt-1 flex flex-1 flex-col items-center justify-center gap-0.5">
                           <span className="text-sm font-bold text-foreground">{dayInfo.total}</span>
-                          <span className="text-[10px] text-muted-foreground">appts</span>
+                          <span className="hidden text-[10px] text-muted-foreground sm:inline">appts</span>
                           <div className="mt-0.5 flex gap-0.5">
                             {dayInfo.pending > 0 && <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />}
                             {dayInfo.confirmed > 0 && <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />}

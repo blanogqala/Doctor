@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "qa:phase7": "node scripts/phase7-saas-browser-qa.cjs",
-    "qa:marketing": "node scripts/marketing-browser-qa.cjs"
+    "qa:marketing": "node scripts/marketing-browser-qa.cjs",
+    "qa:responsive": "node scripts/responsive-input-qa.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

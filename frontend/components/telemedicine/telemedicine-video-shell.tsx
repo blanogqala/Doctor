@@ -257,7 +257,7 @@ function TelemedicineVideoShell() {
 
         <ConnectionStatusBanner />
 
-        <div className={cn('relative min-h-0 flex-1', expanded ? 'min-h-[50vh]' : 'aspect-video')}>
+        <div className={cn('relative min-h-0 flex-1', expanded ? 'min-h-[50dvh]' : 'aspect-video')}>
           <LocalTrackPublisher />
           {showWaiting ? (
             <PatientWaitingRoom

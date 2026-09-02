@@ -236,7 +236,7 @@ export function MessagesView() {
         <p className="text-sm text-muted-foreground">Secure communication</p>
       </div>
 
-      <Card className="h-[calc(100vh-220px)] min-h-[400px]">
+      <Card className="h-[calc(100dvh-220px)] sm:min-h-[400px]">
         <CardContent className="h-full p-0">
           <div className="flex h-full">
             <div

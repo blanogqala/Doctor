@@ -472,7 +472,7 @@ export default function PracticeWorkspacePage() {
                 <div className="space-y-2">
                   <Label>Subscription plan</Label>
                   <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-base md:text-sm"
                     value={editPlan}
                     onChange={(e) => onEditPlanChange(e.target.value as SubscriptionPlan)}
                   >

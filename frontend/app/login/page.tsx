@@ -85,9 +85,9 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            {error}
+          <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <span className="min-w-0 break-words">{error}</span>
           </div>
         )}
 
@@ -106,7 +106,7 @@ export default function LoginPage() {
       {process.env.NODE_ENV !== 'production' && (
         <div className="mt-6 rounded-lg border border-border bg-muted/50 p-4">
           <p className="text-xs font-medium text-muted-foreground">Demo accounts:</p>
-          <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+          <div className="mt-2 space-y-1 break-words text-xs text-muted-foreground">
             <p>admin@ecdoctor.co.za · doctor@ecdoctor.co.za · patient@ecdoctor.co.za</p>
             <p>Password: EasternCape@2026!</p>
           </div>

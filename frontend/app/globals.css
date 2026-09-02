@@ -101,6 +101,16 @@
   html {
     scrollbar-gutter: stable;
   }
+  /*
+   * Form controls carry a wide intrinsic min-content width, which prevents
+   * grid/flex parents from shrinking below it and pushes narrow screens into
+   * horizontal scroll. Explicit width utilities still win over this.
+   */
+  input,
+  textarea,
+  select {
+    min-width: 0;
+  }
   body {
     @apply bg-background text-foreground text-body font-sans antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
@@ -229,6 +239,22 @@
   }
   .table-priority-medium {
     @apply hidden md:table-cell;
+  }
+}
+
+/*
+ * Mobile browsers (notably iOS Safari) auto-zoom the page when a focused form
+ * control computes below 16px. This floor is declared outside @layer so it
+ * outranks utility classes such as `text-xs` that pages may pass through
+ * tailwind-merge, and it also covers raw form elements that bypass the shared
+ * primitives. Pinch-to-zoom is left untouched.
+ */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  textarea,
+  select,
+  [role='combobox'] {
+    font-size: 16px;
   }
 }
 

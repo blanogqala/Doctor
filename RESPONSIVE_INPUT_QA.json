@@ -1,0 +1,1075 @@
+{
+  "generatedAt": "2026-09-02T19:14:30.494Z",
+  "config": {
+    "base": "http://localhost:3000",
+    "api": "http://localhost:3001",
+    "tenant": "eastern-cape",
+    "minMobileFontPx": 16
+  },
+  "viewports": [
+    "320",
+    "360",
+    "375",
+    "390",
+    "412",
+    "430",
+    "768",
+    "1024",
+    "1280",
+    "1366",
+    "1440"
+  ],
+  "results": [
+    {
+      "flow": "Viewport meta configuration",
+      "result": "PASS",
+      "notes": "count=1 content=\"width=device-width, initial-scale=1, viewport-fit=cover\" zoomBlocked=false"
+    },
+    {
+      "flow": "Public + auth pages — pages rendered healthy",
+      "result": "PASS",
+      "notes": "0 unhealthy cells of 88"
+    },
+    {
+      "flow": "Public + auth pages — horizontal overflow",
+      "result": "PASS",
+      "notes": "0 overflow cells across 8 routes x 11 widths"
+    },
+    {
+      "flow": "Public + auth pages — mobile input font-size >= 16px",
+      "result": "PASS",
+      "notes": "0 route/width combinations with undersized controls; 162 control measurements taken"
+    },
+    {
+      "flow": "Patient pages — pages rendered healthy",
+      "result": "PASS",
+      "notes": "0 unhealthy cells of 88"
+    },
+    {
+      "flow": "Patient pages — horizontal overflow",
+      "result": "PASS",
+      "notes": "0 overflow cells across 8 routes x 11 widths"
+    },
+    {
+      "flow": "Patient pages — mobile input font-size >= 16px",
+      "result": "PASS",
+      "notes": "0 route/width combinations with undersized controls; 96 control measurements taken"
+    },
+    {
+      "flow": "Doctor pages — pages rendered healthy",
+      "result": "PASS",
+      "notes": "0 unhealthy cells of 77"
+    },
+    {
+      "flow": "Doctor pages — horizontal overflow",
+      "result": "PASS",
+      "notes": "0 overflow cells across 7 routes x 11 widths"
+    },
+    {
+      "flow": "Doctor pages — mobile input font-size >= 16px",
+      "result": "PASS",
+      "notes": "0 route/width combinations with undersized controls; 84 control measurements taken"
+    },
+    {
+      "flow": "Reception pages — pages rendered healthy",
+      "result": "PASS",
+      "notes": "0 unhealthy cells of 77"
+    },
+    {
+      "flow": "Reception pages — horizontal overflow",
+      "result": "PASS",
+      "notes": "0 overflow cells across 7 routes x 11 widths"
+    },
+    {
+      "flow": "Reception pages — mobile input font-size >= 16px",
+      "result": "PASS",
+      "notes": "0 route/width combinations with undersized controls; 84 control measurements taken"
+    },
+    {
+      "flow": "Console hydration / React errors",
+      "result": "PASS",
+      "notes": "0 matching console entries"
+    }
+  ],
+  "viewportMeta": {
+    "count": 1,
+    "content": [
+      "width=device-width, initial-scale=1, viewport-fit=cover"
+    ],
+    "ok": true,
+    "blocksZoom": false
+  },
+  "overflowMatrix": {
+    "login": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "register": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "forgot-password": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "reset-password": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "invite": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "activate": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "marketing-home": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "contact": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "patient-dashboard": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "patient-appointments": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "patient-book": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "patient-records": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "patient-messages": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "patient-payments": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "patient-telemedicine": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "patient-profile": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "doctor-dashboard": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "doctor-queue": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "doctor-records": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "doctor-messages": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "doctor-telemedicine": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "doctor-practice-mgmt": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "doctor-profile": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "reception-dashboard": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "reception-appointments": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "reception-patients": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "reception-payments": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "reception-messages": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "reception-settings": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    },
+    "reception-audit": {
+      "320": "OK",
+      "360": "OK",
+      "375": "OK",
+      "390": "OK",
+      "412": "OK",
+      "430": "OK",
+      "768": "OK",
+      "1024": "OK",
+      "1280": "OK",
+      "1366": "OK",
+      "1440": "OK"
+    }
+  },
+  "mobileFontMatrix": {
+    "login": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "register": {
+      "320": "OK(12)",
+      "360": "OK(12)",
+      "375": "OK(12)",
+      "390": "OK(12)",
+      "412": "OK(12)",
+      "430": "OK(12)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "forgot-password": {
+      "320": "OK(1)",
+      "360": "OK(1)",
+      "375": "OK(1)",
+      "390": "OK(1)",
+      "412": "OK(1)",
+      "430": "OK(1)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "reset-password": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "invite": {
+      "320": "OK(0)",
+      "360": "OK(0)",
+      "375": "OK(0)",
+      "390": "OK(0)",
+      "412": "OK(0)",
+      "430": "OK(0)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "activate": {
+      "320": "OK(0)",
+      "360": "OK(0)",
+      "375": "OK(0)",
+      "390": "OK(0)",
+      "412": "OK(0)",
+      "430": "OK(0)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "marketing-home": {
+      "320": "OK(0)",
+      "360": "OK(0)",
+      "375": "OK(0)",
+      "390": "OK(0)",
+      "412": "OK(0)",
+      "430": "OK(0)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "contact": {
+      "320": "OK(10)",
+      "360": "OK(10)",
+      "375": "OK(10)",
+      "390": "OK(10)",
+      "412": "OK(10)",
+      "430": "OK(10)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "patient-dashboard": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "patient-appointments": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "patient-book": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "patient-records": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "patient-messages": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "patient-payments": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "patient-telemedicine": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "patient-profile": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "doctor-dashboard": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "doctor-queue": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "doctor-records": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "doctor-messages": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "doctor-telemedicine": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "doctor-practice-mgmt": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "doctor-profile": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "reception-dashboard": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "reception-appointments": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "reception-patients": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "reception-payments": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "reception-messages": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "reception-settings": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    },
+    "reception-audit": {
+      "320": "OK(2)",
+      "360": "OK(2)",
+      "375": "OK(2)",
+      "390": "OK(2)",
+      "412": "OK(2)",
+      "430": "OK(2)",
+      "768": "N/A",
+      "1024": "N/A",
+      "1280": "N/A",
+      "1366": "N/A",
+      "1440": "N/A"
+    }
+  },
+  "details": {
+    "overflow": [],
+    "smallFonts": [],
+    "focusIssues": [],
+    "focusRuns": [
+      {
+        "route": "login",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "register",
+        "exercised": 11,
+        "total": 11,
+        "issues": 0
+      },
+      {
+        "route": "forgot-password",
+        "exercised": 1,
+        "total": 1,
+        "issues": 0
+      },
+      {
+        "route": "reset-password",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "invite",
+        "exercised": 0,
+        "total": 0,
+        "issues": 0
+      },
+      {
+        "route": "activate",
+        "exercised": 0,
+        "total": 0,
+        "issues": 0
+      },
+      {
+        "route": "marketing-home",
+        "exercised": 0,
+        "total": 0,
+        "issues": 0
+      },
+      {
+        "route": "contact",
+        "exercised": 7,
+        "total": 7,
+        "issues": 0
+      },
+      {
+        "route": "patient-dashboard",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "patient-appointments",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "patient-book",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "patient-records",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "patient-messages",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "patient-payments",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "patient-telemedicine",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "patient-profile",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "doctor-dashboard",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "doctor-queue",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "doctor-records",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "doctor-messages",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "doctor-telemedicine",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "doctor-practice-mgmt",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "doctor-profile",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "reception-dashboard",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "reception-appointments",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "reception-patients",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "reception-payments",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "reception-messages",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "reception-settings",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      },
+      {
+        "route": "reception-audit",
+        "exercised": 2,
+        "total": 2,
+        "issues": 0
+      }
+    ],
+    "unhealthy": []
+  },
+  "consoleErrors": []
+}

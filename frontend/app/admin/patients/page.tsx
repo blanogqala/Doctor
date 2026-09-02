@@ -520,15 +520,15 @@ export default function AdminPatientsPage() {
           </Button>
 
           <Card className="animate-slide-up">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-3">
+                <div className="min-w-0 space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                       <User className="h-6 w-6 text-primary" />
                     </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-foreground">{patientDisplayName(selectedPatient)}</h2>
+                    <div className="min-w-0">
+                      <h2 className="break-words text-xl font-bold text-foreground">{patientDisplayName(selectedPatient)}</h2>
                       <p className="text-sm text-muted-foreground">
                         ID: {maskIdNumber(selectedPatient.id_number) ?? '—'}
                       </p>
@@ -542,7 +542,7 @@ export default function AdminPatientsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-x-6 gap-y-2 break-words text-sm sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                       <p className="text-xs text-muted-foreground">Date of Birth</p>
                       <p className="font-medium text-foreground">

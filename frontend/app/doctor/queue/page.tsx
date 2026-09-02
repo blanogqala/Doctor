@@ -386,18 +386,18 @@ export default function DoctorQueuePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="mb-2 grid grid-cols-7 gap-1">
+                <div className="mb-2 grid grid-cols-7 gap-0.5 sm:gap-1">
                   {WEEKDAYS.map((day) => (
-                    <div key={day} className="py-2 text-center text-xs font-semibold text-muted-foreground">{day}</div>
+                    <div key={day} className="min-w-0 truncate py-2 text-center text-xs font-semibold text-muted-foreground">{day}</div>
                   ))}
                 </div>
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
                   {calendarDays.map((dayInfo, i) => (
                     <button
                       key={i}
                       onClick={() => handleDateSelect(dayInfo.date)}
                       className={cn(
-                        'relative flex min-h-[80px] flex-col items-center rounded-lg border p-2 text-center transition-all duration-200 hover:scale-[1.02] hover:shadow-md',
+                        'relative flex min-h-[56px] min-w-0 flex-col items-center overflow-hidden rounded-lg border p-1 text-center transition-all duration-200 hover:scale-[1.02] hover:shadow-md sm:min-h-[80px] sm:p-2',
                         isCurrentMonth(dayInfo.date) ? 'bg-card' : 'bg-muted/30',
                         isToday(dayInfo.date) ? 'border-primary ring-1 ring-primary/30' : 'border-border hover:border-primary/40'
                       )}

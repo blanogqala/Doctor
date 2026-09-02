@@ -69,7 +69,7 @@ export function AuthShell({
                     <HeartPulse className="h-7 w-7 text-primary-foreground" aria-hidden />
                   </div>
                 )}
-                <span className="min-h-5 text-sm font-semibold uppercase tracking-[0.14em] text-primary">
+                <span className="min-h-5 max-w-full break-words text-sm font-semibold uppercase tracking-[0.14em] text-primary">
                   {clinicName ?? '\u00a0'}
                 </span>
               </Link>

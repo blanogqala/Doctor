@@ -41,7 +41,7 @@ function SuperAdminShell({ children }: { children: React.ReactNode }) {
 
   if (practiceTenant) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background p-8">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-4 py-8">
         <Skeleton className="h-8 w-8 rounded-full" />
         <p className="text-sm text-muted-foreground">Loading…</p>
       </div>
@@ -54,7 +54,7 @@ function SuperAdminShell({ children }: { children: React.ReactNode }) {
 
   if (loading || !token) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background p-8">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-4 py-8">
         <Skeleton className="h-8 w-8 rounded-full" />
         <p className="text-sm text-muted-foreground">Loading…</p>
       </div>

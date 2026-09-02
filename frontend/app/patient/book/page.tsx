@@ -610,9 +610,9 @@ export default function PatientBookPage() {
 
       {/* Create / Edit dialog */}
       {createOpen || editAppt ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4" onClick={() => { setCreateOpen(false); setEditAppt(null); }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4" onClick={() => { setCreateOpen(false); setEditAppt(null); }}>
           <div className="relative my-auto w-full max-w-md overflow-hidden rounded-lg bg-background shadow-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6">
+            <div className="max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain p-4 safe-pb sm:max-h-[calc(100dvh-2rem)] sm:p-6">
               <h2 className="text-lg font-semibold pr-8">{editAppt ? 'Reschedule Appointment' : 'Request Appointment'}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{editAppt ? 'Choose a new date and time' : 'Submit a request for clinic review'}</p>
               <div className="mt-4 space-y-4">

@@ -998,7 +998,7 @@ export default function NewClinicalNotePage() {
                       <div className="space-y-1">
                         <Label className="text-xs">Dosage Form</Label>
                         <Select value={med.dosage_form} onValueChange={(v) => updateMedication(med.id, 'dosage_form', v)}>
-                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
+                          <SelectTrigger className="h-9 text-base md:h-8 md:text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
                           <SelectContent>
                             {DOSAGE_FORMS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
                           </SelectContent>
@@ -1007,7 +1007,7 @@ export default function NewClinicalNotePage() {
                       <div className="space-y-1">
                         <Label className="text-xs">Route</Label>
                         <Select value={med.route} onValueChange={(v) => updateMedication(med.id, 'route', v)}>
-                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
+                          <SelectTrigger className="h-9 text-base md:h-8 md:text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
                           <SelectContent>
                             {ROUTES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                           </SelectContent>
@@ -1016,21 +1016,21 @@ export default function NewClinicalNotePage() {
                       <div className="space-y-1">
                         <Label className="text-xs">Frequency</Label>
                         <Select value={med.frequency} onValueChange={(v) => updateMedication(med.id, 'frequency', v)}>
-                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
+                          <SelectTrigger className="h-9 text-base md:h-8 md:text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
                           <SelectContent>
                             {FREQUENCIES.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="flex gap-2">
-                        <div className="flex-1 space-y-1">
+                        <div className="min-w-0 flex-1 space-y-1">
                           <Label className="text-xs">Duration</Label>
                           <Input type="number" value={med.duration_value} onChange={(e) => updateMedication(med.id, 'duration_value', e.target.value)} placeholder="e.g., 7" />
                         </div>
                         <div className="w-24 space-y-1">
                           <Label className="text-xs">Unit</Label>
                           <Select value={med.duration_unit} onValueChange={(v) => updateMedication(med.id, 'duration_unit', v)}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-9 text-base md:h-8 md:text-xs"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {DURATION_UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
                             </SelectContent>

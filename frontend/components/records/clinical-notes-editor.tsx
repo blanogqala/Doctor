@@ -90,7 +90,6 @@ function VitalInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="—"
-        className="text-sm"
       />
     </div>
   );

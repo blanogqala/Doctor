@@ -182,7 +182,7 @@ export default function RegisterPage() {
                 id="gender"
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
-                className="flex h-10 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="flex h-10 w-full rounded-lg border border-input bg-card px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm"
               >
                 <option value="">Select...</option>
                 <option value="MALE">Male</option>
