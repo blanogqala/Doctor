@@ -125,12 +125,16 @@ export function resolveApiTenantSubdomain(input: {
   return null;
 }
 
+const DEFAULT_PRODUCTION_APP_BASE_DOMAIN = 'medinathi.co.za';
+const DEFAULT_PRODUCTION_PLATFORM_HOSTNAMES = 'medinathi.co.za,www.medinathi.co.za';
+
 /** Options from Next public env (middleware + browser). */
 export function hostTenantOptionsFromEnv(
   env: NodeJS.ProcessEnv = process.env
 ): HostTenantOptions {
   return {
-    platformHostnames: env.NEXT_PUBLIC_PLATFORM_HOSTNAME || null,
-    appBaseDomain: env.NEXT_PUBLIC_APP_BASE_DOMAIN || null,
+    platformHostnames:
+      env.NEXT_PUBLIC_PLATFORM_HOSTNAME || DEFAULT_PRODUCTION_PLATFORM_HOSTNAMES,
+    appBaseDomain: env.NEXT_PUBLIC_APP_BASE_DOMAIN || DEFAULT_PRODUCTION_APP_BASE_DOMAIN,
   };
 }

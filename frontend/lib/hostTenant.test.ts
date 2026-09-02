@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_RESERVED_HOST_LABELS,
+  hostTenantOptionsFromEnv,
   resolveApiTenantSubdomain,
   resolveTenantSubdomainFromHostname,
   resolveUiTenantSubdomain,
@@ -101,9 +102,30 @@ describe('production practice hostnames (frontend)', () => {
     expect(resolveTenantSubdomainFromHostname('api.medinathi.co.za', prodOpts)).toBeNull();
     expect(resolveTenantSubdomainFromHostname('mail.medinathi.co.za', prodOpts)).toBeNull();
     expect(resolveTenantSubdomainFromHostname('www.medinathi.co.za', prodOpts)).toBeNull();
+    expect(resolveTenantSubdomainFromHostname('admin.medinathi.co.za', prodOpts)).toBeNull();
+    expect(resolveTenantSubdomainFromHostname('super-admin.medinathi.co.za', prodOpts)).toBeNull();
     expect(resolveTenantSubdomainFromHostname('a.b.medinathi.co.za', prodOpts)).toBeNull();
     expect(resolveTenantSubdomainFromHostname('medinathi.co.za.evil.com', prodOpts)).toBeNull();
     expect(resolveTenantSubdomainFromHostname('evilmedinathi.co.za', prodOpts)).toBeNull();
+  });
+
+  it('falls back to production base domain when public env is unset', () => {
+    const fallback = hostTenantOptionsFromEnv({});
+    expect(resolveTenantSubdomainFromHostname('pilot.medinathi.co.za', fallback)).toBe('pilot');
+    expect(resolveTenantSubdomainFromHostname('medinathi.co.za', fallback)).toBeNull();
+    expect(resolveTenantSubdomainFromHostname('www.medinathi.co.za', fallback)).toBeNull();
+  });
+
+  it('keeps explicit staging env over the production fallback', () => {
+    const staging = hostTenantOptionsFromEnv({
+      NEXT_PUBLIC_PLATFORM_HOSTNAME: 'MediNathi-staging.netlify.app',
+      NEXT_PUBLIC_APP_BASE_DOMAIN: 'MediNathi-staging.netlify.app',
+    });
+    expect(resolveTenantSubdomainFromHostname('MediNathi-staging.netlify.app', staging)).toBeNull();
+    expect(
+      resolveTenantSubdomainFromHostname('practice-a.MediNathi-staging.netlify.app', staging)
+    ).toBe('practice-a');
+    expect(resolveTenantSubdomainFromHostname('pilot.medinathi.co.za', staging)).toBeNull();
   });
 
   it('mirrors the backend reserved label list', () => {

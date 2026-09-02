@@ -10,6 +10,7 @@ import {
 import { AppShell } from '@/components/layout/app-shell';
 import { platformAdminNavigation } from '@/lib/navigation';
 import { clearPracticeThemeFromDocument } from '@/lib/theme/resolve-practice-theme';
+import { hostTenantOptionsFromEnv, resolveTenantSubdomainFromHostname } from '@/lib/hostTenant';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const BASE_PATH = '/super-admin/dashboard';
@@ -19,17 +20,36 @@ function SuperAdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { token, user, loading, logout } = useSuperAdminAuth();
   const isLogin = pathname === '/super-admin/login';
+  const practiceTenant =
+    typeof window !== 'undefined'
+      ? resolveTenantSubdomainFromHostname(window.location.hostname, hostTenantOptionsFromEnv())
+      : null;
 
   useEffect(() => {
     clearPracticeThemeFromDocument();
   }, []);
 
   useEffect(() => {
-    if (loading || isLogin) return;
+    if (practiceTenant) {
+      router.replace('/login');
+    }
+  }, [practiceTenant, router]);
+
+  useEffect(() => {
+    if (practiceTenant || loading || isLogin) return;
     if (!token) {
       router.replace('/super-admin/login');
     }
-  }, [loading, token, isLogin, router]);
+  }, [loading, token, isLogin, router, practiceTenant]);
+
+  if (practiceTenant) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background p-8">
+        <Skeleton className="h-8 w-8 rounded-full" />
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
 
   if (isLogin) {
     return <>{children}</>;
