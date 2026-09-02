@@ -1,4 +1,4 @@
-import { ApiError, getApiBaseUrl } from '../api';
+import { ApiError, csrfStorage, getApiBaseUrl } from '../api';
 
 export interface InvitationPreview {
   practice_name: string;
@@ -11,6 +11,8 @@ export interface InvitationPreview {
 }
 
 async function inviteFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const method = (options.method || 'GET').toUpperCase();
+  const csrf = !['GET', 'HEAD', 'OPTIONS'].includes(method) ? csrfStorage.get() : null;
   let res: Response;
   try {
     res = await fetch(`${getApiBaseUrl()}${endpoint}`, {
@@ -18,6 +20,7 @@ async function inviteFetch<T>(endpoint: string, options: RequestInit = {}): Prom
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
         ...(options.headers as Record<string, string> | undefined),
       },
     });

@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from '../api';
+import { csrfStorage, getApiBaseUrl } from '../api';
 
 export interface ActivationPreview {
   practice_name: string;
@@ -9,11 +9,14 @@ export interface ActivationPreview {
 }
 
 async function activationFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const method = (options.method || 'GET').toUpperCase();
+  const csrf = !['GET', 'HEAD', 'OPTIONS'].includes(method) ? csrfStorage.get() : null;
   const res = await fetch(`${getApiBaseUrl()}${endpoint}`, {
     ...options,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
       ...(options.headers as Record<string, string> | undefined),
     },
   });
