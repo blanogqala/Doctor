@@ -5,7 +5,6 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useMemo,
   useState,
   type ReactNode,
 } from 'react';
@@ -122,17 +121,17 @@ async function fetchPracticeInfo(subdomain: string): Promise<PracticeInfo> {
   };
 }
 
-export function TenantProvider({ children }: { children: ReactNode }) {
-  const [subdomain, setSubdomain] = useState<string | null>(null);
+export function TenantProvider({
+  children,
+  initialSubdomain = null,
+}: {
+  children: ReactNode;
+  initialSubdomain?: string | null;
+}) {
+  const [subdomain, setSubdomain] = useState<string | null>(initialSubdomain);
   const [practice, setPractice] = useState<PracticeInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const isPlatformHost = useMemo(() => {
-    if (typeof window === 'undefined') return true;
-    const path = window.location.pathname;
-    return path.startsWith('/super-admin');
-  }, []);
 
   const refresh = useCallback(async () => {
     const sub = resolveSubdomainFromHost();
@@ -190,7 +189,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
   const value: TenantContextValue = {
     subdomain,
-    isPlatformHost,
+    isPlatformHost: !subdomain,
     practice,
     loading,
     error,

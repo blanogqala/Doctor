@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { hostTenantOptionsFromEnv, resolveTenantSubdomainFromHostname } from './lib/hostTenant';
 import { isMarketingOnlyPath, shouldClearPlatformTenantCookie } from './lib/marketing/routes';
 import { decidePracticeHostRoute } from './lib/practice-host-routing';
+import { PRACTICE_TENANT_HEADER } from './lib/requestPracticeTenant';
 
 function extractSubdomain(host: string): string | null {
   return resolveTenantSubdomainFromHostname(host, hostTenantOptionsFromEnv());
@@ -31,6 +32,16 @@ function withPracticeCookie(
   return response;
 }
 
+function withRequestTenant(request: NextRequest, subdomain: string | null): Headers {
+  const requestHeaders = new Headers(request.headers);
+  if (subdomain) {
+    requestHeaders.set(PRACTICE_TENANT_HEADER, subdomain);
+  } else {
+    requestHeaders.delete(PRACTICE_TENANT_HEADER);
+  }
+  return requestHeaders;
+}
+
 export function middleware(request: NextRequest) {
   const host = request.headers.get('host') || '';
   const subdomain = extractSubdomain(host);
@@ -54,7 +65,9 @@ export function middleware(request: NextRequest) {
     return withPracticeCookie(NextResponse.redirect(url), subdomain, tenantParam);
   }
 
-  const response = NextResponse.next();
+  const response = NextResponse.next({
+    request: { headers: withRequestTenant(request, subdomain) },
+  });
 
   if (subdomain || tenantParam) {
     return withPracticeCookie(response, subdomain, tenantParam);

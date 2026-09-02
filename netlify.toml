@@ -2,5 +2,9 @@
 command = "cd frontend && npm install && npm run build"
 publish = "frontend/.next"
 
+[build.environment]
+  NEXT_PUBLIC_APP_BASE_DOMAIN = "medinathi.co.za"
+  NEXT_PUBLIC_PLATFORM_HOSTNAME = "medinathi.co.za,www.medinathi.co.za"
+
 [[plugins]]
 package = "@netlify/plugin-nextjs"

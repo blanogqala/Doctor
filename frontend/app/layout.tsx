@@ -4,6 +4,7 @@ import { AuthProvider } from '@/lib/auth-context';
 import { TenantProvider } from '@/lib/tenant';
 import { TelemedicineSessionProvider } from '@/lib/telemedicine-session-context';
 import { Toaster } from '@/components/ui/toaster';
+import { getServerPracticeTenant } from '@/lib/serverRequestPracticeTenant';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://MediNathi.co.za'),
@@ -16,11 +17,15 @@ export const metadata: Metadata = {
   },
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const initialSubdomain = getServerPracticeTenant();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans" suppressHydrationWarning>
-        <TenantProvider>
+        <TenantProvider initialSubdomain={initialSubdomain}>
           <AuthProvider>
             <TelemedicineSessionProvider>
               {children}

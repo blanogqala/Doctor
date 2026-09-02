@@ -10,7 +10,7 @@ import {
 import { AppShell } from '@/components/layout/app-shell';
 import { platformAdminNavigation } from '@/lib/navigation';
 import { clearPracticeThemeFromDocument } from '@/lib/theme/resolve-practice-theme';
-import { hostTenantOptionsFromEnv, resolveTenantSubdomainFromHostname } from '@/lib/hostTenant';
+import { useTenant } from '@/lib/tenant';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const BASE_PATH = '/super-admin/dashboard';
@@ -19,11 +19,8 @@ function SuperAdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { token, user, loading, logout } = useSuperAdminAuth();
+  const { subdomain: practiceTenant } = useTenant();
   const isLogin = pathname === '/super-admin/login';
-  const practiceTenant =
-    typeof window !== 'undefined'
-      ? resolveTenantSubdomainFromHostname(window.location.hostname, hostTenantOptionsFromEnv())
-      : null;
 
   useEffect(() => {
     clearPracticeThemeFromDocument();
