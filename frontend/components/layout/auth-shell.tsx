@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { ArrowLeft, HeartPulse } from 'lucide-react';
 import { useTenant } from '@/lib/tenant';
-import { loginFirstRenderState } from '@/lib/requestPracticeTenant';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageContainer, type PageContainerSize } from '@/components/layout/page-container';
@@ -33,9 +32,9 @@ export function AuthShell({
   showBackLink = true,
   brandName,
 }: AuthShellProps) {
-  const { practice, subdomain } = useTenant();
+  const { practice } = useTenant();
   const clinicName = brandName ?? practice?.clinic_name;
-  const { showLandingBack } = loginFirstRenderState(subdomain, showBackLink);
+  const showLandingBack = showBackLink;
 
   return (
     <PageContainer

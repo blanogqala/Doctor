@@ -24,14 +24,14 @@ describe('server + client first-render tenant consistency', () => {
       .toEqual({ tenant: null, redirectPath: null });
   });
 
-  it('pilot.medinathi.co.za/ is a middleware redirect to /login before React', () => {
+  it('pilot.medinathi.co.za/ stays on the practice landing', () => {
     expect(
       decidePracticeHostRoute({
         host: 'pilot.medinathi.co.za',
         pathname: '/',
         options: prodOpts,
       })
-    ).toEqual({ tenant: 'pilot', redirectPath: '/login' });
+    ).toEqual({ tenant: 'pilot', redirectPath: null });
   });
 
   it('pilot.medinathi.co.za/login has the same initial tenant server and client', () => {
@@ -45,7 +45,7 @@ describe('server + client first-render tenant consistency', () => {
     expect(serverTenant).toBe('pilot');
     expect(clientTenant).toBe(serverTenant);
     expect(loginFirstRenderState(serverTenant)).toEqual(loginFirstRenderState(clientTenant));
-    expect(loginFirstRenderState(serverTenant).showLandingBack).toBe(false);
+    expect(loginFirstRenderState(serverTenant).showLandingBack).toBe(true);
     expect(
       decidePracticeHostRoute({ host, pathname: '/login', options: prodOpts })
     ).toEqual({ tenant: 'pilot', redirectPath: null });

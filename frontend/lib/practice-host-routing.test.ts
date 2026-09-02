@@ -13,14 +13,14 @@ describe('decidePracticeHostRoute', () => {
     ).toEqual({ tenant: null, redirectPath: null });
   });
 
-  it('sends pilot.medinathi.co.za/ to /login without ?tenant=', () => {
+  it('keeps pilot.medinathi.co.za/ on the practice landing', () => {
     expect(
       decidePracticeHostRoute({
         host: 'pilot.medinathi.co.za',
         pathname: '/',
         options: prodOpts,
       })
-    ).toEqual({ tenant: 'pilot', redirectPath: '/login' });
+    ).toEqual({ tenant: 'pilot', redirectPath: null });
   });
 
   it('keeps pilot.medinathi.co.za/login on tenant pilot', () => {
@@ -82,13 +82,13 @@ describe('decidePracticeHostRoute', () => {
     }
   });
 
-  it('redirects practice marketing paths to /login, not Super Admin', () => {
+  it('redirects practice marketing paths to landing, not Super Admin', () => {
     expect(
       decidePracticeHostRoute({
         host: 'pilot.medinathi.co.za',
         pathname: '/pricing',
         options: prodOpts,
       })
-    ).toEqual({ tenant: 'pilot', redirectPath: '/login' });
+    ).toEqual({ tenant: 'pilot', redirectPath: '/' });
   });
 });

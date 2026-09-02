@@ -48,6 +48,6 @@ export function resolvePracticeTenantForRequest(input: {
 export function loginFirstRenderState(initialSubdomain: string | null, showBackLink = true) {
   return {
     tenant: initialSubdomain,
-    showLandingBack: showBackLink && !initialSubdomain,
+    showLandingBack: showBackLink,
   };
 }

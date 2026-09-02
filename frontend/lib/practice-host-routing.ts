@@ -35,8 +35,11 @@ export function decidePracticeHostRoute(input: {
   }
 
   const path = normalizePath(input.pathname);
-  if (path === '/' || isMarketingOnlyPath(path) || isSuperAdminPath(path)) {
+  if (isSuperAdminPath(path)) {
     return { tenant, redirectPath: '/login' };
+  }
+  if (isMarketingOnlyPath(path)) {
+    return { tenant, redirectPath: '/' };
   }
 
   return { tenant, redirectPath: null };
