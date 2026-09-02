@@ -85,6 +85,7 @@ export default function RegisterPage() {
       cardTitle="Register as a Patient"
       cardDescription="Fill in your details to book appointments and access telemedicine"
       size="md"
+      showBackLink={false}
     >
       <Alert variant="warning" className="mb-6">
         <Info className="h-4 w-4" />

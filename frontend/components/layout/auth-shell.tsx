@@ -4,9 +4,15 @@ import Link from 'next/link';
 import { ArrowLeft, HeartPulse } from 'lucide-react';
 import { useTenant } from '@/lib/tenant';
 import { buttonVariants } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PageContainer, type PageContainerSize } from '@/components/layout/page-container';
+import { PracticeAuthBackground } from '@/components/layout/practice-auth-background';
 import { cn } from '@/lib/utils';
+
+export type AuthShellSize = 'sm' | 'md';
+
+const panelWidth: Record<AuthShellSize, string> = {
+  sm: 'max-w-[560px]',
+  md: 'max-w-[720px]',
+};
 
 interface AuthShellProps {
   children: React.ReactNode;
@@ -14,7 +20,7 @@ interface AuthShellProps {
   subtitle?: string;
   cardTitle: string;
   cardDescription?: string;
-  size?: Extract<PageContainerSize, 'sm' | 'md'>;
+  size?: AuthShellSize;
   footer?: React.ReactNode;
   showBackLink?: boolean;
   /** Overrides practice-hostname branding (e.g. canonical invite on the platform host). */
@@ -32,53 +38,77 @@ export function AuthShell({
   showBackLink = true,
   brandName,
 }: AuthShellProps) {
-  const { practice } = useTenant();
+  const { practice, logoSrc } = useTenant();
   const clinicName = brandName ?? practice?.clinic_name;
-  const showLandingBack = showBackLink;
 
   return (
-    <PageContainer
-      size={size}
-      centered
-      className="relative bg-gradient-to-br from-primary/5 via-background to-secondary/5 py-12"
-    >
-      {showLandingBack && (
-        <div className="absolute left-4 top-4 z-10 sm:left-6 sm:top-6">
-          <Link
-            href="/"
-            className={cn(
-              buttonVariants({ variant: 'outline' }),
-              'min-h-10 gap-2 bg-card/90 shadow-sm'
+    <div className="relative min-h-screen w-full max-w-full overflow-x-hidden bg-card">
+      <PracticeAuthBackground />
+
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-5 py-20 sm:px-8 sm:py-16">
+        <div
+          className={cn(
+            'relative w-full border-2 border-primary rounded-xl bg-card shadow-[0_20px_60px_-24px_rgba(15,23,42,0.45)]',
+            panelWidth[size]
+          )}
+        >
+          {/* Poster double rule: outer panel edge plus an inset hairline. */}
+          <div
+            className="pointer-events-none absolute inset-[7px] border-2 border-primary/80 rounded-xl bg-primary/20"
+            aria-hidden
+          />
+
+          <div className="relative px-6 py-10 sm:px-10 sm:py-12">
+            <div className="flex flex-col items-center text-center">
+              <Link href="/" className="flex flex-col items-center gap-2">
+                {logoSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logoSrc} alt="" className="h-14 w-14 rounded-xl object-contain" />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary shadow-sm">
+                    <HeartPulse className="h-7 w-7 text-primary-foreground" aria-hidden />
+                  </div>
+                )}
+                <span className="min-h-5 text-sm font-semibold uppercase tracking-[0.14em] text-primary">
+                  {clinicName ?? '\u00a0'}
+                </span>
+              </Link>
+              <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                {title}
+              </h1>
+              {subtitle && <p className="mt-1.5 text-sm text-muted-foreground">{subtitle}</p>}
+            </div>
+
+            <div className="my-8 h-px bg-primary" />
+
+            <div className="space-y-1.5">
+              <h2 className="text-lg font-semibold text-foreground">{cardTitle}</h2>
+              {cardDescription && (
+                <p className="text-sm text-muted-foreground">{cardDescription}</p>
+              )}
+            </div>
+
+            <div className="mt-6">{children}</div>
+
+            {footer}
+
+            {showBackLink && (
+              <div className="mt-8 flex justify-center">
+                <Link
+                  href="/"
+                  className={cn(
+                    buttonVariants({ variant: 'outline' }),
+                    'min-h-10 gap-2 border-border bg-card shadow-sm'
+                  )}
+                >
+                  <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+                  <span>Back to landing page</span>
+                </Link>
+              </div>
             )}
-          >
-            <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
-            <span>Back to landing page</span>
-          </Link>
-        </div>
-      )}
-
-      <div className="mb-8 flex flex-col items-center pt-10 text-center sm:pt-0">
-        <Link href="/" className="flex flex-col items-center gap-2">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary shadow-sm">
-            <HeartPulse className="h-7 w-7 text-primary-foreground" aria-hidden />
           </div>
-          <span className="min-h-5 text-sm font-semibold text-foreground">
-            {clinicName ?? '\u00a0'}
-          </span>
-        </Link>
-        <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+        </div>
       </div>
-
-      <Card className="w-full border-border bg-card shadow-md">
-        <CardHeader className="space-y-1.5 pb-4">
-          <CardTitle className="text-xl">{cardTitle}</CardTitle>
-          {cardDescription && <CardDescription>{cardDescription}</CardDescription>}
-        </CardHeader>
-        <CardContent>{children}</CardContent>
-      </Card>
-
-      {footer}
-    </PageContainer>
+    </div>
   );
 }
