@@ -28,5 +28,8 @@ export {
   resolvePracticeTheme,
   applyPracticeThemeToDocument,
   clearPracticeThemeFromDocument,
+  practiceThemeCssVars,
+  resolveInitialHtmlThemeStyle,
   MediNathi_PRIMARY_HEX,
 } from '@/lib/theme/resolve-practice-theme';
+export type { PracticeThemeCssVars } from '@/lib/theme/resolve-practice-theme';

@@ -189,16 +189,45 @@ export function resolvePracticeTheme(
   };
 }
 
+/** Inline CSS custom properties matching applyPracticeThemeToDocument. */
+export type PracticeThemeCssVars = {
+  '--brand-hex': string;
+  '--primary': string;
+  '--primary-foreground': string;
+  '--primary-soft': string;
+  '--ring': string;
+};
+
+export function practiceThemeCssVars(theme: ResolvedPracticeTheme): PracticeThemeCssVars {
+  return {
+    '--brand-hex': theme.brandHex,
+    '--primary': theme.primary,
+    '--primary-foreground': theme.primaryForeground,
+    '--primary-soft': theme.primarySoft,
+    '--ring': theme.ring,
+  };
+}
+
+export function resolveInitialHtmlThemeStyle(args: {
+  subdomain: string | null;
+  brandingAvailable: boolean;
+  brandColor?: string | null;
+}): PracticeThemeCssVars | undefined {
+  if (!args.subdomain || !args.brandingAvailable) return undefined;
+  return practiceThemeCssVars(resolvePracticeTheme(args.brandColor));
+}
+
 /** Apply resolved theme to documentElement. Does not touch status tokens. */
 export function applyPracticeThemeToDocument(
   theme: ResolvedPracticeTheme,
   target: HTMLElement = document.documentElement
 ): void {
-  target.style.setProperty('--brand-hex', theme.brandHex);
-  target.style.setProperty('--primary', theme.primary);
-  target.style.setProperty('--primary-foreground', theme.primaryForeground);
-  target.style.setProperty('--primary-soft', theme.primarySoft);
-  target.style.setProperty('--ring', theme.ring);
+  const vars = practiceThemeCssVars(theme);
+  target.style.setProperty('--brand-hex', vars['--brand-hex']);
+  target.style.setProperty('--primary', vars['--primary']);
+  target.style.setProperty('--primary-foreground', vars['--primary-foreground']);
+  target.style.setProperty('--primary-soft', vars['--primary-soft']);
+  target.style.setProperty('--ring', vars['--ring']);
 }
 
 export function clearPracticeThemeFromDocument(

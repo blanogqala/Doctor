@@ -1,10 +1,13 @@
 import './globals.css';
+import type { CSSProperties, ReactNode } from 'react';
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/lib/auth-context';
 import { TenantProvider } from '@/lib/tenant';
 import { TelemedicineSessionProvider } from '@/lib/telemedicine-session-context';
 import { Toaster } from '@/components/ui/toaster';
 import { getServerPracticeTenant } from '@/lib/serverRequestPracticeTenant';
+import { getServerPublicPracticeInfo } from '@/lib/serverPublicPracticeInfo';
+import { resolveInitialHtmlThemeStyle } from '@/lib/theme/resolve-practice-theme';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://MediNathi.co.za'),
@@ -20,13 +23,19 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
   const initialSubdomain = getServerPracticeTenant();
+  const initialPractice = await getServerPublicPracticeInfo(initialSubdomain);
+  const themeStyle = resolveInitialHtmlThemeStyle({
+    subdomain: initialSubdomain,
+    brandingAvailable: initialPractice !== null,
+    brandColor: initialPractice?.brand_color,
+  });
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" style={themeStyle as CSSProperties | undefined} suppressHydrationWarning>
       <body className="font-sans" suppressHydrationWarning>
-        <TenantProvider initialSubdomain={initialSubdomain}>
+        <TenantProvider initialSubdomain={initialSubdomain} initialPractice={initialPractice}>
           <AuthProvider>
             <TelemedicineSessionProvider>
               {children}

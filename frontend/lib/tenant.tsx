@@ -16,57 +16,17 @@ import {
 
 import { getApiBaseUrl } from '@/lib/api';
 import { hostTenantOptionsFromEnv, resolveUiTenantSubdomain } from '@/lib/hostTenant';
+import {
+  fetchPublicPracticeInfo,
+  type PracticeInfo,
+} from '@/lib/public-practice-info';
 
-export interface PracticeOfficeHours {
-  monFri?: string;
-  saturday?: string;
-  sunday?: string;
-  [key: string]: string | undefined;
-}
-
-export interface PracticeDoctorSummary {
-  id: string;
-  full_name: string;
-  specialization: string;
-  consultation_fee_cents: number;
-  telemedicine_fee_cents: number;
-  bio: string | null;
-  photo_url: string | null;
-  credentials: string[];
-  hpcsa_registration_number: string | null;
-  is_verified: boolean;
-}
-
-export interface LandingServiceItem {
-  title: string;
-  description: string;
-  icon: string;
-}
-
-export interface PracticeInfo {
-  id: string;
-  subdomain: string;
-  clinic_name: string;
-  logo_url: string | null;
-  brand_color: string;
-  tagline: string | null;
-  phone: string | null;
-  email: string | null;
-  whatsapp: string | null;
-  address_line1: string | null;
-  city: string | null;
-  province: string | null;
-  postal_code: string | null;
-  map_embed_url: string | null;
-  emergency_phone: string | null;
-  office_hours: PracticeOfficeHours | null;
-  landing_services: LandingServiceItem[] | null;
-  services_intro: string | null;
-  subscription_status: string;
-  trial_ends_at: string | null;
-  booking_available?: boolean;
-  doctors: PracticeDoctorSummary[];
-}
+export type {
+  PracticeInfo,
+  PracticeDoctorSummary,
+  PracticeOfficeHours,
+  LandingServiceItem,
+} from '@/lib/public-practice-info';
 
 interface TenantContextValue {
   subdomain: string | null;
@@ -101,55 +61,43 @@ export function absoluteApiUrl(path: string | null | undefined): string | null {
   return `${getApiBaseUrl()}${path}`;
 }
 
-async function fetchPracticeInfo(subdomain: string): Promise<PracticeInfo> {
-  const res = await fetch(
-    `${getApiBaseUrl()}/api/public/practice-info?subdomain=${encodeURIComponent(subdomain)}`
-  );
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || 'Practice not found');
+function cookiePracticeSubdomain(): string | null {
+  if (typeof document === 'undefined') return null;
+  const cookieMatch = document.cookie.match(/(?:^|;\s*)practice_subdomain=([^;]+)/);
+  return cookieMatch ? decodeURIComponent(cookieMatch[1]).toLowerCase() : null;
+}
+
+function persistResolvedSubdomain(resolved: string | null): void {
+  if (typeof window === 'undefined') return;
+  if (resolved) {
+    localStorage.setItem(STORAGE_KEY, resolved);
+    return;
   }
-  const data = await res.json();
-  return {
-    ...data,
-    doctors: (data.doctors || []).map((d: PracticeDoctorSummary & { credentials?: string[] }) => ({
-      ...d,
-      telemedicine_fee_cents: d.telemedicine_fee_cents ?? 45000,
-      credentials: Array.isArray(d.credentials) ? d.credentials : [],
-      photo_url: d.photo_url ?? null,
-    })),
-  };
+  const host = window.location.hostname.toLowerCase();
+  if (host === 'localhost' || host === '127.0.0.1') {
+    localStorage.removeItem(STORAGE_KEY);
+    document.cookie = 'practice_subdomain=; Max-Age=0; path=/';
+  }
 }
 
 export function TenantProvider({
   children,
   initialSubdomain = null,
+  initialPractice = null,
 }: {
   children: ReactNode;
   initialSubdomain?: string | null;
+  initialPractice?: PracticeInfo | null;
 }) {
   const [subdomain, setSubdomain] = useState<string | null>(initialSubdomain);
-  const [practice, setPractice] = useState<PracticeInfo | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [practice, setPractice] = useState<PracticeInfo | null>(initialPractice);
+  const [loading, setLoading] = useState(() => !(initialPractice || !initialSubdomain));
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const sub = resolveSubdomainFromHost();
-    let resolved = sub;
-    if (!resolved && typeof document !== 'undefined') {
-      const cookieMatch = document.cookie.match(/(?:^|;\s*)practice_subdomain=([^;]+)/);
-      resolved = cookieMatch ? decodeURIComponent(cookieMatch[1]).toLowerCase() : null;
-    }
+    const resolved = resolveSubdomainFromHost() || cookiePracticeSubdomain();
     setSubdomain(resolved);
-    if (resolved) {
-      localStorage.setItem(STORAGE_KEY, resolved);
-    } else if (typeof window !== 'undefined') {
-      const host = window.location.hostname.toLowerCase();
-      if (host === 'localhost' || host === '127.0.0.1') {
-        localStorage.removeItem(STORAGE_KEY);
-        document.cookie = 'practice_subdomain=; Max-Age=0; path=/';
-      }
-    }
+    persistResolvedSubdomain(resolved);
 
     // Super-admin pages don't need practice branding
     if (typeof window !== 'undefined' && window.location.pathname.startsWith('/super-admin')) {
@@ -170,7 +118,13 @@ export function TenantProvider({
 
     setLoading(true);
     try {
-      const info = await fetchPracticeInfo(resolved);
+      const info = await fetchPublicPracticeInfo(resolved, getApiBaseUrl());
+      if (!info) {
+        setPractice(null);
+        setError('Practice not found');
+        clearPracticeThemeFromDocument();
+        return;
+      }
       setPractice(info);
       setError(null);
       applyPracticeThemeToDocument(resolvePracticeTheme(info.brand_color));
@@ -184,8 +138,21 @@ export function TenantProvider({
   }, []);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/super-admin')) {
+      void refresh();
+      return;
+    }
+
+    const hostSub = resolveSubdomainFromHost() || cookiePracticeSubdomain();
+    if (initialPractice && hostSub && hostSub === initialPractice.subdomain) {
+      persistResolvedSubdomain(hostSub);
+      setSubdomain(hostSub);
+      applyPracticeThemeToDocument(resolvePracticeTheme(initialPractice.brand_color));
+      return;
+    }
+
     void refresh();
-  }, [refresh]);
+  }, [refresh, initialPractice]);
 
   const value: TenantContextValue = {
     subdomain,
