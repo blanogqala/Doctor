@@ -27,6 +27,7 @@ import { StatusBadge, type StatusTone } from '@/components/ds/status-badge';
 import { AppPage } from '@/components/layout/app-page';
 import { PageHeader } from '@/components/layout/page-header';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { pilotProgramBadgeLabel } from '@/lib/pilot-program';
 import { ExternalLink, Plus } from 'lucide-react';
 
 function subscriptionTone(status: string): StatusTone {
@@ -48,6 +49,27 @@ function seatLabel(p: PracticeSummary) {
   const doctors = p._count?.doctors ?? 0;
   const limit = p.doctor_seat_limit ?? doctors;
   return `${doctors}/${limit}`;
+}
+
+function subscriptionBadges(p: PracticeSummary) {
+  const badges = [
+    {
+      key: 'subscription',
+      tone: subscriptionTone(p.subscription_status),
+      label: p.subscription_status,
+    },
+  ];
+  const pilotLabel = p.pilot_program?.status
+    ? pilotProgramBadgeLabel(p.pilot_program.status)
+    : '';
+  if (pilotLabel) {
+    badges.push({
+      key: 'pilot',
+      tone: 'neutral' as StatusTone,
+      label: pilotLabel,
+    });
+  }
+  return badges;
 }
 
 export default function SuperAdminPracticesPage() {
@@ -169,10 +191,11 @@ export default function SuperAdminPracticesPage() {
                         </Link>
                         <p className="text-xs text-muted-foreground">{p.subdomain}</p>
                       </div>
-                      <StatusBadge
-                        tone={subscriptionTone(p.subscription_status)}
-                        label={p.subscription_status}
-                      />
+                      <div className="flex flex-wrap justify-end gap-1">
+                        {subscriptionBadges(p).map((badge) => (
+                          <StatusBadge key={badge.key} tone={badge.tone} label={badge.label} />
+                        ))}
+                      </div>
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {planLabel(p.subscription_plan)} · Seats {seatLabel(p)}
@@ -230,10 +253,11 @@ export default function SuperAdminPracticesPage() {
                       </TableCell>
                       <TableCell>{seatLabel(p)}</TableCell>
                       <TableCell>
-                        <StatusBadge
-                          tone={subscriptionTone(p.subscription_status)}
-                          label={p.subscription_status}
-                        />
+                        <div className="flex flex-wrap gap-1">
+                          {subscriptionBadges(p).map((badge) => (
+                            <StatusBadge key={badge.key} tone={badge.tone} label={badge.label} />
+                          ))}
+                        </div>
                       </TableCell>
                       <TableCell className="table-priority-low">
                         {formatCurrency(p.monthly_fee_cents)}

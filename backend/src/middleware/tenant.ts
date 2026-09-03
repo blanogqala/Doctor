@@ -57,6 +57,17 @@ export function extractSubdomain(req: Request): string | null {
   return fromHost ? normalizeSubdomain(fromHost) : null;
 }
 
+export function isTrialSubscriptionGateBlocked(
+  practice: Pick<PracticeContext, 'subscriptionStatus' | 'trialEndsAt'>,
+  now: Date = new Date()
+): boolean {
+  return (
+    practice.subscriptionStatus === SubscriptionStatus.TRIAL &&
+    practice.trialEndsAt != null &&
+    practice.trialEndsAt.getTime() < now.getTime()
+  );
+}
+
 export function isSubscriptionGateExempt(req: Request): boolean {
   const path = req.path;
   if (path.startsWith('/api/public') || path.startsWith('/api/invitations') || path.startsWith('/api/activations')) {
@@ -113,11 +124,7 @@ export async function detectTenant(req: Request, res: Response, next: NextFuncti
         });
       }
 
-      if (
-        practice.subscriptionStatus === SubscriptionStatus.TRIAL &&
-        practice.trialEndsAt &&
-        practice.trialEndsAt < new Date()
-      ) {
+      if (isTrialSubscriptionGateBlocked(practice)) {
         return res.status(403).json({
           error: 'Trial expired. Please subscribe to continue.',
           code: 'TRIAL_EXPIRED',

@@ -186,6 +186,66 @@ describe('acceptInvitation', () => {
     await expect(acceptInvitation(TOKEN, 'SecurePass1')).rejects.toBeInstanceOf(AppError);
   });
 
+  it('3. allows owner activation when pending pilot and placeholder trial expired', async () => {
+    const practice = {
+      id: 'prac-1',
+      clinicName: 'Pilot',
+      subdomain: 'pilot',
+      subscriptionStatus: SubscriptionStatus.TRIAL,
+      doctorSeatLimit: 5,
+      ownerProfileId: null,
+      softDeletedAt: null,
+      trialEndsAt: new Date('2020-01-01T00:00:00.000Z'),
+      pilotProgramGrantedAt: new Date('2026-09-01T00:00:00.000Z'),
+      pilotProgramStartsAt: null,
+      pilotProgramEndsAt: null,
+    };
+    const row = pendingInvite({ practice });
+    mocks.txFindInvitation.mockResolvedValue(row);
+    mocks.txFindPractice.mockResolvedValue(practice);
+
+    await acceptInvitation(TOKEN, 'SecurePass1');
+
+    expect(mocks.txUpdatePractice).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'prac-1' },
+        data: expect.objectContaining({
+          ownerProfileId: 'profile-1',
+          pilotProgramStartsAt: expect.any(Date),
+          pilotProgramEndsAt: expect.any(Date),
+          trialEndsAt: expect.any(Date),
+        }),
+      })
+    );
+  });
+
+  it('4. sets fresh 30-day trialEndsAt on pending pilot owner activation', async () => {
+    const practice = {
+      id: 'prac-1',
+      clinicName: 'Pilot',
+      subdomain: 'pilot',
+      subscriptionStatus: SubscriptionStatus.TRIAL,
+      doctorSeatLimit: 5,
+      ownerProfileId: null,
+      softDeletedAt: null,
+      trialEndsAt: new Date('2020-01-01T00:00:00.000Z'),
+      pilotProgramGrantedAt: new Date('2026-09-01T00:00:00.000Z'),
+      pilotProgramStartsAt: null,
+      pilotProgramEndsAt: null,
+    };
+    const row = pendingInvite({ practice });
+    mocks.txFindInvitation.mockResolvedValue(row);
+    mocks.txFindPractice.mockResolvedValue(practice);
+
+    await acceptInvitation(TOKEN, 'SecurePass1');
+
+    const updateData = mocks.txUpdatePractice.mock.calls[0][0].data;
+    const startsAt = updateData.pilotProgramStartsAt as Date;
+    const endsAt = updateData.trialEndsAt as Date;
+    expect(endsAt.getTime() - startsAt.getTime()).toBe(30 * 24 * 60 * 60 * 1000);
+    expect(endsAt.getTime()).toBe(updateData.pilotProgramEndsAt.getTime());
+  });
+
   it('uses a random token that hashes consistently', () => {
     const raw = generateSecureToken();
     expect(hashToken(raw)).toBe(hashToken(raw));

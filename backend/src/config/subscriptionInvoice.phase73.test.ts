@@ -44,6 +44,16 @@ describe('subscription invoice periods', () => {
       )
     ).toBe(true);
   });
+
+  it('blocks invoices during active 30-day pilot', () => {
+    const trialEndsAt = new Date('2026-10-15T00:00:00.000Z');
+    expect(
+      isPracticeInvoiceEligible(
+        { trialEndsAt, subscriptionStatus: SubscriptionStatus.TRIAL },
+        new Date('2026-10-01T00:00:00.000Z')
+      )
+    ).toBe(false);
+  });
 });
 
 describe('ownerBillingUrl', () => {

@@ -30,6 +30,7 @@ import {
   getPracticeWorkspace,
   getSaasDashboard,
   getSupportQueue,
+  grantPilotProgramAccess,
   listPracticesOperational,
 } from '../services/saasPracticeService';
 import { resolvePlanAgreement, assertPlanSeatLimit } from '../config/subscriptionPlans';
@@ -170,6 +171,7 @@ const onboardSchema = z.object({
   doctor_seat_limit: z.number().int().positive().optional(),
   monthly_fee_cents: z.number().int().positive().optional(),
   inquiry_id: z.string().optional(),
+  grant_pilot_program: z.boolean().optional(),
 });
 
 router.post(
@@ -187,6 +189,7 @@ router.post(
       doctorSeatLimit: body.doctor_seat_limit,
       monthlyFeeCents: body.monthly_fee_cents,
       inquiryId: body.inquiry_id,
+      grantPilotProgram: body.grant_pilot_program,
       superAdminId: req.superAdmin!.superAdminId,
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
@@ -214,6 +217,19 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const workspace = await getPracticeWorkspace(req.params.id);
     res.json(toSnakeCase(workspace));
+  })
+);
+
+router.post(
+  '/practices/:id/pilot-program/grant',
+  asyncHandler(async (req: Request, res: Response) => {
+    const result = await grantPilotProgramAccess({
+      practiceId: req.params.id,
+      superAdminId: req.superAdmin!.superAdminId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    res.json(toSnakeCase({ pilot_program: result.pilot_program }));
   })
 );
 

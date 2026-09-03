@@ -37,6 +37,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { daysRemaining } from '@/lib/pilot-program';
 import { ArrowLeft, Loader2, Mail, Pencil, RefreshCw, ShieldCheck, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -99,6 +100,8 @@ export default function PracticeWorkspacePage() {
   const [editFeeRands, setEditFeeRands] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [pilotDialogOpen, setPilotDialogOpen] = useState(false);
+  const [pilotGranting, setPilotGranting] = useState(false);
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
@@ -247,6 +250,20 @@ export default function PracticeWorkspacePage() {
     }
   };
 
+  const grantPilot = async () => {
+    setPilotGranting(true);
+    try {
+      await superAdminApi.grantPilotProgram(practiceId);
+      toast.success('30-day pilot programme granted');
+      setPilotDialogOpen(false);
+      await load({ silent: true });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Grant failed');
+    } finally {
+      setPilotGranting(false);
+    }
+  };
+
   if (loading && !workspace) {
     return (
       <AppPage>
@@ -269,7 +286,10 @@ export default function PracticeWorkspacePage() {
     );
   }
 
-  const { practice, seats, onboarding, team, invitations, invoices, activity } = workspace;
+  const { practice, seats, onboarding, team, invitations, invoices, activity, pilot_program } =
+    workspace;
+  const pilotRemaining =
+    pilot_program.status === 'ACTIVE' ? daysRemaining(pilot_program.ends_at) : null;
 
   return (
     <AppPage>
@@ -348,6 +368,70 @@ export default function PracticeWorkspacePage() {
                   <p>
                     <span className="text-muted-foreground">Business email:</span> {practice.email}
                   </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Pilot Programme</CardTitle>
+                <CardDescription>
+                  Super Admin-controlled 30-day access — plan and pricing unchanged
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {pilot_program.status === 'NOT_GRANTED' && (
+                  <>
+                    <p className="text-muted-foreground">
+                      Standard 14-day trial applies until the Owner activates or subscribes.
+                    </p>
+                    {practice.subscription_status === 'TRIAL' && (
+                      <Button size="sm" onClick={() => setPilotDialogOpen(true)}>
+                        Grant 30-day pilot
+                      </Button>
+                    )}
+                  </>
+                )}
+                {pilot_program.status === 'PENDING_ACTIVATION' && (
+                  <>
+                    <p>
+                      <span className="text-muted-foreground">Granted:</span>{' '}
+                      {pilot_program.granted_at ? formatDate(pilot_program.granted_at) : '—'}
+                    </p>
+                    <p className="text-muted-foreground">
+                      Pilot clock has not started yet. Access begins when the Practice Owner
+                      activates their account.
+                    </p>
+                  </>
+                )}
+                {pilot_program.status === 'ACTIVE' && (
+                  <>
+                    <p>
+                      <span className="text-muted-foreground">Started:</span>{' '}
+                      {pilot_program.starts_at ? formatDate(pilot_program.starts_at) : '—'}
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Ends:</span>{' '}
+                      {pilot_program.ends_at ? formatDate(pilot_program.ends_at) : '—'}
+                    </p>
+                    {pilotRemaining != null && (
+                      <p className="font-medium">
+                        {pilotRemaining} day{pilotRemaining === 1 ? '' : 's'} remaining
+                      </p>
+                    )}
+                  </>
+                )}
+                {pilot_program.status === 'ENDED' && (
+                  <>
+                    <p>
+                      <span className="text-muted-foreground">Started:</span>{' '}
+                      {pilot_program.starts_at ? formatDate(pilot_program.starts_at) : '—'}
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Ended:</span>{' '}
+                      {pilot_program.ends_at ? formatDate(pilot_program.ends_at) : '—'}
+                    </p>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -732,6 +816,28 @@ export default function PracticeWorkspacePage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={pilotDialogOpen} onOpenChange={setPilotDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Grant 30-day pilot programme</DialogTitle>
+            <DialogDescription>
+              This grants a one-time 30-day pilot for {practice.clinic_name}. Subscription plan and
+              monthly fee stay unchanged. If the Owner has not activated yet, the pilot clock starts
+              when they accept their invitation. Pilot access cannot be stacked or re-granted later.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPilotDialogOpen(false)} disabled={pilotGranting}>
+              Cancel
+            </Button>
+            <Button onClick={grantPilot} disabled={pilotGranting}>
+              {pilotGranting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Grant Pilot
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppPage>
   );
 }

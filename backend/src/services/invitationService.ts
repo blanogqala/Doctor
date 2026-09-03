@@ -10,6 +10,7 @@ import { AppError } from '../middleware/errorHandler';
 import { generateSecureToken, hashToken } from '../utils/secureToken';
 import { validatePassword } from '../utils/passwordPolicy';
 import { logAudit } from './auditService';
+import { pilotEndFromStart } from './pilotProgramService';
 import {
   assertDoctorSeatAvailable,
   lockPracticeRow,
@@ -283,14 +284,38 @@ export async function acceptInvitation(token: string, password: string) {
       include: { doctor: true },
     });
 
+    let pilotStarted = false;
+    let pilotStartsAt: Date | null = null;
+    let pilotEndsAt: Date | null = null;
+
     if (invitation.isPracticeOwner) {
       if (practice.ownerProfileId) {
         throw new AppError(409, 'This Practice already has an owner');
       }
-      await tx.practice.update({
-        where: { id: practice.id },
-        data: { ownerProfileId: profile.id },
-      });
+
+      const pendingPilot =
+        Boolean(practice.pilotProgramGrantedAt) && !practice.pilotProgramStartsAt;
+
+      if (pendingPilot) {
+        const activationNow = new Date();
+        pilotStartsAt = activationNow;
+        pilotEndsAt = pilotEndFromStart(activationNow, activationNow);
+        await tx.practice.update({
+          where: { id: practice.id },
+          data: {
+            ownerProfileId: profile.id,
+            pilotProgramStartsAt: pilotStartsAt,
+            pilotProgramEndsAt: pilotEndsAt,
+            trialEndsAt: pilotEndsAt,
+          },
+        });
+        pilotStarted = true;
+      } else {
+        await tx.practice.update({
+          where: { id: practice.id },
+          data: { ownerProfileId: profile.id },
+        });
+      }
     }
 
     await tx.practiceInvitation.update({
@@ -298,7 +323,7 @@ export async function acceptInvitation(token: string, password: string) {
       data: { acceptedAt: new Date() },
     });
 
-    return { profile, practice, invitation };
+    return { profile, practice, invitation, pilotStarted, pilotStartsAt, pilotEndsAt };
   });
 
   await logAudit({
@@ -313,6 +338,21 @@ export async function acceptInvitation(token: string, password: string) {
       isPracticeOwner: result.invitation.isPracticeOwner,
     },
   });
+
+  if (result.pilotStarted && result.pilotStartsAt && result.pilotEndsAt) {
+    await logAudit({
+      practiceId: result.practice.id,
+      actorId: result.profile.id,
+      action: 'PILOT_ACCESS_STARTED',
+      resource: 'PRACTICE',
+      resourceId: result.practice.id,
+      newValue: {
+        startsAt: result.pilotStartsAt.toISOString(),
+        endsAt: result.pilotEndsAt.toISOString(),
+        durationDays: 30,
+      },
+    });
+  }
 
   return result;
 }

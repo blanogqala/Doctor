@@ -17,7 +17,9 @@ import { Label } from '@/components/ui/label';
 import { AppPage } from '@/components/layout/app-page';
 import { PageHeader } from '@/components/layout/page-header';
 import { formatCurrency } from '@/lib/format';
+import { onboardReviewTrialLabel } from '@/lib/pilot-program';
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -53,6 +55,7 @@ function emptyForm(plan: SubscriptionPlan = 'SMALL_PRACTICE') {
     owner_full_name: '',
     owner_email: '',
     owner_hpcsa_number: '',
+    grant_pilot_program: false,
   };
 }
 
@@ -77,6 +80,7 @@ function formFromPrefill(prefill: InquiryPrefill) {
     owner_full_name: prefill.full_name ?? '',
     owner_email: prefill.email ?? '',
     owner_hpcsa_number: prefill.hpcsa_number ?? '',
+    grant_pilot_program: false,
     // When SMALL_CLINIC with no requested plan, leave plan selectable but flag ambiguity
     _planUnresolved: !resolvedPlan && isLegacyAmbiguousInquiry(prefill.practice_type),
   };
@@ -228,6 +232,7 @@ export default function OnboardPracticePage() {
             }
           : {}),
         ...(inquiryId ? { inquiry_id: inquiryId } : {}),
+        ...(form.grant_pilot_program ? { grant_pilot_program: true } : {}),
       });
 
       if (inquiryId) sessionStorage.removeItem(`inquiry-prefill-${inquiryId}`);
@@ -451,6 +456,24 @@ export default function OnboardPracticePage() {
                   </div>
                 )}
               </div>
+              <div className="flex items-start gap-3 rounded-lg border p-4">
+                <Checkbox
+                  id="grant_pilot_program"
+                  checked={form.grant_pilot_program}
+                  onCheckedChange={(checked) =>
+                    setForm((f) => ({ ...f, grant_pilot_program: checked === true }))
+                  }
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="grant_pilot_program" className="cursor-pointer font-medium">
+                    Grant 30-day pilot programme
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Optional. Pilot access starts when the Practice Owner activates their account.
+                    Plan and pricing stay unchanged.
+                  </p>
+                </div>
+              </div>
             </>
           )}
 
@@ -526,6 +549,12 @@ export default function OnboardPracticePage() {
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Subdomain</dt>
                 <dd className="font-medium">{form.subdomain}.MediNathi.co.za</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Trial access</dt>
+                <dd className="text-right font-medium">
+                  {onboardReviewTrialLabel(form.grant_pilot_program)}
+                </dd>
               </div>
               <p className="rounded-lg border bg-muted/40 p-3 text-muted-foreground">
                 Creating this Practice will send a secure account setup invitation to the Practice Owner.

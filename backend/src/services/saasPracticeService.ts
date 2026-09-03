@@ -14,6 +14,12 @@ import { createInvitation, invitationStatus, serializeInvitation } from './invit
 import { buildOnboardingChecklist } from './onboardingStatus';
 import { getSeatUsage } from './seatService';
 import { updateInquiryStatus } from './inquiryService';
+import {
+  compactPilotProgramIndicator,
+  pilotEndFromStart,
+  serializePilotProgram,
+  standardTrialEndsAt,
+} from './pilotProgramService';
 
 const SAAS_AUDIT_ACTIONS = new Set([
   'PRACTICE_CREATED',
@@ -33,6 +39,8 @@ const SAAS_AUDIT_ACTIONS = new Set([
   'PRACTICE_SUSPENDED',
   'PRACTICE_REACTIVATED',
   'PRACTICE_UPDATED',
+  'PILOT_ACCESS_GRANTED',
+  'PILOT_ACCESS_STARTED',
 ]);
 
 export interface CreatePracticeInput {
@@ -46,6 +54,7 @@ export interface CreatePracticeInput {
   doctorSeatLimit?: number;
   monthlyFeeCents?: number;
   inquiryId?: string | null;
+  grantPilotProgram?: boolean;
   superAdminId: string;
   ipAddress?: string | null;
   userAgent?: string | null;
@@ -74,7 +83,9 @@ export async function createPracticeWithOwnerInvite(input: CreatePracticeInput) 
     throw new AppError(400, err instanceof Error ? err.message : 'Invalid plan configuration');
   }
 
-  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+  const now = new Date();
+  const trialEndsAt = standardTrialEndsAt(now);
+  const grantPilot = Boolean(input.grantPilotProgram);
 
   const { practice, invitation, token } = await prisma.$transaction(async (tx) => {
     const practice = await tx.practice.create({
@@ -88,6 +99,7 @@ export async function createPracticeWithOwnerInvite(input: CreatePracticeInput) 
         subscriptionPlan: agreement.subscriptionPlan,
         doctorSeatLimit: agreement.doctorSeatLimit,
         monthlyFeeCents: agreement.monthlyFeeCents,
+        ...(grantPilot ? { pilotProgramGrantedAt: now } : {}),
       },
     });
 
@@ -146,6 +158,24 @@ export async function createPracticeWithOwnerInvite(input: CreatePracticeInput) 
     warnings.push('Audit logging for Owner invitation failed — operational warning recorded.');
   }
 
+  if (grantPilot) {
+    try {
+      await logAudit({
+        practiceId: practice.id,
+        actorSuperAdminId: input.superAdminId,
+        action: 'PILOT_ACCESS_GRANTED',
+        resource: 'PRACTICE',
+        resourceId: practice.id,
+        newValue: { source: 'onboarding', durationDays: 30 },
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+      });
+    } catch (err) {
+      console.error('[onboarding] PILOT_ACCESS_GRANTED audit failed (practice exists):', err);
+      warnings.push('Audit logging for Pilot grant failed — operational warning recorded.');
+    }
+  }
+
   let inquiryConversionPending = false;
   if (input.inquiryId) {
     try {
@@ -197,6 +227,82 @@ export async function createPracticeWithOwnerInvite(input: CreatePracticeInput) 
         : warnings.length > 0 && !emailDelivered
           ? `${baseMessage} ${warnings.join(' ')}`.trim()
           : baseMessage,
+  };
+}
+
+export async function grantPilotProgramAccess(params: {
+  practiceId: string;
+  superAdminId: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}) {
+  const now = new Date();
+  const practice = await prisma.practice.findFirst({
+    where: { id: params.practiceId, softDeletedAt: null },
+  });
+  if (!practice) throw new AppError(404, 'Practice not found');
+
+  if (practice.pilotProgramGrantedAt) {
+    throw new AppError(
+      409,
+      'Pilot programme has already been granted for this Practice',
+      'PILOT_ALREADY_GRANTED'
+    );
+  }
+
+  if (practice.subscriptionStatus !== SubscriptionStatus.TRIAL) {
+    throw new AppError(
+      409,
+      `Pilot programme can only be granted to Practices in TRIAL status (current: ${practice.subscriptionStatus})`,
+      'PILOT_INVALID_SUBSCRIPTION_STATUS'
+    );
+  }
+
+  const ownerActivated = Boolean(practice.ownerProfileId);
+  const pilotEnd = pilotEndFromStart(now, now);
+
+  const updated = await prisma.$transaction(async (tx) => {
+    return tx.practice.update({
+      where: { id: practice.id },
+      data: ownerActivated
+        ? {
+            pilotProgramGrantedAt: now,
+            pilotProgramStartsAt: now,
+            pilotProgramEndsAt: pilotEnd,
+            trialEndsAt: pilotEnd,
+            subscriptionStatus: SubscriptionStatus.TRIAL,
+          }
+        : {
+            pilotProgramGrantedAt: now,
+            subscriptionStatus: SubscriptionStatus.TRIAL,
+          },
+    });
+  });
+
+  try {
+    await logAudit({
+      practiceId: updated.id,
+      actorSuperAdminId: params.superAdminId,
+      action: 'PILOT_ACCESS_GRANTED',
+      resource: 'PRACTICE',
+      resourceId: updated.id,
+      newValue: ownerActivated
+        ? {
+            startsAt: updated.pilotProgramStartsAt?.toISOString(),
+            endsAt: updated.pilotProgramEndsAt?.toISOString(),
+            durationDays: 30,
+          }
+        : { pendingOwnerActivation: true, durationDays: 30 },
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+    });
+  } catch (err) {
+    console.error('[pilot] PILOT_ACCESS_GRANTED audit failed:', err);
+  }
+
+  return {
+    practice: updated,
+    pilot_program: serializePilotProgram(updated, now),
   };
 }
 
@@ -280,6 +386,7 @@ export async function getPracticeWorkspace(practiceId: string) {
       owner: practice.owner,
       brandingConfigured,
     },
+    pilot_program: serializePilotProgram(practice),
     seats,
     onboarding,
     team: practice.profiles,
@@ -330,6 +437,7 @@ export async function listPracticesOperational(status?: SubscriptionStatus) {
         invitations: undefined,
         seats,
         onboarding,
+        pilot_program: compactPilotProgramIndicator(practice),
       };
     })
   );

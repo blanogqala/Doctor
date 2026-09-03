@@ -157,6 +157,7 @@ export interface PracticeSummary {
   owner?: { id: string; full_name: string; email: string } | null;
   seats?: SeatUsage;
   onboarding?: OnboardingChecklist;
+  pilot_program?: { status: Exclude<PilotProgramStatus, 'NOT_GRANTED'> } | null;
   doctors?: Array<{
     id: string;
     profile?: { full_name: string; email: string } | null;
@@ -204,6 +205,7 @@ export interface PracticeWorkspace {
   };
   seats: SeatUsage;
   onboarding: OnboardingChecklist;
+  pilot_program: PilotProgramInfo;
   team: Array<{
     id: string;
     full_name: string;
@@ -235,6 +237,21 @@ export interface OnboardPracticeInput {
   doctor_seat_limit?: number;
   monthly_fee_cents?: number;
   inquiry_id?: string;
+  grant_pilot_program?: boolean;
+}
+
+export type PilotProgramStatus =
+  | 'NOT_GRANTED'
+  | 'PENDING_ACTIVATION'
+  | 'ACTIVE'
+  | 'ENDED';
+
+export interface PilotProgramInfo {
+  status: PilotProgramStatus;
+  granted_at: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  duration_days: 30;
 }
 
 export interface PatchPracticeInput {
@@ -352,6 +369,12 @@ export const superAdminApi = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+
+  grantPilotProgram: (practiceId: string) =>
+    saFetch<{ pilot_program: PilotProgramInfo }>(
+      `/api/super-admin/practices/${practiceId}/pilot-program/grant`,
+      { method: 'POST', body: JSON.stringify({}) }
+    ),
 
   resendInvitation: (practiceId: string, invitationId: string) =>
     saFetch<{
