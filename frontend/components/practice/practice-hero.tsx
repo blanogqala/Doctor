@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { absoluteApiUrl, type PracticeInfo } from '@/lib/tenant';
 import { phoneToTelHref } from './practice-defaults';
 import { useDoctorSlide } from './use-doctor-slide';
+import { PracticeLogo } from '@/components/practice/practice-logo';
 
 interface PracticeHeroProps {
   practice: PracticeInfo;
@@ -57,14 +58,13 @@ export function PracticeHero({
       <div className="relative mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 sm:py-12 lg:grid-cols-2 lg:items-center lg:gap-12 lg:py-14">
         <div className="min-w-0 ">
           <div className="mb-4 flex items-center gap-3">
-            {logoSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoSrc} alt="" className="h-12 w-12 object-contain sm:h-14 sm:w-14" />
-            ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary shadow-sm sm:h-14 sm:w-14">
-                <Stethoscope className="h-6 w-6 text-white sm:h-7 sm:w-7" />
-              </div>
-            )}
+            <PracticeLogo
+              src={logoSrc}
+              size="md"
+              className="h-12 w-12 sm:h-14 sm:w-14"
+              fallbackClassName="h-12 w-12 rounded-2xl sm:h-14 sm:w-14"
+              fallbackIcon={Stethoscope}
+            />
           </div>
 
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-[42px] sm:leading-tight">

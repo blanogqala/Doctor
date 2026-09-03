@@ -20,6 +20,7 @@ import { doctorsApi, profilesApi } from '@/lib/api/patients';
 import { availabilityApi } from '@/lib/api/availability';
 import { practiceApi } from '@/lib/api/practice';
 import { useTenant, absoluteApiUrl } from '@/lib/tenant';
+import { PracticeLogo } from '@/components/practice/practice-logo';
 import type { Doctor } from '@/lib/types';
 import {
   addDays,
@@ -485,14 +486,12 @@ export default function AdminSettingsPage() {
               </FormGrid>
               <Field id="logo" label="Logo" hint="PNG, JPEG, WebP or GIF — max 5MB">
                 <div className="flex flex-wrap items-center gap-4">
-                  {logoSrc && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={logoSrc}
-                      alt=""
-                      className="h-12 w-12 rounded-md bg-muted object-contain"
-                    />
-                  )}
+                  <PracticeLogo
+                    src={logoSrc}
+                    size="md"
+                    className="rounded-md bg-muted"
+                    fallbackClassName="rounded-md"
+                  />
                   <Input
                     id="logo"
                     type="file"

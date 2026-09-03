@@ -39,6 +39,21 @@ const envSchema = z.object({
   CLINICAL_STORAGE_DRIVER: z.enum(['local', 'render-disk']).default('local'),
   /** Absolute/relative root for private clinical objects. */
   CLINICAL_STORAGE_ROOT: z.string().optional(),
+  /**
+   * Public practice logos. local = cwd/uploads/logos (dev/test only).
+   * render-disk = Render Persistent Disk (survives restart/redeploy/sleep).
+   */
+  PRACTICE_LOGO_STORAGE_DRIVER: z.enum(['local', 'render-disk']).default('local'),
+  PRACTICE_LOGO_STORAGE_ROOT: z.string().optional(),
+  /** Canonical API origin for absolute public asset URLs (e.g. https://api.medinathi.co.za). */
+  PUBLIC_API_URL: z
+    .string()
+    .optional()
+    .transform((v) => {
+      const trimmed = v?.trim();
+      return trimmed ? trimmed : undefined;
+    })
+    .pipe(z.string().url().optional()),
 });
 
 export const env = envSchema.parse(process.env);

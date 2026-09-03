@@ -19,6 +19,8 @@ export type ProductionGuardInput = {
   frontendUrl?: string;
   platformFrontendUrl?: string | null;
   clinicalStorageDriver?: string;
+  practiceLogoStorageDriver?: string;
+  publicApiUrl?: string | null;
   enableUatInvitationLinks?: string | undefined;
   cookieSameSite?: string | undefined;
   cookieSecure?: string | undefined;
@@ -69,6 +71,10 @@ export function collectProductionConfigProblems(
       : input.platformFrontendUrl;
   const clinicalStorageDriver =
     input.clinicalStorageDriver ?? env.CLINICAL_STORAGE_DRIVER;
+  const practiceLogoStorageDriver =
+    input.practiceLogoStorageDriver ?? env.PRACTICE_LOGO_STORAGE_DRIVER;
+  const publicApiUrl =
+    input.publicApiUrl === undefined ? env.PUBLIC_API_URL : input.publicApiUrl;
   const uatFlag =
     input.enableUatInvitationLinks !== undefined
       ? input.enableUatInvitationLinks
@@ -97,6 +103,12 @@ export function collectProductionConfigProblems(
     );
   }
 
+  if (practiceLogoStorageDriver !== 'render-disk') {
+    problems.push(
+      `PRACTICE_LOGO_STORAGE_DRIVER must be render-disk in ${appEnv} (got ${practiceLogoStorageDriver}). Local uploads/logos is ephemeral on Render.`
+    );
+  }
+
   if (appEnv === 'production') {
     if (uatFlag === 'true' || uatFlag === '1') {
       problems.push('ENABLE_UAT_INVITATION_LINKS must not be enabled in production');
@@ -109,6 +121,9 @@ export function collectProductionConfigProblems(
     }
     if (cookieSameSite === 'none' && cookieSecure === 'false') {
       problems.push('COOKIE_SAMESITE=None requires COOKIE_SECURE=true in production');
+    }
+    if (!publicApiUrl || isLocalUrl(publicApiUrl)) {
+      problems.push('PUBLIC_API_URL must be a public https origin in production (e.g. https://api.medinathi.co.za)');
     }
   }
 

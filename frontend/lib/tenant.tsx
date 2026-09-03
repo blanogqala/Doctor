@@ -15,6 +15,7 @@ import {
 } from '@/lib/theme/resolve-practice-theme';
 
 import { getApiBaseUrl } from '@/lib/api';
+import { resolvePublicAssetUrl } from '@/lib/public-asset-url';
 import { hostTenantOptionsFromEnv, resolveUiTenantSubdomain } from '@/lib/hostTenant';
 import {
   fetchPublicPracticeInfo,
@@ -55,11 +56,8 @@ export function getTenantSubdomain(): string | null {
   return resolveSubdomainFromHost();
 }
 
-export function absoluteApiUrl(path: string | null | undefined): string | null {
-  if (!path) return null;
-  if (/^https?:\/\//i.test(path)) return path;
-  return `${getApiBaseUrl()}${path}`;
-}
+/** @deprecated Prefer resolvePublicAssetUrl — kept as a stable alias. */
+export const absoluteApiUrl = resolvePublicAssetUrl;
 
 function cookiePracticeSubdomain(): string | null {
   if (typeof document === 'undefined') return null;
@@ -161,7 +159,7 @@ export function TenantProvider({
     loading,
     error,
     refresh,
-    logoSrc: absoluteApiUrl(practice?.logo_url),
+    logoSrc: resolvePublicAssetUrl(practice?.logo_url),
   };
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;

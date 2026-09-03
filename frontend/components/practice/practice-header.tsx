@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type { PracticeInfo } from '@/lib/tenant';
 import { phoneToTelHref } from './practice-defaults';
+import { PracticeLogo } from '@/components/practice/practice-logo';
 
 interface PracticeHeaderProps {
   practice: PracticeInfo;
@@ -36,14 +37,13 @@ export function PracticeHeader({
     <header className="fixed inset-x-0 top-0 z-50 border-b-2 border-primary bg-white/95 backdrop-blur">
       <div className="relative mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
         <a href="#top" className="flex min-w-0 shrink items-center gap-2.5 sm:gap-3">
-          {logoSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoSrc} alt="" className="h-9 w-9 object-contain sm:h-10 sm:w-10" />
-          ) : (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary sm:h-10 sm:w-10">
-              <Stethoscope className="h-4 w-4 text-white sm:h-5 sm:w-5" />
-            </div>
-          )}
+          <PracticeLogo
+            src={logoSrc}
+            size="sm"
+            className="h-9 w-9 sm:h-10 sm:w-10"
+            fallbackClassName="h-9 w-9 rounded-xl sm:h-10 sm:w-10"
+            fallbackIcon={Stethoscope}
+          />
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-slate-900 sm:text-base">
               {practice.clinic_name}

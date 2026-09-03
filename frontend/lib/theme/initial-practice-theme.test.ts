@@ -38,6 +38,16 @@ describe('resolveInitialHtmlThemeStyle', () => {
     expect(style?.['--primary']).not.toBe(STYLESHEET_DEFAULT_PRIMARY);
   });
 
+  it('still applies brand colour when logo is absent', () => {
+    const style = resolveInitialHtmlThemeStyle({
+      subdomain: 'pilot',
+      brandingAvailable: true,
+      brandColor: PILOT_MAROON,
+    });
+    expect(style?.['--brand-hex']).toBe(PILOT_MAROON);
+    expect(style?.['--primary']).not.toBe(STYLESHEET_DEFAULT_PRIMARY);
+  });
+
   it('no custom colour: branding available without brand_color uses default MediNathi theme', () => {
     const fallback = resolvePracticeTheme(null);
     const style = resolveInitialHtmlThemeStyle({

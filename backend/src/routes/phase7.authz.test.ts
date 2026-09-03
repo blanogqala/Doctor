@@ -11,7 +11,8 @@ describe('Phase 7 route authZ (source contract)', () => {
 
   it('restricts practice branding PATCH to ADMIN only', () => {
     const brandingPatch = practiceSource.match(
-      /router\.patch\(\s*'\/',[\s\S]*?asyncHandler\(async \(req: Request, res: Response\) => \{[\s\S]*?res\.json\(toSnakeCase\(practice\)\)/)?.[0] ?? '';
+      /router\.patch\(\s*'\/',[\s\S]*?authorize\(UserRole\.ADMIN\)[\s\S]*?res\.json\(toSnakeCase/
+    )?.[0] ?? '';
     expect(brandingPatch).toContain('authorize(UserRole.ADMIN)');
     expect(brandingPatch).not.toContain('authorize(UserRole.ADMIN, UserRole.DOCTOR)');
   });

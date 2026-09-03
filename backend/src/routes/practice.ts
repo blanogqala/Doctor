@@ -10,12 +10,16 @@ import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { requireTenant, tenantWhere } from '../middleware/tenant';
 import { toSnakeCase } from '../utils/serialize';
 import { detectImageMimeFromBuffer } from '../utils/fileSignature';
+import {
+  legacyLogoFilePath,
+  persistPracticeLogo,
+  publicApiOriginFromRequest,
+  resolvePublicPracticeLogoUrl,
+} from '../services/practiceLogoStorage';
 
 const router = Router();
 
-const logoDir = path.join(process.cwd(), 'uploads', 'logos');
 const photoDir = path.join(process.cwd(), 'uploads', 'doctor-photos');
-fs.mkdirSync(logoDir, { recursive: true });
 fs.mkdirSync(photoDir, { recursive: true });
 const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
@@ -40,6 +44,19 @@ function makeImageUpload(dest: string) {
   });
 }
 
+const logoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.mimetype)) {
+      cb(new AppError(400, 'Only PNG, JPEG, WebP, or GIF images are allowed'));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
 function validateUploadedImage(filePath: string) {
   const buffer = fs.readFileSync(filePath);
   const detectedMime = detectImageMimeFromBuffer(buffer);
@@ -54,7 +71,6 @@ function validateUploadedImage(filePath: string) {
   return detectedMime;
 }
 
-const logoUpload = makeImageUpload(logoDir);
 const photoUpload = makeImageUpload(photoDir);
 
 const officeHoursSchema = z
@@ -71,7 +87,7 @@ router.get(
   '/logo-file/:filename',
   asyncHandler(async (req: Request, res: Response) => {
     const filename = path.basename(req.params.filename);
-    const filePath = path.join(logoDir, filename);
+    const filePath = legacyLogoFilePath(filename);
     if (!fs.existsSync(filePath)) throw new AppError(404, 'Logo not found');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     res.sendFile(filePath);
@@ -97,7 +113,12 @@ router.get(
     const { practiceId } = tenantWhere(req);
     const practice = await prisma.practice.findUnique({ where: { id: practiceId } });
     if (!practice) throw new AppError(404, 'Practice not found');
-    res.json(toSnakeCase(practice));
+    const logoUrl = await resolvePublicPracticeLogoUrl({
+      stored: practice.logoUrl,
+      practiceId: practice.id,
+      publicApiOrigin: publicApiOriginFromRequest(req),
+    });
+    res.json(toSnakeCase({ ...practice, logoUrl }));
   })
 );
 
@@ -178,7 +199,12 @@ router.patch(
       });
     }
 
-    res.json(toSnakeCase(practice));
+    const logoUrl = await resolvePublicPracticeLogoUrl({
+      stored: practice.logoUrl,
+      practiceId: practice.id,
+      publicApiOrigin: publicApiOriginFromRequest(req),
+    });
+    res.json(toSnakeCase({ ...practice, logoUrl }));
   })
 );
 
@@ -188,15 +214,31 @@ router.post(
   logoUpload.single('logo'),
   asyncHandler(async (req: Request, res: Response) => {
     const { practiceId } = tenantWhere(req);
-    if (!req.file) throw new AppError(400, 'Logo file is required');
-    validateUploadedImage(req.file.path);
+    if (!req.file?.buffer) throw new AppError(400, 'Logo file is required');
+    const detectedMime = detectImageMimeFromBuffer(req.file.buffer);
+    if (!detectedMime || !ALLOWED_IMAGE_MIME_TYPES.has(detectedMime)) {
+      throw new AppError(400, 'Invalid image file. Only PNG, JPEG, WebP, or GIF images are allowed');
+    }
 
-    const logoUrl = `/api/practice/logo-file/${req.file.filename}`;
+    const existing = await prisma.practice.findFirst({
+      where: { id: practiceId, softDeletedAt: null },
+      select: { id: true, logoUrl: true },
+    });
+    if (!existing) throw new AppError(404, 'Practice not found');
+
+    const { storageKey, publicUrl } = await persistPracticeLogo({
+      practiceId,
+      buffer: req.file.buffer,
+      mime: detectedMime,
+      previousStored: existing.logoUrl,
+      publicApiOrigin: publicApiOriginFromRequest(req),
+    });
+
     const practice = await prisma.practice.update({
       where: { id: practiceId },
-      data: { logoUrl },
+      data: { logoUrl: storageKey },
     });
-    res.json(toSnakeCase(practice));
+    res.json(toSnakeCase({ ...practice, logoUrl: publicUrl }));
   })
 );
 

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Stethoscope } from 'lucide-react';
 import type { PracticeInfo } from '@/lib/tenant';
+import { PracticeLogo } from '@/components/practice/practice-logo';
 
 interface PracticeFooterProps {
   practice: PracticeInfo;
@@ -26,14 +27,13 @@ export function PracticeFooter({ practice, logoSrc }: PracticeFooterProps) {
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 md:flex-row md:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            {logoSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoSrc} alt="" className="h-10 w-10 rounded bg-white object-contain p-1" />
-            ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <Stethoscope className="h-5 w-5 text-primary-foreground" />
-              </div>
-            )}
+            <PracticeLogo
+              src={logoSrc}
+              size="sm"
+              className="h-10 w-10 rounded bg-white p-1"
+              fallbackClassName="h-10 w-10 rounded-lg"
+              fallbackIcon={Stethoscope}
+            />
             <p className="font-semibold text-white">{practice.clinic_name}</p>
           </div>
           <p className="mt-4 text-sm text-slate-400">

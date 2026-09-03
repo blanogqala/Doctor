@@ -30,6 +30,8 @@ describe('collectProductionConfigProblems', () => {
     expect(problems.some((p) => /DATABASE_URL/i.test(p))).toBe(true);
     expect(problems.some((p) => /FRONTEND_URL/i.test(p))).toBe(true);
     expect(problems.some((p) => /CLINICAL_STORAGE/i.test(p))).toBe(true);
+    expect(problems.some((p) => /PRACTICE_LOGO_STORAGE/i.test(p))).toBe(true);
+    expect(problems.some((p) => /PUBLIC_API_URL/i.test(p))).toBe(true);
     expect(problems.some((p) => /UAT/i.test(p))).toBe(true);
   });
 
@@ -40,6 +42,8 @@ describe('collectProductionConfigProblems', () => {
       databaseUrl: 'postgresql://u:p@dpg-xxx-a.oregon-postgres.render.com/MediNathi',
       frontendUrl: 'https://app.MediNathi.co.za',
       clinicalStorageDriver: 'render-disk',
+      practiceLogoStorageDriver: 'render-disk',
+      publicApiUrl: 'https://api.medinathi.co.za',
       enableUatInvitationLinks: '',
       cookieSameSite: 'none',
       cookieSecure: 'true',
@@ -57,6 +61,7 @@ describe('collectProductionConfigProblems', () => {
       enableUatInvitationLinks: 'true',
     });
     expect(problems.some((p) => /CLINICAL_STORAGE/i.test(p))).toBe(true);
+    expect(problems.some((p) => /PRACTICE_LOGO_STORAGE/i.test(p))).toBe(true);
     expect(problems.some((p) => /UAT/i.test(p))).toBe(false);
   });
 });

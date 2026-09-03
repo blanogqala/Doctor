@@ -4,6 +4,10 @@ import { env } from '../config/env';
 import { resolveAppEnv } from '../config/appEnv';
 import { getClinicalStorage } from '../services/clinicalStorage';
 import { FilesystemClinicalStorage } from '../services/clinicalStorage/filesystemStorage';
+import {
+  FilesystemPracticeLogoStorage,
+  getPracticeLogoStorage,
+} from '../services/practiceLogoStorage';
 
 export const healthRouter = Router();
 
@@ -47,11 +51,25 @@ healthRouter.get('/ready', async (_req, res) => {
     }
   }
 
+  const logoStorage = getPracticeLogoStorage();
+  const requireLogoStorage =
+    logoStorage.driver === 'render-disk' && (appEnv === 'staging' || appEnv === 'production');
+  if (requireLogoStorage && logoStorage instanceof FilesystemPracticeLogoStorage) {
+    try {
+      await logoStorage.assertWritable();
+      checks.practiceLogoStorage = 'ok';
+    } catch {
+      checks.practiceLogoStorage = 'fail';
+      ready = false;
+    }
+  }
+
   res.status(ready ? 200 : 503).json({
     status: ready ? 'ok' : 'not_ready',
     check: 'ready',
     appEnv,
     clinicalStorageDriver: env.CLINICAL_STORAGE_DRIVER,
+    practiceLogoStorageDriver: env.PRACTICE_LOGO_STORAGE_DRIVER,
     checks,
     timestamp: new Date().toISOString(),
   });

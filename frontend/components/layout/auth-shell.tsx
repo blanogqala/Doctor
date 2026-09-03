@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, HeartPulse } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useTenant } from '@/lib/tenant';
 import { buttonVariants } from '@/components/ui/button';
 import { PracticeAuthBackground } from '@/components/layout/practice-auth-background';
+import { PracticeLogo } from '@/components/practice/practice-logo';
 import { cn } from '@/lib/utils';
 
 export type AuthShellSize = 'sm' | 'md';
@@ -61,14 +62,12 @@ export function AuthShell({
           <div className="relative px-6 py-10 sm:px-10 sm:py-12">
             <div className="flex flex-col items-center text-center">
               <Link href="/" className="flex flex-col items-center gap-2">
-                {logoSrc ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logoSrc} alt="" className="h-14 w-14 rounded-xl object-contain" />
-                ) : (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary shadow-sm">
-                    <HeartPulse className="h-7 w-7 text-primary-foreground" aria-hidden />
-                  </div>
-                )}
+                <PracticeLogo
+                  src={logoSrc}
+                  size="lg"
+                  className="rounded-xl"
+                  fallbackClassName="rounded-xl"
+                />
                 <span className="min-h-5 max-w-full break-words text-sm font-semibold uppercase tracking-[0.14em] text-primary">
                   {clinicName ?? '\u00a0'}
                 </span>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { HeartPulse } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isNavItemActive, type NavItem } from '@/lib/navigation';
+import { PracticeLogo } from '@/components/practice/practice-logo';
 
 export interface AppBrand {
   title: string;
@@ -93,29 +94,21 @@ interface BrandMarkProps {
 export function BrandMark({ brand, size = 'md', className, variant = 'default' }: BrandMarkProps) {
   const Icon = brand.fallbackIcon ?? HeartPulse;
   const box = size === 'sm' ? 'h-7 w-7' : 'h-9 w-9';
-  const iconSize = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
   const isPlatform = variant === 'platform';
 
   return (
     <div className={cn('flex min-w-0 items-center gap-2', className)}>
-      {brand.logoSrc ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={brand.logoSrc}
-          alt=""
-          className={cn(box, 'flex-shrink-0 rounded-md bg-muted object-contain')}
-        />
-      ) : (
-        <div
-          className={cn(
-            box,
-            'flex flex-shrink-0 items-center justify-center rounded-lg shadow-soft',
-            isPlatform ? 'bg-indigo-500 text-white' : 'bg-primary text-primary-foreground'
-          )}
-        >
-          <Icon className={cn(iconSize, isPlatform ? 'text-white' : 'text-primary-foreground')} aria-hidden />
-        </div>
-      )}
+      <PracticeLogo
+        src={brand.logoSrc}
+        size="sm"
+        className={cn(box, 'rounded-md bg-muted')}
+        fallbackClassName={cn(
+          box,
+          'rounded-lg shadow-soft',
+          isPlatform ? 'bg-indigo-500 text-white' : 'bg-primary text-primary-foreground'
+        )}
+        fallbackIcon={Icon}
+      />
       <div className="flex min-w-0 flex-col">
         <span
           className={cn('truncate text-sm font-semibold', isPlatform ? 'text-white' : 'text-foreground')}

@@ -50,6 +50,23 @@ describe('parsePublicPracticeInfo', () => {
     expect(parsed.doctors[0].credentials).toEqual([]);
     expect(parsed.doctors[0].photo_url).toBeNull();
   });
+
+  it('preserves an absolute public logo URL', () => {
+    const parsed = parsePublicPracticeInfo({
+      ...PILOT_PAYLOAD,
+      logo_url: 'https://api.medinathi.co.za/api/public/practice-logos/prac-pilot/file.png',
+    } as unknown as Record<string, unknown>);
+    expect(parsed.logo_url).toBe(
+      'https://api.medinathi.co.za/api/public/practice-logos/prac-pilot/file.png'
+    );
+  });
+
+  it('keeps branding when logo is missing', () => {
+    const parsed = parsePublicPracticeInfo(PILOT_PAYLOAD as unknown as Record<string, unknown>);
+    expect(parsed.logo_url).toBeNull();
+    expect(parsed.brand_color).toBe('#800000');
+    expect(parsed.clinic_name).toBe('Pilot Clinic');
+  });
 });
 
 describe('fetchPublicPracticeInfo', () => {

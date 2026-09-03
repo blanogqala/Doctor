@@ -8,6 +8,15 @@ import { normalizeSubdomain } from '../middleware/tenant';
 import { checkInquiryRateLimit, createPracticeInquiry } from '../services/inquiryService';
 import { generateSlots, toDateOnlyString } from '../services/schedulingService';
 import { activeDoctorWhere, assertActiveDoctorInPractice } from '../services/activeDoctor';
+import {
+  getPracticeLogoStorage,
+  isLogoKeyOwnedByPractice,
+  mimeForLogoFilename,
+  parseStoredPracticeLogo,
+  publicApiOriginFromRequest,
+  resolvePublicPracticeLogoUrl,
+} from '../services/practiceLogoStorage';
+import path from 'path';
 
 const router = Router();
 
@@ -18,6 +27,42 @@ function parseCredentials(value: Prisma.JsonValue | null): string[] {
   }
   return [];
 }
+
+router.get(
+  '/practice-logos/:practiceId/:filename',
+  asyncHandler(async (req: Request, res: Response) => {
+    const practiceId = String(req.params.practiceId || '');
+    const filename = path.basename(String(req.params.filename || ''));
+    const key = `practice/${practiceId}/logos/${filename}`;
+    if (!practiceId || !filename || !isLogoKeyOwnedByPractice(key, practiceId)) {
+      throw new AppError(404, 'Logo not found');
+    }
+
+    const practice = await prisma.practice.findFirst({
+      where: { id: practiceId, softDeletedAt: null },
+      select: { id: true, logoUrl: true },
+    });
+    if (!practice) throw new AppError(404, 'Logo not found');
+
+    const parsed = parseStoredPracticeLogo(practice.logoUrl);
+    if (!parsed || parsed.kind !== 'key' || parsed.key !== key || parsed.practiceId !== practiceId) {
+      throw new AppError(404, 'Logo not found');
+    }
+
+    const storage = getPracticeLogoStorage();
+    if (!(await storage.exists(key))) throw new AppError(404, 'Logo not found');
+
+    res.setHeader('Content-Type', mimeForLogoFilename(filename));
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    const stream = await storage.openReadStream(key);
+    stream.on('error', () => {
+      if (!res.headersSent) res.status(404).end();
+      else res.end();
+    });
+    stream.pipe(res);
+  })
+);
 
 /** Public online booking is available for ACTIVE and valid (non-expired) TRIAL only. */
 export function isPublicBookingAvailable(practice: {
@@ -59,13 +104,18 @@ router.get(
     }
 
     const bookingAvailable = isPublicBookingAvailable(practice);
+    const logoUrl = await resolvePublicPracticeLogoUrl({
+      stored: practice.logoUrl,
+      practiceId: practice.id,
+      publicApiOrigin: publicApiOriginFromRequest(req),
+    });
 
     res.json(
       toSnakeCase({
         id: practice.id,
         subdomain: practice.subdomain,
         clinicName: practice.clinicName,
-        logoUrl: practice.logoUrl,
+        logoUrl,
         brandColor: practice.brandColor,
         tagline: practice.tagline,
         phone: practice.phone,
