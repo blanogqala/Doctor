@@ -98,6 +98,38 @@ export async function hasOutstandingSubscriptionPayment(
   return Boolean(blocking);
 }
 
+function noopStatusTransition(practice: {
+  subscriptionSuspensionReason: SubscriptionSuspensionReason | null;
+}): {
+  statusData: Prisma.PracticeUpdateInput;
+  statusAuditAction: null;
+  previousReason: SubscriptionSuspensionReason | null;
+} {
+  return {
+    statusData: {},
+    statusAuditAction: null,
+    previousReason: practice.subscriptionSuspensionReason,
+  };
+}
+
+function rejectSubscriptionTransition(
+  current: SubscriptionStatus,
+  next: SubscriptionStatus
+): never {
+  if (current === SubscriptionStatus.CANCELLED) {
+    throw new AppError(
+      409,
+      'A cancelled Practice cannot be reactivated through this workflow.',
+      'PRACTICE_CANCELLED'
+    );
+  }
+  throw new AppError(
+    409,
+    `Cannot change subscription status from ${current} to ${next}.`,
+    'INVALID_SUBSCRIPTION_TRANSITION'
+  );
+}
+
 export async function applyRequestedSubscriptionStatus(
   tx: Prisma.TransactionClient,
   practice: {
@@ -113,13 +145,18 @@ export async function applyRequestedSubscriptionStatus(
   statusAuditAction: 'PRACTICE_SUSPENDED' | 'PRACTICE_REACTIVATED' | null;
   previousReason: SubscriptionSuspensionReason | null;
 }> {
+  const current = practice.subscriptionStatus;
+  if (current === nextStatus) {
+    return noopStatusTransition(practice);
+  }
+
+  if (current === SubscriptionStatus.CANCELLED) {
+    rejectSubscriptionTransition(current, nextStatus);
+  }
+
   if (nextStatus === SubscriptionStatus.SUSPENDED) {
-    if (practice.subscriptionStatus === SubscriptionStatus.SUSPENDED) {
-      return {
-        statusData: {},
-        statusAuditAction: null,
-        previousReason: practice.subscriptionSuspensionReason,
-      };
+    if (current !== SubscriptionStatus.ACTIVE && current !== SubscriptionStatus.TRIAL) {
+      rejectSubscriptionTransition(current, nextStatus);
     }
     return {
       statusData: {
@@ -133,14 +170,7 @@ export async function applyRequestedSubscriptionStatus(
   }
 
   if (nextStatus === SubscriptionStatus.ACTIVE) {
-    if (practice.subscriptionStatus === SubscriptionStatus.CANCELLED) {
-      throw new AppError(
-        409,
-        'A cancelled Practice cannot be reactivated through this workflow.',
-        'PRACTICE_CANCELLED'
-      );
-    }
-    if (practice.subscriptionStatus === SubscriptionStatus.SUSPENDED) {
+    if (current === SubscriptionStatus.SUSPENDED) {
       if (await hasOutstandingSubscriptionPayment(tx, practice.id, now)) {
         throw new AppError(
           409,
@@ -158,25 +188,21 @@ export async function applyRequestedSubscriptionStatus(
         previousReason: practice.subscriptionSuspensionReason,
       };
     }
-    if (practice.subscriptionStatus === SubscriptionStatus.ACTIVE) {
+    if (current === SubscriptionStatus.TRIAL) {
       return {
-        statusData: {},
+        statusData: {
+          subscriptionStatus: SubscriptionStatus.ACTIVE,
+          subscriptionSuspensionReason: null,
+          subscriptionSuspendedAt: null,
+        },
         statusAuditAction: null,
         previousReason: practice.subscriptionSuspensionReason,
       };
     }
-    return {
-      statusData: { subscriptionStatus: SubscriptionStatus.ACTIVE },
-      statusAuditAction: null,
-      previousReason: practice.subscriptionSuspensionReason,
-    };
+    rejectSubscriptionTransition(current, nextStatus);
   }
 
-  return {
-    statusData: { subscriptionStatus: nextStatus },
-    statusAuditAction: null,
-    previousReason: practice.subscriptionSuspensionReason,
-  };
+  rejectSubscriptionTransition(current, nextStatus);
 }
 
 export async function createPracticeWithOwnerInvite(input: CreatePracticeInput) {
