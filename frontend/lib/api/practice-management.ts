@@ -14,6 +14,7 @@ export interface PracticeManagementSummary {
     subscription_suspension_reason?: string | null;
     subscription_suspended_at?: string | null;
     access?: { mode: string; reason?: string | null; suspended_at?: string | null } | null;
+    clinical_chart_access_mode?: 'ASSIGNED_DOCTOR_ONLY' | 'ALL_ACTIVE_DOCTORS' | null;
     owner?: { id: string; full_name: string; email: string } | null;
   };
   seats: SeatUsage;

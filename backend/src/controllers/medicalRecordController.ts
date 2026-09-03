@@ -9,6 +9,7 @@ import {
   getDoctorIdForProfile,
   getPatientIdForProfile,
   assertClinicalPatientAccess,
+  auditSharedClinicalChartAccess,
 } from '../services/accessService';
 import { logAudit, redactAuditPayload } from '../services/auditService';
 
@@ -197,7 +198,7 @@ function toAdminRecordMetadata(record: {
   });
 }
 
-async function buildMedicalRecordWhere(req: Request) {
+async function buildMedicalRecordWhere(req: Request, options?: { auditShared?: boolean }) {
   const { role, userId } = req.user!;
   const { practiceId } = tenantWhere(req);
   const base: Record<string, unknown> = { softDeletedAt: null, practiceId };
@@ -212,6 +213,32 @@ async function buildMedicalRecordWhere(req: Request) {
   }
 
   if (role === UserRole.DOCTOR) {
+    const patientIdFilter = req.query.patient_id ? String(req.query.patient_id) : null;
+    if (patientIdFilter) {
+      const access = await assertClinicalPatientAccess(userId, role, patientIdFilter, practiceId);
+      if (options?.auditShared) {
+        await auditSharedClinicalChartAccess({
+          practiceId,
+          actorId: userId,
+          patientId: patientIdFilter,
+          accessBasis: access.accessBasis,
+          operation: 'MEDICAL_RECORD_LIST',
+          accessingDoctorId: access.doctorId,
+          assignedDoctorId: access.patient.assignedDoctorId,
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+        });
+      }
+      const scoped: Record<string, unknown> = {
+        softDeletedAt: null,
+        practiceId,
+        patientId: patientIdFilter,
+      };
+      if (req.query.doctor_id) scoped.doctorId = String(req.query.doctor_id);
+      if (req.query.is_draft !== undefined) scoped.isDraft = req.query.is_draft === 'true';
+      return scoped;
+    }
+
     const doctorId = await getDoctorIdForProfile(userId, practiceId);
     if (doctorId) base.doctorId = doctorId;
   } else if (role === UserRole.PATIENT) {
@@ -228,7 +255,7 @@ async function buildMedicalRecordWhere(req: Request) {
 export const medicalRecordController = {
   list: asyncHandler(async (req: Request, res: Response) => {
     const records = await prisma.medicalRecord.findMany({
-      where: await buildMedicalRecordWhere(req),
+      where: await buildMedicalRecordWhere(req, { auditShared: true }),
       include: medicalRecordInclude,
       orderBy: { recordDate: 'desc' },
     });
@@ -261,7 +288,25 @@ export const medicalRecordController = {
       return res.json(toAdminRecordMetadata(record));
     }
 
-    await assertClinicalPatientAccess(req.user!.userId, req.user!.role, record.patientId, practiceId);
+    const viewAccess = await assertClinicalPatientAccess(
+      req.user!.userId,
+      req.user!.role,
+      record.patientId,
+      practiceId
+    );
+    if (req.user!.role === UserRole.DOCTOR) {
+      await auditSharedClinicalChartAccess({
+        practiceId,
+        actorId: req.user!.userId,
+        patientId: record.patientId,
+        accessBasis: viewAccess.accessBasis,
+        operation: 'MEDICAL_RECORD_VIEW',
+        accessingDoctorId: viewAccess.doctorId,
+        assignedDoctorId: viewAccess.patient.assignedDoctorId,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+    }
 
     if (req.user!.role === UserRole.PATIENT) {
       // Draft parent visits stay private; draft check-ups (child records) are visible once booked.
@@ -279,7 +324,37 @@ export const medicalRecordController = {
     const doctorId = await requireDoctorId(req.user!.userId, practiceId);
     const patientId = String(body.patient_id);
 
-    await assertClinicalPatientAccess(req.user!.userId, req.user!.role, patientId, practiceId);
+    const createAccess = await assertClinicalPatientAccess(
+      req.user!.userId,
+      req.user!.role,
+      patientId,
+      practiceId
+    );
+    await auditSharedClinicalChartAccess({
+      practiceId,
+      actorId: req.user!.userId,
+      patientId,
+      accessBasis: createAccess.accessBasis,
+      operation: 'MEDICAL_RECORD_CREATE',
+      accessingDoctorId: createAccess.doctorId,
+      assignedDoctorId: createAccess.patient.assignedDoctorId,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    const appointmentId = body.appointment_id ? String(body.appointment_id) : null;
+    if (appointmentId) {
+      const appointment = await prisma.appointment.findFirst({
+        where: { id: appointmentId, practiceId, softDeletedAt: null },
+      });
+      if (!appointment) throw new AppError(404, 'Appointment not found');
+      if (appointment.patientId !== patientId) {
+        throw new AppError(403, 'Appointment does not belong to this patient');
+      }
+      if (appointment.doctorId !== doctorId) {
+        throw new AppError(403, 'You can only attach records to your own appointments');
+      }
+    }
 
     const notesValue =
       body.doctor_notes_private !== undefined
@@ -292,7 +367,7 @@ export const medicalRecordController = {
           practiceId,
           patientId,
           doctorId,
-          appointmentId: (body.appointment_id as string) ?? null,
+          appointmentId,
           recordDate: body.record_date ? new Date(String(body.record_date)) : new Date(),
           subjective: (body.subjective as string) ?? null,
           objective: (body.objective as string) ?? null,
@@ -397,6 +472,13 @@ export const medicalRecordController = {
       where: { id: req.params.id, practiceId },
     });
     if (!existing || existing.softDeletedAt) throw new AppError(404, 'Medical record not found');
+
+    await assertClinicalPatientAccess(
+      req.user!.userId,
+      req.user!.role,
+      existing.patientId,
+      practiceId
+    );
 
     const doctorId = await requireDoctorId(req.user!.userId, practiceId);
     if (existing.doctorId !== doctorId) {
@@ -606,6 +688,14 @@ export const medicalRecordController = {
       where: { id: req.params.id, practiceId, softDeletedAt: null },
     });
     if (!existing) throw new AppError(404, 'Medical record not found');
+
+    await assertClinicalPatientAccess(
+      req.user!.userId,
+      req.user!.role,
+      existing.patientId,
+      practiceId
+    );
+
     if (existing.doctorId !== doctorId) {
       throw new AppError(403, 'You can only attach recordings to your own records');
     }
@@ -744,6 +834,13 @@ export const medicalRecordController = {
       where: { id: req.params.id, practiceId },
     });
     if (!existing || existing.softDeletedAt) throw new AppError(404, 'Medical record not found');
+
+    await assertClinicalPatientAccess(
+      req.user!.userId,
+      req.user!.role,
+      existing.patientId,
+      practiceId
+    );
 
     const doctorId = await requireDoctorId(req.user!.userId, practiceId);
     if (existing.doctorId !== doctorId) {

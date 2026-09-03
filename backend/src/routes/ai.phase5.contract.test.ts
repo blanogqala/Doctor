@@ -29,7 +29,7 @@ describe('referral urgency FE/BE contract', () => {
   it('AI routes require patient binding for referral draft', () => {
     const ai = readFileSync(join(__dirname, '../controllers/aiController.ts'), 'utf8');
     expect(ai).toMatch(/patientId is required/);
-    expect(ai).toMatch(/assertPatientAccess/);
+    expect(ai).toMatch(/assertClinicalPatientAccess/);
     expect(ai).toMatch(/clinicalLetterDraft/);
   });
 

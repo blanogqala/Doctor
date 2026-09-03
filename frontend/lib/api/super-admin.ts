@@ -139,6 +139,8 @@ export interface SeatUsage {
   available: number;
 }
 
+export type ClinicalChartAccessMode = 'ASSIGNED_DOCTOR_ONLY' | 'ALL_ACTIVE_DOCTORS';
+
 export interface OnboardingChecklist {
   practice_created: boolean;
   owner_invited: boolean;
@@ -172,6 +174,7 @@ export interface PracticeSummary {
     profile?: { full_name: string; email: string } | null;
   }>;
   _count?: { patients: number; doctors: number };
+  clinical_chart_access_mode?: ClinicalChartAccessMode;
 }
 
 export interface InvitationSummary {
@@ -398,6 +401,16 @@ export const superAdminApi = {
       `/api/super-admin/practices/${practiceId}/pilot-program/grant`,
       { method: 'POST', body: JSON.stringify({}) }
     ),
+
+  updateClinicalChartAccess: (practiceId: string, mode: ClinicalChartAccessMode) =>
+    saFetch<{
+      practice_id: string;
+      clinical_chart_access_mode: ClinicalChartAccessMode;
+      changed: boolean;
+    }>(`/api/super-admin/practices/${practiceId}/clinical-chart-access`, {
+      method: 'PATCH',
+      body: JSON.stringify({ mode }),
+    }),
 
   resendInvitation: (practiceId: string, invitationId: string) =>
     saFetch<{

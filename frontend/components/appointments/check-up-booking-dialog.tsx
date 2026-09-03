@@ -26,6 +26,7 @@ import { usePracticeAccess } from '@/lib/use-practice-access';
 import { patientDisplayName } from '@/lib/patients/display-name';
 import { appointmentsApi } from '@/lib/api/appointments';
 import type { AppointmentType, Doctor, MedicalRecord, Patient } from '@/lib/types';
+import { checkupDoctorsForPolicy } from '@/lib/clinical/chart-access';
 import { Building2, Loader2, Video } from 'lucide-react';
 
 export interface CheckUpBookingDialogProps {
@@ -34,6 +35,7 @@ export interface CheckUpBookingDialogProps {
   patient: Patient;
   parentRecord: MedicalRecord;
   doctors: Doctor[];
+  chartAccessMode?: string | null;
   onBooked?: (result: {
     appointment: import('@/lib/types').Appointment;
     medical_record: MedicalRecord;
@@ -46,10 +48,16 @@ export function CheckUpBookingDialog({
   patient,
   parentRecord,
   doctors,
+  chartAccessMode,
   onBooked,
 }: CheckUpBookingDialogProps) {
   const { toast } = useToast();
   const { canMutate, mutationHint } = usePracticeAccess();
+  const selectableDoctors = checkupDoctorsForPolicy({
+    doctors,
+    mode: chartAccessMode,
+    assignedDoctorId: patient.assigned_doctor_id,
+  });
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     doctor_id: '',
@@ -63,10 +71,11 @@ export function CheckUpBookingDialog({
   useEffect(() => {
     if (!open) return;
     const defaultDoctor =
-      parentRecord.doctor_id ||
-      patient.assigned_doctor_id ||
-      doctors[0]?.id ||
-      '';
+      selectableDoctors.some((d) => d.id === parentRecord.doctor_id)
+        ? parentRecord.doctor_id
+        : patient.assigned_doctor_id ||
+          selectableDoctors[0]?.id ||
+          '';
     setForm({
       doctor_id: defaultDoctor,
       date: '',
@@ -158,7 +167,7 @@ export function CheckUpBookingDialog({
                 <SelectValue placeholder="Select doctor..." />
               </SelectTrigger>
               <SelectContent>
-                {doctors.map((d) => (
+                {selectableDoctors.map((d) => (
                   <SelectItem key={d.id} value={d.id}>
                     {d.profile?.full_name} — {d.specialization}
                   </SelectItem>

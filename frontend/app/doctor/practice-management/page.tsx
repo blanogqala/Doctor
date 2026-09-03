@@ -29,6 +29,10 @@ import {
 } from '@/components/ui/table';
 import { TableSection } from '@/components/ds/table-section';
 import { formatCurrency, formatDate } from '@/lib/format';
+import {
+  clinicalChartAccessLabel,
+  PRACTICE_OWNER_CHART_ACCESS_NOTE,
+} from '@/lib/clinical/chart-access';
 import { Loader2, Mail, RefreshCw, UserMinus, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -251,6 +255,18 @@ export default function PracticeManagementPage() {
               tone="clinical"
             />
           </MetricGrid>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Clinical chart access</CardTitle>
+              <CardDescription>{PRACTICE_OWNER_CHART_ACCESS_NOTE}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm font-medium">
+                {clinicalChartAccessLabel(practice.clinical_chart_access_mode)}
+              </p>
+            </CardContent>
+          </Card>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>

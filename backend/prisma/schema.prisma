@@ -177,6 +177,13 @@ enum PatientPortalStatus {
   @@map("patient_portal_status")
 }
 
+enum ClinicalChartAccessMode {
+  ASSIGNED_DOCTOR_ONLY
+  ALL_ACTIVE_DOCTORS
+
+  @@map("clinical_chart_access_mode")
+}
+
 model Practice {
   id                 String             @id @default(uuid()) @db.Uuid
   subdomain          String             @unique
@@ -208,6 +215,7 @@ model Practice {
   monthlyFeeCents    Int                @default(80000) @map("monthly_fee_cents")
   subscriptionPlan   SubscriptionPlan   @default(SOLO) @map("subscription_plan")
   doctorSeatLimit    Int                @default(1) @map("doctor_seat_limit")
+  clinicalChartAccessMode ClinicalChartAccessMode @default(ASSIGNED_DOCTOR_ONLY) @map("clinical_chart_access_mode")
   ownerProfileId     String?            @unique @map("owner_profile_id") @db.Uuid
   domainCustom       String?            @unique @map("domain_custom")
   softDeletedAt      DateTime?          @map("soft_deleted_at")

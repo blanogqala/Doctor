@@ -6,6 +6,7 @@ import {
   SubscriptionStatus,
   SubscriptionSuspensionReason,
   UserRole,
+  ClinicalChartAccessMode,
 } from '@prisma/client';
 import { prisma } from '../config/database';
 import { resolvePlanAgreement } from '../config/subscriptionPlans';
@@ -50,6 +51,7 @@ const SAAS_AUDIT_ACTIONS = new Set([
   'PRACTICE_UPDATED',
   'PILOT_ACCESS_GRANTED',
   'PILOT_ACCESS_STARTED',
+  'CLINICAL_CHART_ACCESS_MODE_CHANGED',
 ]);
 
 export interface CreatePracticeInput {
@@ -461,6 +463,57 @@ export async function grantPilotProgramAccess(params: {
   };
 }
 
+export async function updateClinicalChartAccessMode(params: {
+  practiceId: string;
+  mode: ClinicalChartAccessMode;
+  superAdminId: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}) {
+  const result = await prisma.$transaction(async (tx) => {
+    const practice = await tx.practice.findFirst({
+      where: { id: params.practiceId, softDeletedAt: null },
+    });
+    if (!practice) throw new AppError(404, 'Practice not found');
+
+    await lockPracticeRow(tx, practice.id);
+    const locked = await tx.practice.findFirst({
+      where: { id: practice.id, softDeletedAt: null },
+    });
+    if (!locked) throw new AppError(404, 'Practice not found');
+
+    if (locked.clinicalChartAccessMode === params.mode) {
+      return { practice: locked, changed: false as const };
+    }
+
+    const updated = await tx.practice.update({
+      where: { id: locked.id },
+      data: { clinicalChartAccessMode: params.mode },
+    });
+    return { practice: updated, changed: true as const, previousMode: locked.clinicalChartAccessMode };
+  });
+
+  if (result.changed) {
+    await logAudit({
+      practiceId: result.practice.id,
+      actorSuperAdminId: params.superAdminId,
+      action: 'CLINICAL_CHART_ACCESS_MODE_CHANGED',
+      resource: 'PRACTICE',
+      resourceId: result.practice.id,
+      oldValue: { clinicalChartAccessMode: result.previousMode },
+      newValue: { clinicalChartAccessMode: result.practice.clinicalChartAccessMode },
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+    });
+  }
+
+  return {
+    practiceId: result.practice.id,
+    clinicalChartAccessMode: result.practice.clinicalChartAccessMode,
+    changed: result.changed,
+  };
+}
+
 export async function getPracticeWorkspace(practiceId: string) {
   const practice = await prisma.practice.findFirst({
     where: { id: practiceId, softDeletedAt: null },
@@ -538,6 +591,7 @@ export async function getPracticeWorkspace(practiceId: string) {
       subscriptionEndsAt: practice.subscriptionEndsAt,
       subscriptionSuspensionReason: practice.subscriptionSuspensionReason,
       subscriptionSuspendedAt: practice.subscriptionSuspendedAt,
+      clinicalChartAccessMode: practice.clinicalChartAccessMode,
       access: practiceAccessPayload(practice),
       setupFeePaid: practice.setupFeePaid,
       createdAt: practice.createdAt,

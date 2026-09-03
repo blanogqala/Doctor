@@ -7,7 +7,7 @@ import { toSafeProfile } from '../utils/safeProfile';
 import { toRoleScopedPatientDto } from '../utils/patientDto';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { patientInclude, doctorInclude } from '../utils/includes';
-import { assertPatientAccess } from '../services/accessService';
+import { assertPatientAccess, assertClinicalPatientAccess, auditSharedClinicalChartAccess } from '../services/accessService';
 import { tenantWhere } from '../middleware/tenant';
 import { activeDoctorWhere, assertActiveDoctorInPractice } from '../services/activeDoctor';
 import {
@@ -59,13 +59,36 @@ export const patientController = {
 
   getById: asyncHandler(async (req: Request, res: Response) => {
     const { practiceId } = tenantWhere(req);
-    await assertPatientAccess(req.user!.userId, req.user!.role, req.params.id, practiceId);
+    const role = req.user!.role;
+
+    if (role === UserRole.DOCTOR) {
+      const access = await assertClinicalPatientAccess(
+        req.user!.userId,
+        role,
+        req.params.id,
+        practiceId
+      );
+      await auditSharedClinicalChartAccess({
+        practiceId,
+        actorId: req.user!.userId,
+        patientId: req.params.id,
+        accessBasis: access.accessBasis,
+        operation: 'PATIENT_DETAIL',
+        accessingDoctorId: access.doctorId,
+        assignedDoctorId: access.patient.assignedDoctorId,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+    } else {
+      await assertPatientAccess(req.user!.userId, role, req.params.id, practiceId);
+    }
+
     const patient = await prisma.patient.findFirst({
       where: { id: req.params.id, practiceId, softDeletedAt: null },
       include: patientInclude,
     });
     if (!patient) throw new AppError(404, 'Patient not found');
-    res.json(toSnakeCase(toRoleScopedPatientDto(req.user!.role, patient)));
+    res.json(toSnakeCase(toRoleScopedPatientDto(role, patient)));
   }),
 
   update: asyncHandler(async (req: Request, res: Response) => {

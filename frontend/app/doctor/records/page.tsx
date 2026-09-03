@@ -42,6 +42,12 @@ import {
   type PatientFolderSection,
 } from '@/lib/clinical/patient-folder';
 import type { Appointment, Doctor, MedicalRecord, Patient } from '@/lib/types';
+import {
+  isPracticeWideChartAccess,
+  isSharedChartAccess,
+  PRACTICE_WIDE_CHART_BANNER,
+  SHARED_CHART_ACCESS_BADGE,
+} from '@/lib/clinical/chart-access';
 import { Calendar, FileText, Folder, Search } from 'lucide-react';
 
 export default function DoctorRecordsPage() {
@@ -68,27 +74,13 @@ export default function DoctorRecordsPage() {
     setLoading(true);
     setRecordsError(null);
 
-    const [recordsResult, patientsResult, doctorsResult] = await Promise.allSettled([
-      medicalRecordsApi.list({ doctor_id: user.doctor.id }),
+    const [patientsResult, doctorsResult] = await Promise.allSettled([
       patientsApi.list(),
       doctorsApi.list(),
     ]);
 
-    if (recordsResult.status === 'fulfilled') {
-      setRecords(recordsResult.value);
-    } else {
-      setRecordsError(
-        recordsResult.reason instanceof Error
-          ? recordsResult.reason.message
-          : 'Failed to load medical records'
-      );
-      setRecords([]);
-    }
-
     if (patientsResult.status === 'fulfilled') {
-      setPatients(
-        patientsResult.value.filter((p) => p.assigned_doctor_id === user.doctor!.id)
-      );
+      setPatients(patientsResult.value);
     } else {
       setPatients([]);
     }
@@ -107,22 +99,30 @@ export default function DoctorRecordsPage() {
   useEffect(() => {
     if (!selectedPatientId) {
       setAppointments([]);
+      setRecords([]);
+      setRecordsError(null);
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-        const appts = await appointmentsApi.list({ patient_id: selectedPatientId });
+        const [appts, patientRecords] = await Promise.all([
+          appointmentsApi.list({ patient_id: selectedPatientId }),
+          medicalRecordsApi.list({ patient_id: selectedPatientId }),
+        ]);
         if (!cancelled) {
           setAppointments(appts);
           setApptsError(null);
+          setRecords(patientRecords);
+          setRecordsError(null);
         }
       } catch (err) {
         if (!cancelled) {
           setAppointments([]);
-          setApptsError(
-            err instanceof Error ? err.message : 'Failed to load appointments'
-          );
+          setRecords([]);
+          const message = err instanceof Error ? err.message : 'Failed to load patient chart';
+          setApptsError(message);
+          setRecordsError(message);
         }
       }
     })();
@@ -136,10 +136,15 @@ export default function DoctorRecordsPage() {
     [patients, selectedPatientId]
   );
 
-  const patientRecords = useMemo(
-    () => records.filter((r) => r.patient_id === selectedPatientId),
-    [records, selectedPatientId]
-  );
+  const patientRecords = records;
+
+  const chartMode = user?.practice?.clinical_chart_access_mode;
+  const showPracticeWideBanner = isPracticeWideChartAccess(chartMode);
+  const showSharedBadge = isSharedChartAccess({
+    mode: chartMode,
+    currentDoctorId: user?.doctor?.id,
+    assignedDoctorId: selectedPatient?.assigned_doctor_id,
+  });
 
   const consultationTree = useMemo(
     () => buildConsultationTree(patientRecords),
@@ -218,6 +223,10 @@ export default function DoctorRecordsPage() {
               canMutate && primaryBookParent ? () => setBookParent(primaryBookParent) : undefined
             }
           />
+
+          {showSharedBadge && (
+            <StatusBadge tone="info" label={SHARED_CHART_ACCESS_BADGE} />
+          )}
 
           <ClinicalIntegrityNotice />
 
@@ -401,6 +410,7 @@ export default function DoctorRecordsPage() {
               patient={selectedPatient}
               parentRecord={bookParent}
               doctors={doctors}
+              chartAccessMode={chartMode}
               onBooked={() => {
                 setBookParent(null);
                 load();
@@ -417,7 +427,7 @@ export default function DoctorRecordsPage() {
           <ErrorState
             kind="not_found"
             title="Patient not found"
-            message="This patient is not in your assigned patient list, or the link is invalid."
+            message="This patient is not in your clinical chart directory, or the link is invalid."
             onRetry={() => router.push('/doctor/records')}
           />
         </AppPage>
@@ -428,8 +438,14 @@ export default function DoctorRecordsPage() {
       <AppPage>
         <PageHeader
           title="Patient Folders"
-          description="Longitudinal clinical history for your assigned patients."
+          description="Longitudinal clinical history for patients you can access."
         />
+
+        {showPracticeWideBanner && (
+          <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+            {PRACTICE_WIDE_CHART_BANNER}
+          </p>
+        )}
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

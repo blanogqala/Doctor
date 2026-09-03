@@ -12,6 +12,9 @@ import {
   getPatientIdForProfile,
   assertAppointmentAccess,
   assertPatientAccess,
+  assertClinicalPatientAccess,
+  assertDoctorCanAccessPatientChart,
+  auditSharedClinicalChartAccess,
 } from '../services/accessService';
 import {
   notifyAppointmentBooked,
@@ -449,8 +452,29 @@ export const appointmentController = {
       throw new AppError(400, 'parent_record_id, patient_id, doctor_id, and scheduled_at are required');
     }
 
-    await assertPatientAccess(req.user!.userId, req.user!.role, patientId, practiceId);
+    if (req.user!.role === UserRole.DOCTOR) {
+      const chartAccess = await assertClinicalPatientAccess(
+        req.user!.userId,
+        req.user!.role,
+        patientId,
+        practiceId
+      );
+      await auditSharedClinicalChartAccess({
+        practiceId,
+        actorId: req.user!.userId,
+        patientId,
+        accessBasis: chartAccess.accessBasis,
+        operation: 'CHECKUP_CREATE',
+        accessingDoctorId: chartAccess.doctorId,
+        assignedDoctorId: chartAccess.patient.assignedDoctorId,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+    } else {
+      await assertPatientAccess(req.user!.userId, req.user!.role, patientId, practiceId);
+    }
     await assertDoctorInPractice(doctorId, practiceId);
+    await assertDoctorCanAccessPatientChart({ doctorId, patientId, practiceId });
 
     const parent = await prisma.medicalRecord.findFirst({
       where: { id: parentRecordId, practiceId, softDeletedAt: null },
@@ -536,10 +560,30 @@ export const appointmentController = {
       },
     });
 
+    const medicalRecordPayload =
+      req.user!.role === UserRole.ADMIN
+        ? {
+            id: childRecord.id,
+            practiceId: childRecord.practiceId,
+            patientId: childRecord.patientId,
+            doctorId: childRecord.doctorId,
+            appointmentId: childRecord.appointmentId,
+            parentRecordId: childRecord.parentRecordId,
+            recordDate: childRecord.recordDate,
+            isDraft: childRecord.isDraft,
+            isErroneous: childRecord.isErroneous,
+            followUpDate: childRecord.followUpDate,
+            createdAt: childRecord.createdAt,
+            updatedAt: childRecord.updatedAt,
+            doctor: childRecord.doctor,
+            appointment: childRecord.appointment,
+          }
+        : childRecord;
+
     res.status(201).json(
       toSnakeCase({
         appointment: toRoleScopedAppointmentDto(req.user!.role, appointment),
-        medical_record: childRecord,
+        medical_record: medicalRecordPayload,
       })
     );
   }),

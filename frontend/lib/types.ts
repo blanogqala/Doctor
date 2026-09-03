@@ -361,6 +361,8 @@ export type PracticeAccessReason =
   | 'ONBOARDING_TRIAL_EXPIRED'
   | null;
 
+export type ClinicalChartAccessMode = 'ASSIGNED_DOCTOR_ONLY' | 'ALL_ACTIVE_DOCTORS';
+
 export interface PracticeAccessState {
   mode: PracticeAccessMode;
   reason?: PracticeAccessReason | null;
@@ -382,6 +384,7 @@ export interface AuthUser {
     trial_ends_at: string | null;
     subscription_ends_at: string | null;
     access?: PracticeAccessState | null;
+    clinical_chart_access_mode?: ClinicalChartAccessMode | null;
   } | null;
   profile: Profile | null;
   doctor: Doctor | null;

@@ -50,6 +50,7 @@ export async function buildAuthUser(profileId: string) {
             derivePracticeAccess(profile.practice),
             profile.role
           ),
+          clinicalChartAccessMode: profile.practice.clinicalChartAccessMode,
         }
       : null,
     isPracticeOwner: Boolean(

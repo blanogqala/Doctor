@@ -10,6 +10,7 @@ import {
   superAdminApi,
   type PracticeWorkspace,
   type InvitationSummary,
+  type ClinicalChartAccessMode,
 } from '@/lib/api/super-admin';
 import { planLabel, SUBSCRIPTION_PLANS, type SubscriptionPlan } from '@/lib/subscription-plans';
 import { OnboardingChecklistView } from '@/components/super-admin/onboarding-checklist';
@@ -41,6 +42,13 @@ import {
 } from '@/components/ui/table';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { daysRemaining } from '@/lib/pilot-program';
+import {
+  CLINICAL_CHART_ACCESS_OPTIONS,
+  clinicalChartAccessChangeDirection,
+  confirmationForChartAccessChange,
+} from '@/lib/super-admin/clinical-chart-access';
+import { clinicalChartAccessLabel } from '@/lib/clinical/chart-access';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArrowLeft, Loader2, Mail, Pencil, RefreshCw, ShieldCheck, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -105,6 +113,8 @@ export default function PracticeWorkspacePage() {
   const [editError, setEditError] = useState<string | null>(null);
   const [pilotDialogOpen, setPilotDialogOpen] = useState(false);
   const [pilotGranting, setPilotGranting] = useState(false);
+  const [pendingChartMode, setPendingChartMode] = useState<ClinicalChartAccessMode | null>(null);
+  const [chartSaving, setChartSaving] = useState(false);
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
@@ -281,6 +291,21 @@ export default function PracticeWorkspacePage() {
     }
   };
 
+  const confirmClinicalChartAccess = async () => {
+    if (!pendingChartMode) return;
+    setChartSaving(true);
+    try {
+      await superAdminApi.updateClinicalChartAccess(practiceId, pendingChartMode);
+      toast.success('Clinical chart access updated');
+      setPendingChartMode(null);
+      await load({ silent: true });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Update failed');
+    } finally {
+      setChartSaving(false);
+    }
+  };
+
   if (loading && !workspace) {
     return (
       <AppPage>
@@ -305,6 +330,15 @@ export default function PracticeWorkspacePage() {
 
   const { practice, seats, onboarding, team, invitations, invoices, activity, pilot_program } =
     workspace;
+  const currentChartMode: ClinicalChartAccessMode =
+    practice.clinical_chart_access_mode === 'ALL_ACTIVE_DOCTORS'
+      ? 'ALL_ACTIVE_DOCTORS'
+      : 'ASSIGNED_DOCTOR_ONLY';
+  const chartConfirm = pendingChartMode
+    ? confirmationForChartAccessChange(
+        clinicalChartAccessChangeDirection(currentChartMode, pendingChartMode)
+      )
+    : null;
   const pilotRemaining =
     pilot_program.status === 'ACTIVE' ? daysRemaining(pilot_program.ends_at) : null;
 
@@ -466,6 +500,47 @@ export default function PracticeWorkspacePage() {
                     </p>
                   </>
                 )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Clinical chart access</CardTitle>
+                <CardDescription>
+                  Current value: {clinicalChartAccessLabel(currentChartMode)}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <RadioGroup
+                  value={currentChartMode}
+                  onValueChange={(value) => {
+                    const next = value as ClinicalChartAccessMode;
+                    if (next === currentChartMode) return;
+                    setPendingChartMode(next);
+                  }}
+                  className="gap-3"
+                >
+                  {CLINICAL_CHART_ACCESS_OPTIONS.map((option) => (
+                    <label
+                      key={option.mode}
+                      className="flex cursor-pointer items-start gap-3 rounded-md border p-3"
+                    >
+                      <RadioGroupItem value={option.mode} className="mt-0.5" />
+                      <span className="min-w-0 space-y-1">
+                        <span className="block text-sm font-medium">
+                          {option.label}
+                          {option.recommended ? (
+                            <span className="ml-2 text-xs font-normal text-muted-foreground">
+                              Recommended default.
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {option.description}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </RadioGroup>
               </CardContent>
             </Card>
           </div>
@@ -896,6 +971,24 @@ export default function PracticeWorkspacePage() {
             <Button onClick={grantPilot} disabled={pilotGranting}>
               {pilotGranting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Grant Pilot
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(pendingChartMode && chartConfirm)} onOpenChange={(open) => !open && setPendingChartMode(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{chartConfirm?.title}</DialogTitle>
+            <DialogDescription className="whitespace-pre-line">{chartConfirm?.body}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingChartMode(null)} disabled={chartSaving}>
+              Cancel
+            </Button>
+            <Button onClick={() => void confirmClinicalChartAccess()} disabled={chartSaving}>
+              {chartSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {chartConfirm?.confirmLabel}
             </Button>
           </DialogFooter>
         </DialogContent>

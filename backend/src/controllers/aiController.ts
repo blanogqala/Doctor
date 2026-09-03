@@ -8,12 +8,17 @@ import {
   enhanceReferralLetter,
 } from '../services/referralLetterService';
 import { draftClinicalLetter } from '../services/clinicalLetterService';
-import { assertPatientAccess } from '../services/accessService';
-import { getDoctorIdForProfile } from '../services/accessService';
+import {
+  assertClinicalPatientAccess,
+  auditSharedClinicalChartAccess,
+  getDoctorIdForProfile,
+} from '../services/accessService';
 import { tenantWhere } from '../middleware/tenant';
 import { detectAudioMimeFromBuffer } from '../utils/fileSignature';
 import { requireValidRecordingConsent } from '../services/recordingConsentService';
 import { referralUrgencySchema } from '../validation/schemas';
+import { prisma } from '../config/database';
+import type { SharedClinicalAccessOperation } from '../services/accessService';
 
 const ALLOWED_MIME = new Set([
   'audio/webm',
@@ -54,6 +59,55 @@ function endScribeJob(key: string) {
   inFlightScribe.delete(key);
 }
 
+async function assertDoctorClinicalAiAccess(
+  req: Request,
+  patientId: string,
+  operation: Extract<SharedClinicalAccessOperation, 'AI_SCRIBE' | 'AI_DOCUMENT'>
+) {
+  const { practiceId } = tenantWhere(req);
+  const access = await assertClinicalPatientAccess(
+    req.user!.userId,
+    req.user!.role,
+    patientId,
+    practiceId
+  );
+  await auditSharedClinicalChartAccess({
+    practiceId,
+    actorId: req.user!.userId,
+    patientId,
+    accessBasis: access.accessBasis,
+    operation,
+    accessingDoctorId: access.doctorId,
+    assignedDoctorId: access.patient.assignedDoctorId,
+    ipAddress: req.ip,
+    userAgent: req.get('user-agent'),
+  });
+  return { practiceId, access };
+}
+
+async function assertAiMedicalRecordScope(params: {
+  practiceId: string;
+  patientId: string;
+  medicalRecordId: string;
+  requireAuthorDoctorId?: string | null;
+}) {
+  const record = await prisma.medicalRecord.findFirst({
+    where: {
+      id: params.medicalRecordId,
+      practiceId: params.practiceId,
+      softDeletedAt: null,
+    },
+  });
+  if (!record) throw new AppError(404, 'Medical record not found');
+  if (record.patientId !== params.patientId) {
+    throw new AppError(403, 'Medical record does not belong to this patient');
+  }
+  if (params.requireAuthorDoctorId && record.doctorId !== params.requireAuthorDoctorId) {
+    throw new AppError(403, 'You can only attach AI decisions to your own records');
+  }
+  return record;
+}
+
 export const aiController = {
   consultationScribe: asyncHandler(async (req: Request, res: Response) => {
     const { practiceId } = tenantWhere(req);
@@ -75,9 +129,19 @@ export const aiController = {
       throw new AppError(400, 'medicalRecordId is required for dictation scribe');
     }
 
-    await assertPatientAccess(req.user!.userId, req.user!.role, patientId, practiceId);
+    await assertDoctorClinicalAiAccess(req, patientId, 'AI_SCRIBE');
     const doctorId = await getDoctorIdForProfile(req.user!.userId, practiceId);
     if (!doctorId) throw new AppError(403, 'Doctor profile required');
+
+    if (medicalRecordId) {
+      await assertAiMedicalRecordScope({
+        practiceId,
+        patientId,
+        medicalRecordId,
+        requireAuthorDoctorId:
+          expectedMode === RecordingConsentMode.DICTATION ? doctorId : undefined,
+      });
+    }
 
     await requireValidRecordingConsent({
       consentId,
@@ -189,7 +253,7 @@ export const aiController = {
     if (!patientId) {
       throw new AppError(400, 'patientId is required');
     }
-    await assertPatientAccess(req.user!.userId, req.user!.role, patientId, practiceId);
+    await assertDoctorClinicalAiAccess(req, patientId, 'AI_DOCUMENT');
 
     const letter = typeof req.body?.letter === 'string' ? req.body.letter : '';
     if (!letter.trim()) {
@@ -225,7 +289,7 @@ export const aiController = {
     if (!patientId) {
       throw new AppError(400, 'patientId is required');
     }
-    await assertPatientAccess(req.user!.userId, req.user!.role, patientId, practiceId);
+    await assertDoctorClinicalAiAccess(req, patientId, 'AI_DOCUMENT');
 
     const patientDisplayName = String(req.body?.patientDisplayName || '').trim();
     if (!patientDisplayName) {
@@ -274,7 +338,7 @@ export const aiController = {
     const { practiceId } = tenantWhere(req);
     const patientId = String(req.body?.patient_id || '').trim();
     if (!patientId) throw new AppError(400, 'patient_id is required');
-    await assertPatientAccess(req.user!.userId, req.user!.role, patientId, practiceId);
+    await assertDoctorClinicalAiAccess(req, patientId, 'AI_DOCUMENT');
 
     const documentType = String(req.body?.document_type || '');
     if (
@@ -351,7 +415,18 @@ export const aiController = {
       throw new AppError(400, 'decision must be ACCEPTED or REJECTED');
     }
 
-    await assertPatientAccess(req.user!.userId, req.user!.role, patientId, practiceId);
+    await assertDoctorClinicalAiAccess(req, patientId, 'AI_DOCUMENT');
+
+    if (medicalRecordId) {
+      const doctorId = await getDoctorIdForProfile(req.user!.userId, practiceId);
+      if (!doctorId) throw new AppError(403, 'Doctor profile required');
+      await assertAiMedicalRecordScope({
+        practiceId,
+        patientId,
+        medicalRecordId,
+        requireAuthorDoctorId: doctorId,
+      });
+    }
 
     await logAudit({
       practiceId,

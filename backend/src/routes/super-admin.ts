@@ -6,6 +6,7 @@ import {
   SubscriptionInvoiceStatus,
   SubscriptionPlan,
   SubscriptionStatus,
+  ClinicalChartAccessMode,
 } from '@prisma/client';
 import { prisma } from '../config/database';
 import {
@@ -33,6 +34,7 @@ import {
   getSupportQueue,
   grantPilotProgramAccess,
   listPracticesOperational,
+  updateClinicalChartAccessMode,
 } from '../services/saasPracticeService';
 import { resolvePlanAgreement, assertPlanSeatLimit } from '../config/subscriptionPlans';
 import { assertSeatLimitNotBelowAllocated, getSeatUsage, lockPracticeRow } from '../services/seatService';
@@ -231,6 +233,34 @@ router.post(
       userAgent: req.headers['user-agent'],
     });
     res.json(toSnakeCase({ pilot_program: result.pilot_program }));
+  })
+);
+
+const clinicalChartAccessSchema = z.object({
+  mode: z.nativeEnum(ClinicalChartAccessMode),
+});
+
+router.patch(
+  '/practices/:id/clinical-chart-access',
+  asyncHandler(async (req: Request, res: Response) => {
+    const parsed = clinicalChartAccessSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError(400, 'Invalid clinical chart access mode');
+    }
+    const result = await updateClinicalChartAccessMode({
+      practiceId: req.params.id,
+      mode: parsed.data.mode,
+      superAdminId: req.superAdmin!.superAdminId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    res.json(
+      toSnakeCase({
+        practice_id: result.practiceId,
+        clinical_chart_access_mode: result.clinicalChartAccessMode,
+        changed: result.changed,
+      })
+    );
   })
 );
 

@@ -14,7 +14,7 @@ vi.mock('../config/database', () => ({
 }));
 
 vi.mock('./accessService', () => ({
-  assertPatientAccess: vi.fn(),
+  assertClinicalPatientAccess: vi.fn(),
   assertAppointmentAccess: vi.fn(),
   getDoctorIdForProfile: vi.fn(),
 }));
@@ -26,7 +26,7 @@ vi.mock('./auditService', () => ({
 import { prisma } from '../config/database';
 import {
   assertAppointmentAccess,
-  assertPatientAccess,
+  assertClinicalPatientAccess,
   getDoctorIdForProfile,
 } from './accessService';
 import {
@@ -63,7 +63,7 @@ describe('recordingConsentService', () => {
   });
 
   it('validates appointment belongs to patient on create', async () => {
-    vi.mocked(assertPatientAccess).mockResolvedValue(undefined as never);
+    vi.mocked(assertClinicalPatientAccess).mockResolvedValue(undefined as never);
     vi.mocked(getDoctorIdForProfile).mockResolvedValue('doc1');
     vi.mocked(assertAppointmentAccess).mockResolvedValue({
       id: 'appt1',

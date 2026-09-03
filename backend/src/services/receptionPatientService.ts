@@ -1,4 +1,5 @@
 import {
+  ClinicalChartAccessMode,
   PatientPortalStatus,
   PatientRegistrationSource,
   Prisma,
@@ -9,7 +10,7 @@ import { AppError } from '../middleware/errorHandler';
 import { appointmentInclude, patientInclude } from '../utils/includes';
 import { logAudit } from './auditService';
 import { assertPatientEmailAvailable } from './patientEmailUniqueness';
-import { assertActiveDoctorInPractice } from './activeDoctor';
+import { activeDoctorWhere, assertActiveDoctorInPractice } from './activeDoctor';
 
 function normalizeName(value: unknown): string {
   return String(value ?? '').trim();
@@ -116,6 +117,7 @@ export async function createReceptionPatientWithAppointment(params: {
         practiceId: params.practiceId,
         firstName,
         lastName,
+        assignedDoctorId: params.doctorId,
         registrationSource: PatientRegistrationSource.RECEPTION_CREATED,
         portalStatus: PatientPortalStatus.NO_PORTAL_ACCESS,
       },
@@ -189,16 +191,32 @@ export async function listPracticePatients(params: {
   q?: string;
 }) {
   const { practiceId, role, userId, q } = params;
-  const scope: Prisma.PatientWhereInput =
-    role === UserRole.ADMIN
+
+  let scope: Prisma.PatientWhereInput;
+  if (role === UserRole.ADMIN) {
+    scope = { softDeletedAt: null, practiceId };
+  } else if (role === UserRole.DOCTOR) {
+    const practice = await prisma.practice.findFirst({
+      where: { id: practiceId, softDeletedAt: null },
+      select: { clinicalChartAccessMode: true },
+    });
+    const doctor = await prisma.doctor.findFirst({
+      where: { profileId: userId, ...activeDoctorWhere(practiceId) },
+    });
+    const sharedDirectory =
+      practice?.clinicalChartAccessMode === ClinicalChartAccessMode.ALL_ACTIVE_DOCTORS &&
+      Boolean(doctor);
+
+    scope = sharedDirectory
       ? { softDeletedAt: null, practiceId }
-      : role === UserRole.DOCTOR
-        ? {
-            softDeletedAt: null,
-            practiceId,
-            assignedDoctor: { profileId: userId, practiceId },
-          }
-        : { profileId: userId, softDeletedAt: null, practiceId };
+      : {
+          softDeletedAt: null,
+          practiceId,
+          assignedDoctor: { profileId: userId, practiceId },
+        };
+  } else {
+    scope = { profileId: userId, softDeletedAt: null, practiceId };
+  }
 
   const where: Prisma.PatientWhereInput = q?.trim()
     ? { AND: [scope, buildPatientNameSearchWhere(practiceId, q)] }

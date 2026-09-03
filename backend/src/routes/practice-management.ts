@@ -86,6 +86,7 @@ router.get(
           subscriptionSuspensionReason: practice.subscriptionSuspensionReason,
           subscriptionSuspendedAt: practice.subscriptionSuspendedAt,
           access: serializePracticeAccess(derivePracticeAccess(practice)),
+          clinicalChartAccessMode: practice.clinicalChartAccessMode,
           owner: practice.owner,
         },
         seats,

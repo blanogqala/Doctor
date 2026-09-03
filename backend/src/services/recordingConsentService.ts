@@ -3,7 +3,7 @@ import { createHash } from 'crypto';
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import {
-  assertPatientAccess,
+  assertClinicalPatientAccess,
   assertAppointmentAccess,
   getDoctorIdForProfile,
 } from './accessService';
@@ -21,7 +21,7 @@ export async function createRecordingConsent(params: {
   ipAddress?: string;
   userAgent?: string;
 }) {
-  await assertPatientAccess(
+  await assertClinicalPatientAccess(
     params.actorUserId,
     params.role as never,
     params.patientId,

@@ -24,6 +24,7 @@ import { medicalRecordsApi } from '@/lib/api/medical-records';
 import { formatDate, maskIdNumber } from '@/lib/format';
 import { patientDisplayName } from '@/lib/patients/display-name';
 import { doctorDisplayName } from '@/lib/clinical/patient-folder';
+import { isSharedChartAccess, SHARED_CHART_ACCESS_BADGE } from '@/lib/clinical/chart-access';
 import { normalizeDoctorNotes, recordWasEdited } from '@/lib/doctor-notes';
 import type { MedicalRecord } from '@/lib/types';
 import { AlertTriangle, Pencil, X } from 'lucide-react';
@@ -78,6 +79,11 @@ export default function ViewClinicalRecordPage() {
   const doctorName = record?.doctor?.profile?.full_name ?? 'Unknown Doctor';
   const isAuthor = !!(user?.doctor?.id && record?.doctor_id === user.doctor.id);
   const canEdit = isAuthor && !!record && !record.is_erroneous;
+  const showSharedBadge = isSharedChartAccess({
+    mode: user?.practice?.clinical_chart_access_mode,
+    currentDoctorId: user?.doctor?.id,
+    assignedDoctorId: record?.patient?.assigned_doctor_id,
+  });
   const edited = record ? recordWasEdited(record.created_at, record.updated_at) : false;
   const privateNotes = normalizeDoctorNotes(record?.doctor_notes_private);
   const amended = (record?.amendments?.length ?? 0) > 0;
@@ -124,6 +130,9 @@ export default function ViewClinicalRecordPage() {
             subtitle={patientSubtitle}
             actions={
               <>
+                {showSharedBadge && (
+                  <StatusBadge tone="info" label={SHARED_CHART_ACCESS_BADGE} />
+                )}
                 {canEdit && record.is_draft && (
                   <Button variant="default" onClick={() => router.push(editHref)}>
                     <Pencil className="mr-2 h-4 w-4" /> Continue Editing
