@@ -30,7 +30,7 @@ export type SerializedPilotProgram = {
   duration_days: typeof PILOT_PROGRAM_DURATION_DAYS;
 };
 
-export function pilotEndFromStart(start: Date, _now?: Date): Date {
+export function pilotEndFromStart(start: Date): Date {
   return new Date(start.getTime() + PILOT_PROGRAM_DURATION_MS);
 }
 

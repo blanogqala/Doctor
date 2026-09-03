@@ -299,7 +299,7 @@ export async function acceptInvitation(token: string, password: string) {
       if (pendingPilot) {
         const activationNow = new Date();
         pilotStartsAt = activationNow;
-        pilotEndsAt = pilotEndFromStart(activationNow, activationNow);
+        pilotEndsAt = pilotEndFromStart(activationNow);
         await tx.practice.update({
           where: { id: practice.id },
           data: {

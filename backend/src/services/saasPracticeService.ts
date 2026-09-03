@@ -12,7 +12,7 @@ import { logAudit } from './auditService';
 import { sendPracticeInvitationEmail } from './emailService';
 import { createInvitation, invitationStatus, serializeInvitation } from './invitationService';
 import { buildOnboardingChecklist } from './onboardingStatus';
-import { getSeatUsage } from './seatService';
+import { getSeatUsage, lockPracticeRow } from './seatService';
 import { updateInquiryStatus } from './inquiryService';
 import {
   compactPilotProgramIndicator,
@@ -236,48 +236,58 @@ export async function grantPilotProgramAccess(params: {
   ipAddress?: string | null;
   userAgent?: string | null;
 }) {
-  const now = new Date();
-  const practice = await prisma.practice.findFirst({
-    where: { id: params.practiceId, softDeletedAt: null },
-  });
-  if (!practice) throw new AppError(404, 'Practice not found');
-
-  if (practice.pilotProgramGrantedAt) {
-    throw new AppError(
-      409,
-      'Pilot programme has already been granted for this Practice',
-      'PILOT_ALREADY_GRANTED'
-    );
-  }
-
-  if (practice.subscriptionStatus !== SubscriptionStatus.TRIAL) {
-    throw new AppError(
-      409,
-      `Pilot programme can only be granted to Practices in TRIAL status (current: ${practice.subscriptionStatus})`,
-      'PILOT_INVALID_SUBSCRIPTION_STATUS'
-    );
-  }
-
-  const ownerActivated = Boolean(practice.ownerProfileId);
-  const pilotEnd = pilotEndFromStart(now, now);
-
   const updated = await prisma.$transaction(async (tx) => {
+    await lockPracticeRow(tx, params.practiceId);
+
+    const practice = await tx.practice.findFirst({
+      where: { id: params.practiceId, softDeletedAt: null },
+    });
+    if (!practice) throw new AppError(404, 'Practice not found');
+
+    if (practice.pilotProgramGrantedAt) {
+      throw new AppError(
+        409,
+        'Pilot programme has already been granted for this Practice',
+        'PILOT_ALREADY_GRANTED'
+      );
+    }
+
+    if (practice.subscriptionStatus !== SubscriptionStatus.TRIAL) {
+      throw new AppError(
+        409,
+        `Pilot programme can only be granted to Practices in TRIAL status (current: ${practice.subscriptionStatus})`,
+        'PILOT_INVALID_SUBSCRIPTION_STATUS'
+      );
+    }
+
+    const now = new Date();
+    const ownerActivated = Boolean(practice.ownerProfileId);
+
+    if (ownerActivated) {
+      const pilotEnd = pilotEndFromStart(now);
+      return tx.practice.update({
+        where: { id: practice.id },
+        data: {
+          pilotProgramGrantedAt: now,
+          pilotProgramStartsAt: now,
+          pilotProgramEndsAt: pilotEnd,
+          trialEndsAt: pilotEnd,
+          subscriptionStatus: SubscriptionStatus.TRIAL,
+        },
+      });
+    }
+
     return tx.practice.update({
       where: { id: practice.id },
-      data: ownerActivated
-        ? {
-            pilotProgramGrantedAt: now,
-            pilotProgramStartsAt: now,
-            pilotProgramEndsAt: pilotEnd,
-            trialEndsAt: pilotEnd,
-            subscriptionStatus: SubscriptionStatus.TRIAL,
-          }
-        : {
-            pilotProgramGrantedAt: now,
-            subscriptionStatus: SubscriptionStatus.TRIAL,
-          },
+      data: {
+        pilotProgramGrantedAt: now,
+        subscriptionStatus: SubscriptionStatus.TRIAL,
+      },
     });
   });
+
+  const serializeNow = updated.pilotProgramGrantedAt ?? new Date();
+  const ownerActivatedAtGrant = Boolean(updated.pilotProgramStartsAt);
 
   try {
     await logAudit({
@@ -286,7 +296,7 @@ export async function grantPilotProgramAccess(params: {
       action: 'PILOT_ACCESS_GRANTED',
       resource: 'PRACTICE',
       resourceId: updated.id,
-      newValue: ownerActivated
+      newValue: ownerActivatedAtGrant
         ? {
             startsAt: updated.pilotProgramStartsAt?.toISOString(),
             endsAt: updated.pilotProgramEndsAt?.toISOString(),
@@ -302,7 +312,7 @@ export async function grantPilotProgramAccess(params: {
 
   return {
     practice: updated,
-    pilot_program: serializePilotProgram(updated, now),
+    pilot_program: serializePilotProgram(updated, serializeNow),
   };
 }
 

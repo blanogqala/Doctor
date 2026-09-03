@@ -9,7 +9,11 @@ import { app } from '../../server';
 import { prisma } from '../../config/database';
 import { env } from '../../config/env';
 import { acceptInvitation } from '../../services/invitationService';
-import { createPracticeWithOwnerInvite } from '../../services/saasPracticeService';
+import {
+  createPracticeWithOwnerInvite,
+  grantPilotProgramAccess,
+} from '../../services/saasPracticeService';
+import { PILOT_PROGRAM_DURATION_MS } from '../../services/pilotProgramService';
 import { assertNonProductionDatabaseUrl } from '../assertNonProductionDb';
 import { issuePlatformAuth, issuePracticeAuth } from '../sessionAuth';
 import { generateSecureToken, hashToken } from '../../utils/secureToken';
@@ -225,5 +229,106 @@ describe.skipIf(!RUN)('Pilot programme integration (RUN_INTEGRATION=1)', () => {
       .set('X-CSRF-Token', platformAuth.csrf);
 
     expect(grantRes.status).toBe(409);
+  });
+
+  it('5. concurrent double-grant: one succeeds, second returns 409 without extending', async () => {
+    const created = await createPracticeWithOwnerInvite({
+      clinicName: `Concurrent Grant ${suffix}`,
+      subdomain: `pilot-concurrent-${suffix}`,
+      ownerFullName: 'Concurrent Owner',
+      ownerEmail: `owner-concurrent-${suffix}@example.com`,
+      subscriptionPlan: 'SOLO',
+      superAdminId,
+    });
+
+    const results = await Promise.allSettled([
+      grantPilotProgramAccess({ practiceId: created.practice.id, superAdminId }),
+      grantPilotProgramAccess({ practiceId: created.practice.id, superAdminId }),
+    ]);
+
+    const fulfilled = results.filter((r) => r.status === 'fulfilled');
+    const rejected = results.filter((r) => r.status === 'rejected');
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({
+      statusCode: 409,
+      code: 'PILOT_ALREADY_GRANTED',
+    });
+
+    const practice = await prisma.practice.findUniqueOrThrow({
+      where: { id: created.practice.id },
+    });
+    expect(practice.pilotProgramGrantedAt).toBeTruthy();
+    expect(practice.pilotProgramStartsAt).toBeNull();
+  });
+
+  it('6. grant-vs-owner-activation race never leaves activated owner with pending pilot', async () => {
+    const created = await createPracticeWithOwnerInvite({
+      clinicName: `Race Pilot ${suffix}`,
+      subdomain: `pilot-race-${suffix}`,
+      ownerFullName: 'Race Owner',
+      ownerEmail: `owner-race-${suffix}@example.com`,
+      subscriptionPlan: 'SOLO',
+      superAdminId,
+    });
+
+    const token = generateSecureToken();
+    await prisma.practiceInvitation.update({
+      where: { id: created.invitation.id },
+      data: { tokenHash: hashToken(token) },
+    });
+
+    await Promise.allSettled([
+      grantPilotProgramAccess({ practiceId: created.practice.id, superAdminId }),
+      acceptInvitation(token, 'OwnerPass123!'),
+    ]);
+
+    const practice = await prisma.practice.findUniqueOrThrow({
+      where: { id: created.practice.id },
+    });
+
+    const stuckPendingPilot =
+      practice.ownerProfileId != null &&
+      practice.pilotProgramGrantedAt != null &&
+      practice.pilotProgramStartsAt == null;
+    expect(stuckPendingPilot).toBe(false);
+
+    if (practice.ownerProfileId && practice.pilotProgramGrantedAt) {
+      expect(practice.pilotProgramStartsAt).toBeTruthy();
+      expect(practice.pilotProgramEndsAt).toBeTruthy();
+      expect(practice.trialEndsAt?.getTime()).toBe(practice.pilotProgramEndsAt?.getTime());
+      expect(
+        practice.pilotProgramEndsAt!.getTime() - practice.pilotProgramStartsAt!.getTime()
+      ).toBe(PILOT_PROGRAM_DURATION_MS);
+    }
+  });
+
+  it('7. normal non-pilot owner activation leaves standard 14-day trialEndsAt', async () => {
+    const created = await createPracticeWithOwnerInvite({
+      clinicName: `Standard Trial ${suffix}`,
+      subdomain: `pilot-standard-${suffix}`,
+      ownerFullName: 'Standard Owner',
+      ownerEmail: `owner-standard-${suffix}@example.com`,
+      subscriptionPlan: 'SOLO',
+      superAdminId,
+    });
+
+    const beforeActivation = await prisma.practice.findUniqueOrThrow({
+      where: { id: created.practice.id },
+    });
+    const placeholderTrialEndsAt = beforeActivation.trialEndsAt;
+
+    const token = generateSecureToken();
+    await prisma.practiceInvitation.update({
+      where: { id: created.invitation.id },
+      data: { tokenHash: hashToken(token) },
+    });
+    await acceptInvitation(token, 'OwnerPass123!');
+
+    const afterActivation = await prisma.practice.findUniqueOrThrow({
+      where: { id: created.practice.id },
+    });
+    expect(afterActivation.pilotProgramGrantedAt).toBeNull();
+    expect(afterActivation.trialEndsAt?.toISOString()).toBe(placeholderTrialEndsAt?.toISOString());
   });
 });
