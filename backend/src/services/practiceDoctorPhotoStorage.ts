@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { writeStructuredLog } from '../middleware/requestLogger';
 import { generateSecureToken } from '../utils/secureToken';
 import {
   extensionForImageMime,
@@ -173,15 +174,14 @@ export async function resolvePublicDoctorPhotoUrl(params: {
 }
 
 /**
- * Writes a new unique object, then best-effort removes the previous one.
- * Only objects owned by this practice AND doctor are ever deleted.
+ * Writes a new unique object only. Previous-object cleanup happens after a
+ * successful database commit via deletePreviousDoctorPhoto().
  */
 export async function persistDoctorPhoto(params: {
   practiceId: string;
   doctorId: string;
   buffer: Buffer;
   mime: string;
-  previousStored: string | null;
   publicApiOrigin: string;
   storage?: PracticeMediaStorage;
 }): Promise<{ storageKey: string; publicUrl: string }> {
@@ -190,19 +190,6 @@ export async function persistDoctorPhoto(params: {
   const storageKey = buildDoctorPhotoKey(params.practiceId, params.doctorId, ext);
   await storage.put(storageKey, params.buffer);
 
-  const previous = parseStoredDoctorPhoto(params.previousStored);
-  if (previous?.kind === 'key' && previous.key !== storageKey) {
-    if (isDoctorPhotoKeyOwned(previous.key, params.practiceId, params.doctorId)) {
-      await storage.delete(previous.key);
-    }
-  } else if (previous?.kind === 'legacy-file') {
-    try {
-      fs.unlinkSync(legacyDoctorPhotoFilePath(previous.filename));
-    } catch {
-      // best-effort cleanup of leftover ephemeral files
-    }
-  }
-
   return {
     storageKey,
     publicUrl: toAbsolutePublicAssetUrl(
@@ -210,4 +197,69 @@ export async function persistDoctorPhoto(params: {
       params.publicApiOrigin
     ),
   };
+}
+
+/** Best-effort delete of a newly-written owned key after a failed DB update. */
+export async function deleteOwnedDoctorPhotoKey(params: {
+  storageKey: string;
+  practiceId: string;
+  doctorId: string;
+  storage?: PracticeMediaStorage;
+  reason: 'db_update_failed';
+}): Promise<void> {
+  if (!isDoctorPhotoKeyOwned(params.storageKey, params.practiceId, params.doctorId)) {
+    return;
+  }
+  try {
+    await (params.storage ?? getPracticeMediaStorage()).delete(params.storageKey);
+  } catch (err) {
+    writeStructuredLog('warn', 'practice_doctor_photo_compensation_cleanup_failed', {
+      practiceId: params.practiceId,
+      doctorId: params.doctorId,
+      reason: params.reason,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/**
+ * Deletes the previous owned doctor photo after DB commit succeeds.
+ * Failures are logged and swallowed — the upload already succeeded.
+ */
+export async function deletePreviousDoctorPhoto(params: {
+  previousStored: string | null;
+  practiceId: string;
+  doctorId: string;
+  excludeKey?: string;
+  storage?: PracticeMediaStorage;
+}): Promise<void> {
+  const parsed = parseStoredDoctorPhoto(params.previousStored);
+  if (!parsed) return;
+
+  if (parsed.kind === 'key') {
+    if (parsed.key === params.excludeKey) return;
+    if (!isDoctorPhotoKeyOwned(parsed.key, params.practiceId, params.doctorId)) return;
+    try {
+      await (params.storage ?? getPracticeMediaStorage()).delete(parsed.key);
+    } catch (err) {
+      writeStructuredLog('warn', 'practice_doctor_photo_previous_cleanup_failed', {
+        practiceId: params.practiceId,
+        doctorId: params.doctorId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return;
+  }
+
+  if (parsed.kind === 'legacy-file') {
+    try {
+      fs.unlinkSync(legacyDoctorPhotoFilePath(parsed.filename));
+    } catch (err) {
+      writeStructuredLog('warn', 'practice_doctor_photo_legacy_cleanup_failed', {
+        practiceId: params.practiceId,
+        doctorId: params.doctorId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 }

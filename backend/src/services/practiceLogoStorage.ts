@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { writeStructuredLog } from '../middleware/requestLogger';
 import { generateSecureToken } from '../utils/secureToken';
 import {
   FilesystemPracticeMediaStorage,
@@ -187,11 +188,14 @@ export async function resolvePublicPracticeLogoUrl(params: {
   );
 }
 
+/**
+ * Writes a new unique object only. Previous-object cleanup happens after a
+ * successful database commit via deletePreviousPracticeLogo().
+ */
 export async function persistPracticeLogo(params: {
   practiceId: string;
   buffer: Buffer;
   mime: string;
-  previousStored: string | null;
   publicApiOrigin: string;
   storage?: PracticeLogoStorage;
 }): Promise<{ storageKey: string; publicUrl: string }> {
@@ -199,19 +203,6 @@ export async function persistPracticeLogo(params: {
   const ext = extensionForLogoMime(params.mime);
   const storageKey = buildPracticeLogoKey(params.practiceId, ext);
   await storage.put(storageKey, params.buffer);
-
-  const previous = parseStoredPracticeLogo(params.previousStored);
-  if (previous?.kind === 'key' && previous.key !== storageKey) {
-    if (isLogoKeyOwnedByPractice(previous.key, params.practiceId)) {
-      await storage.delete(previous.key);
-    }
-  } else if (previous?.kind === 'legacy-file') {
-    try {
-      fs.unlinkSync(legacyLogoFilePath(previous.filename));
-    } catch {
-      // best-effort cleanup of leftover ephemeral files
-    }
-  }
 
   const filename = path.basename(storageKey);
   return {
@@ -221,6 +212,66 @@ export async function persistPracticeLogo(params: {
       params.publicApiOrigin
     ),
   };
+}
+
+/** Best-effort delete of a newly-written owned key after a failed DB update. */
+export async function deleteOwnedPracticeLogoKey(params: {
+  storageKey: string;
+  practiceId: string;
+  storage?: PracticeLogoStorage;
+  reason: 'db_update_failed';
+}): Promise<void> {
+  if (!isLogoKeyOwnedByPractice(params.storageKey, params.practiceId)) {
+    return;
+  }
+  try {
+    await (params.storage ?? getPracticeLogoStorage()).delete(params.storageKey);
+  } catch (err) {
+    writeStructuredLog('warn', 'practice_logo_compensation_cleanup_failed', {
+      practiceId: params.practiceId,
+      reason: params.reason,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/**
+ * Deletes the previous owned practice logo after DB commit succeeds.
+ * Failures are logged and swallowed — the upload already succeeded.
+ */
+export async function deletePreviousPracticeLogo(params: {
+  previousStored: string | null;
+  practiceId: string;
+  excludeKey?: string;
+  storage?: PracticeLogoStorage;
+}): Promise<void> {
+  const parsed = parseStoredPracticeLogo(params.previousStored);
+  if (!parsed) return;
+
+  if (parsed.kind === 'key') {
+    if (parsed.key === params.excludeKey) return;
+    if (!isLogoKeyOwnedByPractice(parsed.key, params.practiceId)) return;
+    try {
+      await (params.storage ?? getPracticeLogoStorage()).delete(parsed.key);
+    } catch (err) {
+      writeStructuredLog('warn', 'practice_logo_previous_cleanup_failed', {
+        practiceId: params.practiceId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return;
+  }
+
+  if (parsed.kind === 'legacy-file') {
+    try {
+      fs.unlinkSync(legacyLogoFilePath(parsed.filename));
+    } catch (err) {
+      writeStructuredLog('warn', 'practice_logo_legacy_cleanup_failed', {
+        practiceId: params.practiceId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 }
 
 export { validatePracticeMediaStorageAtStartup } from './practiceMediaStorage';

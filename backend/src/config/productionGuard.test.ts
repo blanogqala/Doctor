@@ -30,7 +30,7 @@ describe('collectProductionConfigProblems', () => {
     expect(problems.some((p) => /DATABASE_URL/i.test(p))).toBe(true);
     expect(problems.some((p) => /FRONTEND_URL/i.test(p))).toBe(true);
     expect(problems.some((p) => /CLINICAL_STORAGE/i.test(p))).toBe(true);
-    expect(problems.some((p) => /PRACTICE_LOGO_STORAGE/i.test(p))).toBe(true);
+    expect(problems.some((p) => /PRACTICE_MEDIA_STORAGE/i.test(p))).toBe(true);
     expect(problems.some((p) => /PUBLIC_API_URL/i.test(p))).toBe(true);
     expect(problems.some((p) => /UAT/i.test(p))).toBe(true);
   });
@@ -61,7 +61,7 @@ describe('collectProductionConfigProblems', () => {
       enableUatInvitationLinks: 'true',
     });
     expect(problems.some((p) => /CLINICAL_STORAGE/i.test(p))).toBe(true);
-    expect(problems.some((p) => /PRACTICE_LOGO_STORAGE/i.test(p))).toBe(true);
+    expect(problems.some((p) => /PRACTICE_MEDIA_STORAGE/i.test(p))).toBe(true);
     expect(problems.some((p) => /UAT/i.test(p))).toBe(false);
   });
 });

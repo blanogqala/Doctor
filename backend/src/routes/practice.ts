@@ -12,15 +12,17 @@ import { toSnakeCase } from '../utils/serialize';
 import { detectImageMimeFromBuffer } from '../utils/fileSignature';
 import {
   legacyLogoFilePath,
-  persistPracticeLogo,
   publicApiOriginFromRequest,
   resolvePublicPracticeLogoUrl,
 } from '../services/practiceLogoStorage';
 import {
   legacyDoctorPhotoFilePath,
-  persistDoctorPhoto,
   resolvePublicDoctorPhotoUrl,
 } from '../services/practiceDoctorPhotoStorage';
+import {
+  commitDoctorPhotoReplacement,
+  commitPracticeLogoReplacement,
+} from '../services/practiceMediaReplacement';
 
 const router = Router();
 
@@ -204,18 +206,24 @@ router.post(
     });
     if (!existing) throw new AppError(404, 'Practice not found');
 
-    const { storageKey, publicUrl } = await persistPracticeLogo({
+    const { publicUrl } = await commitPracticeLogoReplacement({
       practiceId,
       buffer: req.file.buffer,
       mime: detectedMime,
       previousStored: existing.logoUrl,
       publicApiOrigin: publicApiOriginFromRequest(req),
+      updateDatabase: async (storageKey) => {
+        await prisma.practice.update({
+          where: { id: practiceId },
+          data: { logoUrl: storageKey },
+        });
+      },
     });
 
-    const practice = await prisma.practice.update({
-      where: { id: practiceId },
-      data: { logoUrl: storageKey },
+    const practice = await prisma.practice.findFirst({
+      where: { id: practiceId, softDeletedAt: null },
     });
+    if (!practice) throw new AppError(404, 'Practice not found');
     res.json(toSnakeCase({ ...practice, logoUrl: publicUrl }));
   })
 );
@@ -310,20 +318,26 @@ router.post(
 
     const detectedMime = detectAllowedImageMime(req.file.buffer);
 
-    const { storageKey, publicUrl } = await persistDoctorPhoto({
+    const { publicUrl } = await commitDoctorPhotoReplacement({
       practiceId,
       doctorId,
       buffer: req.file.buffer,
       mime: detectedMime,
       previousStored: existing.photoUrl,
       publicApiOrigin: publicApiOriginFromRequest(req),
+      updateDatabase: async (storageKey) => {
+        await prisma.doctor.update({
+          where: { id: doctorId },
+          data: { photoUrl: storageKey },
+        });
+      },
     });
 
-    const doctor = await prisma.doctor.update({
-      where: { id: doctorId },
-      data: { photoUrl: storageKey },
+    const doctor = await prisma.doctor.findFirst({
+      where: { id: doctorId, practiceId },
       include: { profile: { select: { fullName: true } } },
     });
+    if (!doctor) throw new AppError(404, 'Doctor not found');
 
     res.json(
       toSnakeCase({

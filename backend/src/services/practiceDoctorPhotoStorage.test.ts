@@ -10,6 +10,7 @@ import {
   persistDoctorPhoto,
   resolvePublicDoctorPhotoUrl,
 } from './practiceDoctorPhotoStorage';
+import { commitDoctorPhotoReplacement } from './practiceMediaReplacement';
 
 /** 1×1 PNG */
 const PNG_1X1 = Buffer.from(
@@ -87,14 +88,13 @@ describe('persistDoctorPhoto', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  it('uploads, replaces, and never deletes another doctor object', async () => {
+  it('uploads and replaces via commit after DB success', async () => {
     const storage = createPracticeMediaStorage({ driver: 'local', root });
     const first = await persistDoctorPhoto({
       practiceId: 'prac-a',
       doctorId: 'doc-1',
       buffer: PNG_1X1,
       mime: 'image/png',
-      previousStored: null,
       publicApiOrigin: 'https://api.medinathi.co.za',
       storage,
     });
@@ -104,7 +104,7 @@ describe('persistDoctorPhoto', () => {
       /^https:\/\/api\.medinathi\.co\.za\/api\/public\/practice-doctor-photos\/prac-a\/doc-1\/.+\.png$/
     );
 
-    const second = await persistDoctorPhoto({
+    const second = await commitDoctorPhotoReplacement({
       practiceId: 'prac-a',
       doctorId: 'doc-1',
       buffer: PNG_1X1,
@@ -112,6 +112,7 @@ describe('persistDoctorPhoto', () => {
       previousStored: first.storageKey,
       publicApiOrigin: 'https://api.medinathi.co.za',
       storage,
+      updateDatabase: async () => {},
     });
     expect(second.storageKey).not.toBe(first.storageKey);
     expect(await storage.exists(first.storageKey)).toBe(false);
@@ -122,11 +123,10 @@ describe('persistDoctorPhoto', () => {
       doctorId: 'doc-2',
       buffer: PNG_1X1,
       mime: 'image/png',
-      previousStored: null,
       publicApiOrigin: 'https://api.medinathi.co.za',
       storage,
     });
-    await persistDoctorPhoto({
+    await commitDoctorPhotoReplacement({
       practiceId: 'prac-a',
       doctorId: 'doc-1',
       buffer: PNG_1X1,
@@ -134,6 +134,7 @@ describe('persistDoctorPhoto', () => {
       previousStored: otherDoctor.storageKey,
       publicApiOrigin: 'https://api.medinathi.co.za',
       storage,
+      updateDatabase: async () => {},
     });
     expect(await storage.exists(otherDoctor.storageKey)).toBe(true);
   });
@@ -145,7 +146,6 @@ describe('persistDoctorPhoto', () => {
       doctorId: 'doc-1',
       buffer: PNG_1X1,
       mime: 'image/png',
-      previousStored: null,
       publicApiOrigin: 'https://api.medinathi.co.za',
       storage,
     });

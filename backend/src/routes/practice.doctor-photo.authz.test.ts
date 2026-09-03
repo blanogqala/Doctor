@@ -20,7 +20,7 @@ describe('doctor photo upload authorization (source contract)', () => {
     expect(photoHandler).toBeTruthy();
     expect(photoHandler).toContain('tenantWhere(req)');
     expect(photoHandler).toContain('You may only update your own public profile');
-    const persistIndex = photoHandler!.indexOf('persistDoctorPhoto');
+    const persistIndex = photoHandler!.indexOf('commitDoctorPhotoReplacement');
     const authzIndex = photoHandler!.indexOf('You may only update your own public profile');
     expect(authzIndex).toBeGreaterThan(-1);
     expect(persistIndex).toBeGreaterThan(authzIndex);
@@ -30,7 +30,7 @@ describe('doctor photo upload authorization (source contract)', () => {
     expect(practiceSource).not.toContain('multer.diskStorage');
     expect(practiceSource).toContain('multer.memoryStorage()');
     expect(practiceSource).toContain('detectAllowedImageMime');
-    expect(practiceSource).toContain('persistDoctorPhoto');
+    expect(practiceSource).toContain('commitDoctorPhotoReplacement');
     const photoHandler = practiceSource.match(
       /router\.post\(\s*'\/doctors\/:doctorId\/photo'[\s\S]*?photoUrl: publicUrl/
     )?.[0];

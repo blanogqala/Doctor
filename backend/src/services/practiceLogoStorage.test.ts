@@ -14,6 +14,7 @@ import {
   toAbsolutePublicAssetUrl,
 } from './practiceLogoStorage';
 import { createPracticeMediaStorage } from './practiceMediaStorage';
+import { commitPracticeLogoReplacement } from './practiceMediaReplacement';
 
 /** 1×1 PNG */
 const PNG_1X1 = Buffer.from(
@@ -120,13 +121,12 @@ describe('FilesystemPracticeLogoStorage', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  it('uploads, replaces, and isolates tenants', async () => {
+  it('uploads and replaces via commit after DB success', async () => {
     const storage = createPracticeLogoStorage({ driver: 'local', root });
     const first = await persistPracticeLogo({
       practiceId: 'prac-a',
       buffer: PNG_1X1,
       mime: 'image/png',
-      previousStored: null,
       publicApiOrigin: 'https://api.medinathi.co.za',
       storage,
     });
@@ -137,13 +137,14 @@ describe('FilesystemPracticeLogoStorage', () => {
     );
     expect(await storage.exists(first.storageKey)).toBe(true);
 
-    const second = await persistPracticeLogo({
+    const second = await commitPracticeLogoReplacement({
       practiceId: 'prac-a',
       buffer: PNG_1X1,
       mime: 'image/png',
       previousStored: first.storageKey,
       publicApiOrigin: 'https://api.medinathi.co.za',
       storage,
+      updateDatabase: async () => {},
     });
     expect(second.storageKey).not.toBe(first.storageKey);
     expect(await storage.exists(first.storageKey)).toBe(false);
@@ -153,17 +154,17 @@ describe('FilesystemPracticeLogoStorage', () => {
       practiceId: 'prac-b',
       buffer: PNG_1X1,
       mime: 'image/png',
-      previousStored: null,
       publicApiOrigin: 'https://api.medinathi.co.za',
       storage,
     });
-    await persistPracticeLogo({
+    await commitPracticeLogoReplacement({
       practiceId: 'prac-a',
       buffer: PNG_1X1,
       mime: 'image/png',
       previousStored: other.storageKey,
       publicApiOrigin: 'https://api.medinathi.co.za',
       storage,
+      updateDatabase: async () => {},
     });
     expect(await storage.exists(other.storageKey)).toBe(true);
   });
@@ -174,7 +175,6 @@ describe('FilesystemPracticeLogoStorage', () => {
       practiceId: 'prac-a',
       buffer: PNG_1X1,
       mime: 'image/png',
-      previousStored: null,
       publicApiOrigin: 'https://api.medinathi.co.za',
       storage,
     });

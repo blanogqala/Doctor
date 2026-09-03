@@ -26,7 +26,7 @@ describe('public practice-info logo delivery (source contract)', () => {
 
   it('uploads logos via memory storage into PracticeLogoStorage, not multer.diskStorage', () => {
     expect(practiceSource).toContain('multer.memoryStorage()');
-    expect(practiceSource).toContain('persistPracticeLogo');
+    expect(practiceSource).toContain('commitPracticeLogoReplacement');
     expect(practiceSource).toContain('authorize(UserRole.ADMIN)');
     const logoHandler = practiceSource.match(
       /router\.post\(\s*'\/logo'[\s\S]*?res\.json\(toSnakeCase/
@@ -59,8 +59,8 @@ describe('public practice-info doctor photo delivery (source contract)', () => {
     expect(practiceSource).not.toContain('multer.diskStorage');
   });
 
-  it('uploads doctor photos via memory storage and persistDoctorPhoto', () => {
-    expect(practiceSource).toContain('persistDoctorPhoto');
+  it('uploads doctor photos via memory storage and commitDoctorPhotoReplacement', () => {
+    expect(practiceSource).toContain('commitDoctorPhotoReplacement');
     const photoHandler = practiceSource.match(
       /router\.post\(\s*'\/doctors\/:doctorId\/photo'[\s\S]*?photoUrl: publicUrl/
     )?.[0];

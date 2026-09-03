@@ -109,7 +109,7 @@ export function collectProductionConfigProblems(
 
   if (practiceMediaStorageDriver !== 'render-disk') {
     problems.push(
-      `PRACTICE_LOGO_STORAGE_DRIVER must be render-disk in ${appEnv} (got ${practiceMediaStorageDriver}). Local uploads/public-media is ephemeral on Render.`
+      `PRACTICE_MEDIA_STORAGE_DRIVER must be render-disk in ${appEnv} (got ${practiceMediaStorageDriver}; falls back to PRACTICE_LOGO_STORAGE_DRIVER when unset). Local uploads/public-media is ephemeral on Render.`
     );
   }
 
