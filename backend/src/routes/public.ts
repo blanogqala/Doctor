@@ -16,6 +16,12 @@ import {
   publicApiOriginFromRequest,
   resolvePublicPracticeLogoUrl,
 } from '../services/practiceLogoStorage';
+import {
+  isDoctorPhotoKeyOwned,
+  parseStoredDoctorPhoto,
+  resolvePublicDoctorPhotoUrl,
+} from '../services/practiceDoctorPhotoStorage';
+import { getPracticeMediaStorage, mimeForMediaFilename } from '../services/practiceMediaStorage';
 import path from 'path';
 
 const router = Router();
@@ -53,6 +59,65 @@ router.get(
     if (!(await storage.exists(key))) throw new AppError(404, 'Logo not found');
 
     res.setHeader('Content-Type', mimeForLogoFilename(filename));
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    const stream = await storage.openReadStream(key);
+    stream.on('error', () => {
+      if (!res.headersSent) res.status(404).end();
+      else res.end();
+    });
+    stream.pipe(res);
+  })
+);
+
+/**
+ * Durable public doctor photos. Only the exact object currently referenced by a
+ * live Doctor inside the requested Practice is streamable — the storage root is
+ * never browsable.
+ */
+router.get(
+  '/practice-doctor-photos/:practiceId/:doctorId/:filename',
+  asyncHandler(async (req: Request, res: Response) => {
+    const practiceId = String(req.params.practiceId || '');
+    const doctorId = String(req.params.doctorId || '');
+    const filename = path.basename(String(req.params.filename || ''));
+    const key = `practice/${practiceId}/doctors/${doctorId}/${filename}`;
+    if (
+      !practiceId ||
+      !doctorId ||
+      !filename ||
+      !isDoctorPhotoKeyOwned(key, practiceId, doctorId)
+    ) {
+      throw new AppError(404, 'Photo not found');
+    }
+
+    const practice = await prisma.practice.findFirst({
+      where: { id: practiceId, softDeletedAt: null },
+      select: { id: true },
+    });
+    if (!practice) throw new AppError(404, 'Photo not found');
+
+    const doctor = await prisma.doctor.findFirst({
+      where: { id: doctorId, practiceId },
+      select: { id: true, photoUrl: true },
+    });
+    if (!doctor) throw new AppError(404, 'Photo not found');
+
+    const parsed = parseStoredDoctorPhoto(doctor.photoUrl);
+    if (
+      !parsed ||
+      parsed.kind !== 'key' ||
+      parsed.key !== key ||
+      parsed.practiceId !== practiceId ||
+      parsed.doctorId !== doctorId
+    ) {
+      throw new AppError(404, 'Photo not found');
+    }
+
+    const storage = getPracticeMediaStorage();
+    if (!(await storage.exists(key))) throw new AppError(404, 'Photo not found');
+
+    res.setHeader('Content-Type', mimeForMediaFilename(filename));
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     const stream = await storage.openReadStream(key);
@@ -104,11 +169,22 @@ router.get(
     }
 
     const bookingAvailable = isPublicBookingAvailable(practice);
+    const publicApiOrigin = publicApiOriginFromRequest(req);
     const logoUrl = await resolvePublicPracticeLogoUrl({
       stored: practice.logoUrl,
       practiceId: practice.id,
-      publicApiOrigin: publicApiOriginFromRequest(req),
+      publicApiOrigin,
     });
+    const doctorPhotoUrls = await Promise.all(
+      practice.doctors.map((d) =>
+        resolvePublicDoctorPhotoUrl({
+          stored: d.photoUrl,
+          practiceId: practice.id,
+          doctorId: d.id,
+          publicApiOrigin,
+        })
+      )
+    );
 
     res.json(
       toSnakeCase({
@@ -133,14 +209,14 @@ router.get(
         subscriptionStatus: practice.subscriptionStatus,
         trialEndsAt: practice.trialEndsAt,
         bookingAvailable,
-        doctors: practice.doctors.map((d) => ({
+        doctors: practice.doctors.map((d, i) => ({
           id: d.id,
           fullName: d.profile.fullName,
           specialization: d.specialization,
           consultationFeeCents: d.consultationFeeCents,
           telemedicineFeeCents: d.telemedicineFeeCents,
           bio: d.bio,
-          photoUrl: d.photoUrl,
+          photoUrl: doctorPhotoUrls[i],
           credentials: parseCredentials(d.credentials),
           hpcsaRegistrationNumber: d.hpcsaRegistrationNumber,
           isVerified: d.isVerified,

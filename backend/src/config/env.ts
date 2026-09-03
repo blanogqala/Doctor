@@ -40,8 +40,15 @@ const envSchema = z.object({
   /** Absolute/relative root for private clinical objects. */
   CLINICAL_STORAGE_ROOT: z.string().optional(),
   /**
-   * Public practice logos. local = cwd/uploads/logos (dev/test only).
+   * Public practice media (logos + doctor photos). local = cwd/uploads/public-media (dev/test only).
    * render-disk = Render Persistent Disk (survives restart/redeploy/sleep).
+   * Falls back to PRACTICE_LOGO_STORAGE_DRIVER so existing deploys keep booting.
+   */
+  PRACTICE_MEDIA_STORAGE_DRIVER: z.enum(['local', 'render-disk']).optional(),
+  PRACTICE_MEDIA_STORAGE_ROOT: z.string().optional(),
+  /**
+   * Legacy logo-only root, retained as a read-through fallback for objects written
+   * before public media was unified under PRACTICE_MEDIA_STORAGE_ROOT.
    */
   PRACTICE_LOGO_STORAGE_DRIVER: z.enum(['local', 'render-disk']).default('local'),
   PRACTICE_LOGO_STORAGE_ROOT: z.string().optional(),

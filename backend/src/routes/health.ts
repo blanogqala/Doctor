@@ -5,9 +5,10 @@ import { resolveAppEnv } from '../config/appEnv';
 import { getClinicalStorage } from '../services/clinicalStorage';
 import { FilesystemClinicalStorage } from '../services/clinicalStorage/filesystemStorage';
 import {
-  FilesystemPracticeLogoStorage,
-  getPracticeLogoStorage,
-} from '../services/practiceLogoStorage';
+  FilesystemPracticeMediaStorage,
+  getPracticeMediaStorage,
+  resolvePracticeMediaDriver,
+} from '../services/practiceMediaStorage';
 
 export const healthRouter = Router();
 
@@ -51,15 +52,15 @@ healthRouter.get('/ready', async (_req, res) => {
     }
   }
 
-  const logoStorage = getPracticeLogoStorage();
-  const requireLogoStorage =
-    logoStorage.driver === 'render-disk' && (appEnv === 'staging' || appEnv === 'production');
-  if (requireLogoStorage && logoStorage instanceof FilesystemPracticeLogoStorage) {
+  const mediaStorage = getPracticeMediaStorage();
+  const requireMediaStorage =
+    mediaStorage.driver === 'render-disk' && (appEnv === 'staging' || appEnv === 'production');
+  if (requireMediaStorage && mediaStorage instanceof FilesystemPracticeMediaStorage) {
     try {
-      await logoStorage.assertWritable();
-      checks.practiceLogoStorage = 'ok';
+      await mediaStorage.assertWritable();
+      checks.practiceMediaStorage = 'ok';
     } catch {
-      checks.practiceLogoStorage = 'fail';
+      checks.practiceMediaStorage = 'fail';
       ready = false;
     }
   }
@@ -69,7 +70,7 @@ healthRouter.get('/ready', async (_req, res) => {
     check: 'ready',
     appEnv,
     clinicalStorageDriver: env.CLINICAL_STORAGE_DRIVER,
-    practiceLogoStorageDriver: env.PRACTICE_LOGO_STORAGE_DRIVER,
+    practiceMediaStorageDriver: resolvePracticeMediaDriver(),
     checks,
     timestamp: new Date().toISOString(),
   });

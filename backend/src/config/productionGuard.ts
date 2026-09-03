@@ -1,5 +1,6 @@
 import { env } from './env';
 import { resolveAppEnv, type AppEnv } from './appEnv';
+import { resolvePracticeMediaDriver } from '../services/practiceMediaStorage';
 
 const PLACEHOLDER_PATTERNS = [
   /^change-?me/i,
@@ -20,6 +21,7 @@ export type ProductionGuardInput = {
   platformFrontendUrl?: string | null;
   clinicalStorageDriver?: string;
   practiceLogoStorageDriver?: string;
+  practiceMediaStorageDriver?: string;
   publicApiUrl?: string | null;
   enableUatInvitationLinks?: string | undefined;
   cookieSameSite?: string | undefined;
@@ -71,8 +73,10 @@ export function collectProductionConfigProblems(
       : input.platformFrontendUrl;
   const clinicalStorageDriver =
     input.clinicalStorageDriver ?? env.CLINICAL_STORAGE_DRIVER;
-  const practiceLogoStorageDriver =
-    input.practiceLogoStorageDriver ?? env.PRACTICE_LOGO_STORAGE_DRIVER;
+  const practiceMediaStorageDriver =
+    input.practiceMediaStorageDriver ??
+    input.practiceLogoStorageDriver ??
+    resolvePracticeMediaDriver();
   const publicApiUrl =
     input.publicApiUrl === undefined ? env.PUBLIC_API_URL : input.publicApiUrl;
   const uatFlag =
@@ -103,9 +107,9 @@ export function collectProductionConfigProblems(
     );
   }
 
-  if (practiceLogoStorageDriver !== 'render-disk') {
+  if (practiceMediaStorageDriver !== 'render-disk') {
     problems.push(
-      `PRACTICE_LOGO_STORAGE_DRIVER must be render-disk in ${appEnv} (got ${practiceLogoStorageDriver}). Local uploads/logos is ephemeral on Render.`
+      `PRACTICE_LOGO_STORAGE_DRIVER must be render-disk in ${appEnv} (got ${practiceMediaStorageDriver}). Local uploads/public-media is ephemeral on Render.`
     );
   }
 

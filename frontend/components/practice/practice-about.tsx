@@ -5,6 +5,7 @@ import { SectionReveal } from '@/components/marketing/section-reveal';
 import { Button } from '@/components/ui/button';
 import { absoluteApiUrl, type PracticeDoctorSummary } from '@/lib/tenant';
 import { useDoctorSlide } from './use-doctor-slide';
+import { DoctorPhoto } from '@/components/practice/doctor-photo';
 
 interface PracticeAboutProps {
   doctors: PracticeDoctorSummary[];
@@ -31,18 +32,16 @@ export function PracticeAbout({ doctors }: PracticeAboutProps) {
       <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center">
         <SectionReveal className="min-w-0">
           <div className="relative overflow-hidden rounded-2xl shadow-md ring-1 ring-slate-100">
-            {photoSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={photoSrc}
-                alt={doctor.full_name}
-                className="aspect-square max-h-[400px] w-full object-cover"
-              />
-            ) : (
-              <div className="flex aspect-square max-h-[400px] w-full items-center justify-center bg-gradient-to-br from-primary to-primary/80 text-white">
-                <Stethoscope className="h-16 w-16 opacity-90 sm:h-20 sm:w-20" />
-              </div>
-            )}
+            <DoctorPhoto
+              src={photoSrc}
+              alt={doctor.full_name}
+              className="aspect-square max-h-[400px] w-full object-cover"
+              fallback={
+                <div className="flex aspect-square max-h-[400px] w-full items-center justify-center bg-gradient-to-br from-primary to-primary/80 text-white">
+                  <Stethoscope className="h-16 w-16 opacity-90 sm:h-20 sm:w-20" />
+                </div>
+              }
+            />
             {showControls && (
               <>
                 <Button

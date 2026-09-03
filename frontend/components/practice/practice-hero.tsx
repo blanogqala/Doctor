@@ -7,6 +7,7 @@ import { absoluteApiUrl, type PracticeInfo } from '@/lib/tenant';
 import { phoneToTelHref } from './practice-defaults';
 import { useDoctorSlide } from './use-doctor-slide';
 import { PracticeLogo } from '@/components/practice/practice-logo';
+import { DoctorPhoto } from '@/components/practice/doctor-photo';
 
 interface PracticeHeroProps {
   practice: PracticeInfo;
@@ -131,19 +132,17 @@ export function PracticeHero({
 
         <div className="relative mx-auto w-full min-w-0 max-w-md lg:mx-0 lg:justify-self-end">
           <div className="relative overflow-hidden rounded-2xl bg-white shadow-lg shadow-slate-200/80 ring-1 ring-slate-100">
-            {photoSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={photoSrc}
-                alt={doctor?.full_name || 'Doctor'}
-                className="h-[360px] w-full object-cover sm:h-[400px]"
-              />
-            ) : (
-              <div className="flex h-[360px] w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-primary to-primary/80 text-white sm:h-[400px]">
-                <Stethoscope className="h-14 w-14 opacity-90 sm:h-16 sm:w-16" />
-                <p className="text-lg font-semibold">{doctor?.full_name || 'Your doctor'}</p>
-              </div>
-            )}
+            <DoctorPhoto
+              src={photoSrc}
+              alt={doctor?.full_name || 'Doctor'}
+              className="h-[360px] w-full object-cover sm:h-[400px]"
+              fallback={
+                <div className="flex h-[360px] w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-primary to-primary/80 text-white sm:h-[400px]">
+                  <Stethoscope className="h-14 w-14 opacity-90 sm:h-16 sm:w-16" />
+                  <p className="text-lg font-semibold">{doctor?.full_name || 'Your doctor'}</p>
+                </div>
+              }
+            />
 
             {showControls && (
               <>

@@ -21,6 +21,8 @@ import { availabilityApi } from '@/lib/api/availability';
 import { practiceApi } from '@/lib/api/practice';
 import { useTenant, absoluteApiUrl } from '@/lib/tenant';
 import { PracticeLogo } from '@/components/practice/practice-logo';
+import { DoctorPhoto } from '@/components/practice/doctor-photo';
+import { Stethoscope } from 'lucide-react';
 import type { Doctor } from '@/lib/types';
 import {
   addDays,
@@ -865,14 +867,16 @@ export default function AdminSettingsPage() {
             <div className="space-y-2">
               <Label htmlFor="doctorPhoto">Photo</Label>
               <div className="flex items-center gap-4">
-                {doctorPhotoUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={doctorPhotoUrl}
-                    alt="Doctor"
-                    className="h-16 w-16 rounded-lg object-cover bg-muted"
-                  />
-                )}
+                <DoctorPhoto
+                  src={doctorPhotoUrl}
+                  alt="Doctor"
+                  className="h-16 w-16 rounded-lg object-cover bg-muted"
+                  fallback={
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                      <Stethoscope className="h-6 w-6" aria-hidden />
+                    </div>
+                  }
+                />
                 <Input
                   id="doctorPhoto"
                   type="file"

@@ -42,7 +42,10 @@ import {
 } from './jobs/appointmentLifecycleJob';
 import { startBillingSchedulerJob, stopBillingSchedulerJob } from './jobs/billingSchedulerJob';
 import { validateClinicalStorageAtStartup } from './services/clinicalStorage';
-import { validatePracticeLogoStorageAtStartup } from './services/practiceLogoStorage';
+import {
+  validatePracticeMediaStorageAtStartup,
+  resolvePracticeMediaDriver,
+} from './services/practiceMediaStorage';
 import { registerGracefulShutdown } from './utils/gracefulShutdown';
 import { writeStructuredLog } from './middleware/requestLogger';
 
@@ -114,7 +117,7 @@ export { app };
 async function startServer() {
   assertProductionConfigSafe();
   await validateClinicalStorageAtStartup();
-  await validatePracticeLogoStorageAtStartup();
+  await validatePracticeMediaStorageAtStartup();
 
   const server = app.listen(env.PORT, () => {
     writeStructuredLog('info', 'server_started', {
@@ -122,7 +125,7 @@ async function startServer() {
       appEnv: resolveAppEnv(),
       nodeEnv: env.NODE_ENV,
       clinicalStorageDriver: env.CLINICAL_STORAGE_DRIVER,
-      practiceLogoStorageDriver: env.PRACTICE_LOGO_STORAGE_DRIVER,
+      practiceMediaStorageDriver: resolvePracticeMediaDriver(),
     });
     startAppointmentLifecycleJob();
     startBillingSchedulerJob();

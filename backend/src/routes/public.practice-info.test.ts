@@ -36,3 +36,36 @@ describe('public practice-info logo delivery (source contract)', () => {
     expect(logoHandler).not.toContain('req.file.filename');
   });
 });
+
+describe('public practice-info doctor photo delivery (source contract)', () => {
+  const source = fs.readFileSync(path.join(__dirname, 'public.ts'), 'utf8');
+  const practiceSource = fs.readFileSync(path.join(__dirname, 'practice.ts'), 'utf8');
+
+  it('resolves absolute public doctor photo URLs on practice-info', () => {
+    expect(source).toContain('resolvePublicDoctorPhotoUrl');
+    expect(source).toContain('doctorPhotoUrls');
+    expect(source).toMatch(/photoUrl: doctorPhotoUrls\[i\]/);
+  });
+
+  it('serves durable doctor photos from a tenant-safe public path', () => {
+    expect(source).toContain('/practice-doctor-photos/:practiceId/:doctorId/:filename');
+    expect(source).toContain('isDoctorPhotoKeyOwned');
+    expect(source).toContain('parseStoredDoctorPhoto');
+    expect(source).toContain("'Cache-Control', 'public, max-age=31536000, immutable'");
+    expect(source).toContain("'Cross-Origin-Resource-Policy', 'cross-origin'");
+  });
+
+  it('does not use multer.diskStorage anywhere in practice routes', () => {
+    expect(practiceSource).not.toContain('multer.diskStorage');
+  });
+
+  it('uploads doctor photos via memory storage and persistDoctorPhoto', () => {
+    expect(practiceSource).toContain('persistDoctorPhoto');
+    const photoHandler = practiceSource.match(
+      /router\.post\(\s*'\/doctors\/:doctorId\/photo'[\s\S]*?photoUrl: publicUrl/
+    )?.[0];
+    expect(photoHandler).toBeTruthy();
+    expect(photoHandler).toContain('detectAllowedImageMime');
+    expect(photoHandler).not.toContain('req.file.path');
+  });
+});

@@ -20,6 +20,10 @@ services:
         value: render-disk
       - key: CLINICAL_STORAGE_ROOT
         value: /var/data/clinical
+      - key: PRACTICE_MEDIA_STORAGE_DRIVER
+        value: render-disk
+      - key: PRACTICE_MEDIA_STORAGE_ROOT
+        value: /var/data/public-media
       - key: PRACTICE_LOGO_STORAGE_DRIVER
         value: render-disk
       - key: PRACTICE_LOGO_STORAGE_ROOT

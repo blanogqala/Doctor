@@ -1,56 +1,41 @@
 import fs from 'fs';
 import path from 'path';
-import { createReadStream } from 'fs';
-import { env } from '../config/env';
 import { generateSecureToken } from '../utils/secureToken';
+import {
+  FilesystemPracticeMediaStorage,
+  assertSafeMediaKey,
+  createPracticeMediaStorage,
+  extensionForImageMime,
+  getPracticeMediaStorage,
+  mimeForMediaFilename,
+  publicApiOriginFromRequest,
+  resolveLegacyLogoRoot,
+  resolvePracticeMediaDriver,
+  resolvePublicApiOrigin,
+  resetPracticeMediaStorageForTests,
+  toAbsolutePublicAssetUrl,
+  type PracticeMediaStorage,
+  type PracticeMediaStorageDriverName,
+} from './practiceMediaStorage';
 
-export type PracticeLogoStorageDriverName = 'local' | 'render-disk';
-
-export interface PracticeLogoStorage {
-  readonly driver: PracticeLogoStorageDriverName;
-  readonly root: string;
-  put(key: string, data: Buffer): Promise<void>;
-  openReadStream(key: string): Promise<NodeJS.ReadableStream>;
-  exists(key: string): Promise<boolean>;
-  delete(key: string): Promise<void>;
-  assertWritable(): Promise<void>;
-}
-
-const LEGACY_LOGO_DIR = path.join(process.cwd(), 'uploads', 'logos');
-
-const MIME_TO_EXT: Record<string, string> = {
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
+export {
+  assertSafeMediaKey as assertSafeLogoKey,
+  publicApiOriginFromRequest,
+  resolvePublicApiOrigin,
+  toAbsolutePublicAssetUrl,
 };
 
+/** Logos share the generalized public media storage; these aliases keep call sites stable. */
+export type PracticeLogoStorageDriverName = PracticeMediaStorageDriverName;
+export type PracticeLogoStorage = PracticeMediaStorage;
+export const FilesystemPracticeLogoStorage = FilesystemPracticeMediaStorage;
+
 export function extensionForLogoMime(mime: string): string {
-  return MIME_TO_EXT[mime] || 'png';
+  return extensionForImageMime(mime);
 }
 
 export function mimeForLogoFilename(filename: string): string {
-  const ext = path.extname(filename).toLowerCase().replace(/^\./, '');
-  if (ext === 'png') return 'image/png';
-  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
-  if (ext === 'webp') return 'image/webp';
-  if (ext === 'gif') return 'image/gif';
-  if (ext === 'svg') return 'image/svg+xml';
-  return 'application/octet-stream';
-}
-
-/** Reject path traversal and absolute keys. */
-export function assertSafeLogoKey(key: string): string {
-  const normalized = key.replace(/\\/g, '/');
-  if (
-    !normalized ||
-    normalized.includes('..') ||
-    normalized.startsWith('/') ||
-    /^[a-zA-Z]:/.test(normalized)
-  ) {
-    throw new Error('Invalid practice logo storage key');
-  }
-  return normalized;
+  return mimeForMediaFilename(filename);
 }
 
 export function buildPracticeLogoKey(practiceId: string, extension: string): string {
@@ -123,133 +108,37 @@ export function publicPracticeLogoPath(practiceId: string, filename: string): st
   return `/api/public/practice-logos/${encodeURIComponent(practiceId)}/${encodeURIComponent(filename)}`;
 }
 
-export function toAbsolutePublicAssetUrl(pathOrUrl: string, publicApiOrigin: string): string {
-  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
-  const origin = publicApiOrigin.replace(/\/$/, '');
-  const pathname = pathOrUrl.startsWith('/') ? pathOrUrl : `/${pathOrUrl}`;
-  if (!origin) return pathname;
-  return `${origin}${pathname}`;
-}
-
-export function resolvePublicApiOrigin(options?: {
-  configured?: string | null;
-  host?: string | null;
-  proto?: string | null;
-}): string {
-  const configured = (options?.configured ?? env.PUBLIC_API_URL ?? '').trim().replace(/\/$/, '');
-  if (configured) return configured;
-  const host = (options?.host ?? '').trim();
-  if (!host) return '';
-  const proto = (options?.proto ?? 'https').split(',')[0].trim() || 'https';
-  return `${proto}://${host}`;
-}
-
-export function publicApiOriginFromRequest(req: {
-  get: (name: string) => string | undefined;
-  protocol?: string;
-}): string {
-  return resolvePublicApiOrigin({
-    host: req.get('host'),
-    proto: req.get('x-forwarded-proto') || req.protocol,
-  });
-}
-
 export function resolveClinicalStyleLogoRoot(
   driver: PracticeLogoStorageDriverName,
   configuredRoot?: string | null
 ): string {
-  if (configuredRoot && configuredRoot.trim()) {
-    return path.resolve(configuredRoot.trim());
-  }
-  if (driver === 'render-disk') {
-    return path.resolve('/var/data/logos');
-  }
-  return path.resolve(process.cwd(), 'uploads', 'logos');
+  return resolveLegacyLogoRoot(driver, configuredRoot);
 }
-
-export class FilesystemPracticeLogoStorage implements PracticeLogoStorage {
-  readonly driver: PracticeLogoStorageDriverName;
-  readonly root: string;
-
-  constructor(driver: PracticeLogoStorageDriverName, root: string) {
-    this.driver = driver;
-    this.root = path.resolve(root);
-  }
-
-  absolutePath(key: string): string {
-    const safe = assertSafeLogoKey(key);
-    const resolved = path.resolve(this.root, safe);
-    const rootWithSep = this.root.endsWith(path.sep) ? this.root : this.root + path.sep;
-    if (resolved !== this.root && !resolved.startsWith(rootWithSep)) {
-      throw new Error('Practice logo storage path escape blocked');
-    }
-    return resolved;
-  }
-
-  async put(key: string, data: Buffer): Promise<void> {
-    const absolute = this.absolutePath(key);
-    await fs.promises.mkdir(path.dirname(absolute), { recursive: true });
-    await fs.promises.writeFile(absolute, data);
-  }
-
-  async openReadStream(key: string): Promise<NodeJS.ReadableStream> {
-    const absolute = this.absolutePath(key);
-    if (!fs.existsSync(absolute)) {
-      throw new Error('Practice logo not found');
-    }
-    return createReadStream(absolute);
-  }
-
-  async exists(key: string): Promise<boolean> {
-    try {
-      await fs.promises.access(this.absolutePath(key), fs.constants.F_OK);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async delete(key: string): Promise<void> {
-    try {
-      await fs.promises.unlink(this.absolutePath(key));
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') throw err;
-    }
-  }
-
-  async assertWritable(): Promise<void> {
-    await fs.promises.mkdir(this.root, { recursive: true });
-    const probe = path.join(this.root, `.write-probe-${Date.now()}`);
-    await fs.promises.writeFile(probe, 'ok');
-    await fs.promises.unlink(probe);
-  }
-}
-
-let singleton: PracticeLogoStorage | null = null;
 
 export function createPracticeLogoStorage(options?: {
   driver?: PracticeLogoStorageDriverName;
   root?: string | null;
 }): PracticeLogoStorage {
-  const driver = options?.driver ?? env.PRACTICE_LOGO_STORAGE_DRIVER;
-  const root = resolveClinicalStyleLogoRoot(driver, options?.root ?? env.PRACTICE_LOGO_STORAGE_ROOT);
-  return new FilesystemPracticeLogoStorage(driver, root);
+  return createPracticeMediaStorage({
+    driver: options?.driver,
+    root: options?.root,
+    // An explicitly supplied root is self-contained (tests); no cross-root fallback.
+    legacyLogoRoot: options?.root ?? undefined,
+  });
 }
 
 export function getPracticeLogoStorage(): PracticeLogoStorage {
-  if (!singleton) {
-    singleton = createPracticeLogoStorage();
-  }
-  return singleton;
+  return getPracticeMediaStorage();
 }
 
 export function resetPracticeLogoStorageForTests(storage?: PracticeLogoStorage | null) {
-  singleton = storage === undefined ? null : storage;
+  resetPracticeMediaStorageForTests(storage);
 }
 
+/** Pre-storage-abstraction logo files that were written straight into cwd/uploads/logos. */
 export function legacyLogoFilePath(filename: string): string {
-  return path.join(LEGACY_LOGO_DIR, path.basename(filename));
+  const root = resolveLegacyLogoRoot(resolvePracticeMediaDriver(), null);
+  return path.join(root, path.basename(filename));
 }
 
 export function legacyLogoFileExists(filename: string): boolean {
@@ -334,17 +223,4 @@ export async function persistPracticeLogo(params: {
   };
 }
 
-export async function validatePracticeLogoStorageAtStartup(): Promise<void> {
-  const storage = getPracticeLogoStorage();
-  try {
-    await storage.assertWritable();
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (storage.driver === 'render-disk') {
-      throw new Error(
-        `Practice logo storage is not writable at ${storage.root} (driver=${storage.driver}). ${message}`
-      );
-    }
-    console.warn(`[practice-logo-storage] Could not verify writable root ${storage.root}; continuing`);
-  }
-}
+export { validatePracticeMediaStorageAtStartup } from './practiceMediaStorage';

@@ -51,6 +51,22 @@ describe('parsePublicPracticeInfo', () => {
     expect(parsed.doctors[0].photo_url).toBeNull();
   });
 
+  it('preserves an absolute public doctor photo URL', () => {
+    const parsed = parsePublicPracticeInfo({
+      ...PILOT_PAYLOAD,
+      doctors: [
+        {
+          ...PILOT_PAYLOAD.doctors[0],
+          photo_url:
+            'https://api.medinathi.co.za/api/public/practice-doctor-photos/prac-pilot/doc-1/file.png',
+        },
+      ],
+    } as unknown as Record<string, unknown>);
+    expect(parsed.doctors[0].photo_url).toBe(
+      'https://api.medinathi.co.za/api/public/practice-doctor-photos/prac-pilot/doc-1/file.png'
+    );
+  });
+
   it('preserves an absolute public logo URL', () => {
     const parsed = parsePublicPracticeInfo({
       ...PILOT_PAYLOAD,

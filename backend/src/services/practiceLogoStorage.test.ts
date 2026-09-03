@@ -13,6 +13,7 @@ import {
   resolvePublicPracticeLogoUrl,
   toAbsolutePublicAssetUrl,
 } from './practiceLogoStorage';
+import { createPracticeMediaStorage } from './practiceMediaStorage';
 
 /** 1×1 PNG */
 const PNG_1X1 = Buffer.from(
@@ -221,5 +222,36 @@ describe('FilesystemPracticeLogoStorage', () => {
         legacyExists: (filename) => filename === 'still-here.png',
       })
     ).resolves.toBe('https://api.medinathi.co.za/api/practice/logo-file/still-here.png');
+  });
+
+  it('resolves logos written under a legacy fallback root', async () => {
+    const primaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'medinathi-logo-primary-'));
+    const legacyRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'medinathi-logo-legacy-'));
+    try {
+      const key = 'practice/prac-a/logos/fallback.png';
+      const legacyPath = path.join(legacyRoot, key);
+      fs.mkdirSync(path.dirname(legacyPath), { recursive: true });
+      fs.writeFileSync(legacyPath, PNG_1X1);
+
+      const withFallback = createPracticeMediaStorage({
+        driver: 'local',
+        root: primaryRoot,
+        legacyLogoRoot: legacyRoot,
+      });
+
+      await expect(
+        resolvePublicPracticeLogoUrl({
+          stored: key,
+          practiceId: 'prac-a',
+          publicApiOrigin: 'https://api.medinathi.co.za',
+          storage: withFallback,
+        })
+      ).resolves.toMatch(
+        /^https:\/\/api\.medinathi\.co\.za\/api\/public\/practice-logos\/prac-a\/fallback\.png$/
+      );
+    } finally {
+      fs.rmSync(primaryRoot, { recursive: true, force: true });
+      fs.rmSync(legacyRoot, { recursive: true, force: true });
+    }
   });
 });
