@@ -20,6 +20,7 @@ import { reportEftPayment } from '../services/subscriptionInvoiceService';
 import { getEftPaymentInstructions } from '../config/eftPayment';
 import { checkRateLimit, clientIp } from '../utils/rateLimit';
 import { toSafeProfile } from '../utils/safeProfile';
+import { derivePracticeAccess, serializePracticeAccess } from '../services/practiceAccessPolicy';
 
 const router = Router();
 
@@ -82,6 +83,9 @@ router.get(
           doctorSeatLimit: practice.doctorSeatLimit,
           monthlyFeeCents: practice.monthlyFeeCents,
           trialEndsAt: practice.trialEndsAt,
+          subscriptionSuspensionReason: practice.subscriptionSuspensionReason,
+          subscriptionSuspendedAt: practice.subscriptionSuspendedAt,
+          access: serializePracticeAccess(derivePracticeAccess(practice)),
           owner: practice.owner,
         },
         seats,

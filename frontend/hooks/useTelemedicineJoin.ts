@@ -2,12 +2,14 @@
 
 import { useCallback, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { useTelemedicineSession } from '@/lib/telemedicine-session-context';
 import { telemedicineApi } from '@/lib/api/telemedicine';
 import { useToast } from '@/hooks/use-toast';
 
 export function useTelemedicineJoin() {
   const { user } = useAuth();
+  const { canMutate, mutationHint, isPatient } = usePracticeAccess();
   const { openSession, setLivekit, updateSession, setSessionState } = useTelemedicineSession();
   const { toast } = useToast();
   const [joining, setJoining] = useState(false);
@@ -21,6 +23,16 @@ export function useTelemedicineJoin() {
       reason?: string | null;
       recordId?: string;
     }) => {
+      if (!canMutate) {
+        toast({
+          title: 'Virtual consultation unavailable',
+          description: isPatient
+            ? 'Virtual consultation unavailable while Practice access is restricted.'
+            : mutationHint || 'Virtual consultation unavailable while Practice access is restricted.',
+          variant: 'destructive',
+        });
+        throw new Error('PRACTICE_READ_ONLY');
+      }
       setJoining(true);
       try {
         const response = await telemedicineApi.join(input.appointmentId);

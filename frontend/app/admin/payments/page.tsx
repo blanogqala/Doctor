@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,6 +48,7 @@ import { CreditCard, Plus, Search, CheckCircle, Ban, Loader2 } from 'lucide-reac
 
 export default function AdminPaymentsPage() {
   const { user } = useAuth();
+  const { canMutate, mutationHint } = usePracticeAccess();
   const { toast } = useToast();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -206,6 +208,8 @@ export default function AdminPaymentsPage() {
                 setForm({ patient_id: '', appointment_id: '', amount: '600' });
                 setCreateOpen(true);
               }}
+              disabled={!canMutate}
+              title={!canMutate ? mutationHint : undefined}
             >
               <Plus className="h-4 w-4" />
               New Invoice
@@ -376,7 +380,7 @@ export default function AdminPaymentsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate}>Create Invoice</Button>
+            <Button onClick={handleCreate} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}>Create Invoice</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -406,7 +410,7 @@ export default function AdminPaymentsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMarkPaidPay(null)}>Cancel</Button>
-            <Button onClick={handleMarkPaid}>Confirm Payment</Button>
+            <Button onClick={handleMarkPaid} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}>Confirm Payment</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

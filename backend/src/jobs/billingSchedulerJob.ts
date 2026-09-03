@@ -56,6 +56,7 @@ export async function runBillingSchedulerJob(options?: { now?: Date }) {
       createdCount: generated.createdCount,
       skippedCount: generated.skippedCount,
       overdueUpdated: overdue.updatedCount,
+      billingRestricted: overdue.restrictedCount,
     });
   } catch (err) {
     writeStructuredLog('error', 'billing_scheduler_failed', {

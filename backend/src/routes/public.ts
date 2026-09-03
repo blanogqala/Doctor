@@ -22,6 +22,7 @@ import {
   resolvePublicDoctorPhotoUrl,
 } from '../services/practiceDoctorPhotoStorage';
 import { getPracticeMediaStorage, mimeForMediaFilename } from '../services/practiceMediaStorage';
+import { isPracticeAccessFull } from '../services/practiceAccessPolicy';
 import path from 'path';
 
 const router = Router();
@@ -129,19 +130,26 @@ router.get(
   })
 );
 
-/** Public online booking is available for ACTIVE and valid (non-expired) TRIAL only. */
+/** Public online booking is available only when derived Practice access is FULL. */
 export function isPublicBookingAvailable(practice: {
   subscriptionStatus: SubscriptionStatus;
   trialEndsAt: Date | null;
+  ownerProfileId?: string | null;
+  subscriptionSuspensionReason?: import('@prisma/client').SubscriptionSuspensionReason | null;
+  subscriptionSuspendedAt?: Date | null;
   now?: Date;
 }): boolean {
   const now = practice.now ?? new Date();
-  if (practice.subscriptionStatus === SubscriptionStatus.ACTIVE) return true;
-  if (practice.subscriptionStatus === SubscriptionStatus.TRIAL) {
-    if (!practice.trialEndsAt) return true;
-    return now.getTime() <= practice.trialEndsAt.getTime();
-  }
-  return false;
+  return isPracticeAccessFull(
+    {
+      subscriptionStatus: practice.subscriptionStatus,
+      trialEndsAt: practice.trialEndsAt,
+      ownerProfileId: practice.ownerProfileId ?? null,
+      subscriptionSuspensionReason: practice.subscriptionSuspensionReason ?? null,
+      subscriptionSuspendedAt: practice.subscriptionSuspendedAt ?? null,
+    },
+    now
+  );
 }
 
 router.get(

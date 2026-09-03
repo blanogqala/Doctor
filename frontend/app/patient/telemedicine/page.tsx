@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,7 @@ export default function PatientTelemedicinePage() {
   const { toast } = useToast();
   const { session, livekit } = useTelemedicineSession();
   const { joinCall, joining } = useTelemedicineJoin();
+  const { canMutate, mutationHint } = usePracticeAccess();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [precallForId, setPrecallForId] = useState<string | null>(null);
@@ -180,7 +182,8 @@ export default function PatientTelemedicinePage() {
                 ) : (
                   <Button
                     size="sm"
-                    disabled={joining || inCall}
+                    disabled={joining || inCall || !canMutate}
+                    title={!canMutate ? mutationHint : undefined}
                     onClick={() => void startPrecheck(appt)}
                   >
                     {joining ? (

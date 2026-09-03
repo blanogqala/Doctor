@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { superAdminApi, type SupportQueue } from '@/lib/api/super-admin';
+import { superAdminApi, isBillingRestrictedPractice, type SupportQueue } from '@/lib/api/super-admin';
 import { Card, CardContent } from '@/components/ui/card';
 import { TableSection } from '@/components/ds/table-section';
 import {
@@ -281,7 +281,7 @@ export default function SuperAdminSupportPage() {
 
           <QueueSection
             title="Suspended practices"
-            description="Tenants with suspended subscription status"
+            description="Billing-restricted Practices stay read-only until payment is verified and Super Admin reactivates. Manually suspended Practices stay blocked."
             empty={queue.suspended.length === 0}
           >
             <Table>
@@ -289,6 +289,7 @@ export default function SuperAdminSupportPage() {
                 <TableRow>
                   <TableHead>Practice</TableHead>
                   <TableHead>Subdomain</TableHead>
+                  <TableHead>Reason</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -300,6 +301,12 @@ export default function SuperAdminSupportPage() {
                       </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{p.subdomain}</TableCell>
+                    <TableCell>
+                      <StatusBadge
+                        tone={isBillingRestrictedPractice(p) ? 'warning' : 'danger'}
+                        label={isBillingRestrictedPractice(p) ? 'Billing restricted' : 'Manually suspended'}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -81,6 +81,7 @@ export interface ReferralLetterComposerProps {
   referringDoctor?: ReferralLetterReferringDoctor;
   patientContext?: ReferralLetterPatientContext;
   className?: string;
+  disabled?: boolean;
 }
 
 export function ReferralLetterComposer({
@@ -97,6 +98,7 @@ export function ReferralLetterComposer({
   referringDoctor,
   patientContext,
   className,
+  disabled = false,
 }: ReferralLetterComposerProps) {
   const { toast } = useToast();
   const [enhancing, setEnhancing] = useState(false);
@@ -239,7 +241,7 @@ export function ReferralLetterComposer({
             variant="ghost"
             size="sm"
             className="h-8 gap-1.5"
-            disabled={busy}
+            disabled={busy || disabled}
             onClick={handleAuto}
           >
             {enhancing ? (
@@ -254,7 +256,7 @@ export function ReferralLetterComposer({
             variant="ghost"
             size="sm"
             className="h-8 gap-1.5"
-            disabled={busy}
+            disabled={busy || disabled}
             onClick={handleAiDraft}
           >
             {drafting ? (

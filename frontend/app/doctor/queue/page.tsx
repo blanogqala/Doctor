@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AppointmentStatusBadge, AppointmentTypeBadge } from '@/components/shared/badges';
@@ -50,6 +51,7 @@ interface DayInfo {
 
 export default function DoctorQueuePage() {
   const { user } = useAuth();
+  const { canMutate, mutationHint } = usePracticeAccess();
   const { toast } = useToast();
   const router = useRouter();
   const { joinCall } = useTelemedicineJoin();
@@ -303,7 +305,7 @@ export default function DoctorQueuePage() {
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             {canStart(appt.status) && (
-              <Button size="sm" variant="default" onClick={() => handleStartConsultation(appt)}>
+              <Button size="sm" variant="default" onClick={() => handleStartConsultation(appt)} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}>
                 <Play className="mr-1 h-3 w-3" /> Start Consultation
               </Button>
             )}

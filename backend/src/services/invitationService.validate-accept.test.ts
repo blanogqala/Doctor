@@ -251,4 +251,54 @@ describe('acceptInvitation', () => {
     expect(hashToken(raw)).toBe(hashToken(raw));
     expect(hashToken(raw)).not.toBe(raw);
   });
+
+  it('allows owner invitation during billing READ_ONLY', async () => {
+    const practice = {
+      id: 'prac-1',
+      clinicName: 'Pilot',
+      subdomain: 'pilot',
+      subscriptionStatus: SubscriptionStatus.SUSPENDED,
+      subscriptionSuspensionReason: 'BILLING_OVERDUE',
+      subscriptionSuspendedAt: new Date(),
+      trialEndsAt: new Date('2020-01-01T00:00:00.000Z'),
+      doctorSeatLimit: 5,
+      ownerProfileId: null,
+      softDeletedAt: null,
+    };
+    const row = pendingInvite({ practice, isPracticeOwner: true });
+    mocks.txFindInvitation.mockResolvedValue(row);
+    mocks.txFindPractice.mockResolvedValue(practice);
+    mocks.txFindProfile.mockResolvedValue(null);
+    mocks.txCreateProfile.mockResolvedValue({ id: 'profile-1', doctor: null });
+    mocks.txUpdatePractice.mockResolvedValue({});
+    mocks.txUpdateInvitation.mockResolvedValue({});
+
+    await expect(acceptInvitation(TOKEN, 'SecurePass1')).resolves.toBeTruthy();
+  });
+
+  it('blocks non-owner staff invitation during billing READ_ONLY', async () => {
+    const practice = {
+      id: 'prac-1',
+      clinicName: 'Pilot',
+      subdomain: 'pilot',
+      subscriptionStatus: SubscriptionStatus.SUSPENDED,
+      subscriptionSuspensionReason: 'BILLING_OVERDUE',
+      subscriptionSuspendedAt: new Date(),
+      trialEndsAt: new Date('2020-01-01T00:00:00.000Z'),
+      doctorSeatLimit: 5,
+      ownerProfileId: 'owner-1',
+      softDeletedAt: null,
+    };
+    const row = pendingInvite({
+      practice,
+      isPracticeOwner: false,
+      email: 'staff@example.com',
+    });
+    mocks.txFindInvitation.mockResolvedValue(row);
+    mocks.txFindPractice.mockResolvedValue(practice);
+
+    await expect(acceptInvitation(TOKEN, 'SecurePass1')).rejects.toMatchObject({
+      code: 'PRACTICE_READ_ONLY',
+    });
+  });
 });

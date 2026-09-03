@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -106,6 +107,7 @@ export default function EditClinicalRecordPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { canMutate } = usePracticeAccess();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -173,7 +175,7 @@ export default function EditClinicalRecordPage() {
 
   const viewHref = `/doctor/records/${params.patientId}/view/${params.recordId}`;
   const folderHref = `/doctor/records?patient=${params.patientId}&section=consultations`;
-  const canSave = isCheckup || clinical.chief_complaint.trim().length > 0;
+  const canSave = (isCheckup || clinical.chief_complaint.trim().length > 0) && canMutate;
   const scribeBlocksComplete = scribeUsed && !scribeResolved;
   const canComplete =
     canSave &&
@@ -217,7 +219,7 @@ export default function EditClinicalRecordPage() {
 
   const autosave = useConsultationAutosave({
     recordId: params.recordId,
-    enabled: !loading && isDraft && Boolean(user?.doctor?.id),
+    enabled: !loading && isDraft && Boolean(user?.doctor?.id) && canMutate,
     hasChanges,
     dirtySeq,
     buildPayload: () => buildSavePayload({ autosave: true, isDraft: true }),
@@ -741,7 +743,7 @@ export default function EditClinicalRecordPage() {
       <Button
         variant="outline"
         onClick={() => setConsentOpen(true)}
-        disabled={saving}
+        disabled={saving || !canMutate}
         className="flex-1 sm:flex-none"
       >
         <Mic className="mr-2 h-4 w-4" />
@@ -1171,6 +1173,7 @@ export default function EditClinicalRecordPage() {
                     urgency: referral.urgency,
                     specific_questions: referral.specific_questions,
                   }}
+                  disabled={!canMutate}
                 />
               </CardContent>
             </Card>
@@ -1192,6 +1195,7 @@ export default function EditClinicalRecordPage() {
                         setClinicalLetter(next);
                         markChanged();
                       }}
+                      disabled={!canMutate}
                     />
                   </CardContent>
                 </Card>

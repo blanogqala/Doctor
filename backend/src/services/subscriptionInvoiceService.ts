@@ -3,6 +3,7 @@ import {
   SubscriptionInvoiceStatus,
   SubscriptionPaymentMethod,
   SubscriptionStatus,
+  SubscriptionSuspensionReason,
 } from '@prisma/client';
 import { prisma } from '../config/database';
 import { ownerBillingUrl } from '../config/eftPayment';
@@ -14,6 +15,8 @@ import { AppError } from '../middleware/errorHandler';
 import { logAudit } from './auditService';
 import { sendSubscriptionInvoiceCreatedEmail } from './emailService';
 import { allocateNextInvoiceNumber } from './invoiceNumber';
+import { isPilotPendingActivation, type PilotProgramFields } from './pilotProgramService';
+import { lockPracticeRow } from './seatService';
 
 /** UTC calendar date at 00:00:00.000Z for the given Y-M-D parts. */
 function utcDateOnly(year: number, monthIndex: number, day: number): Date {
@@ -75,9 +78,19 @@ export function computeSubscriptionInvoiceDueAt(
 }
 
 export function isPracticeInvoiceEligible(
-  practice: { trialEndsAt: Date | null; subscriptionStatus: SubscriptionStatus },
+  practice: {
+    trialEndsAt: Date | null;
+    subscriptionStatus: SubscriptionStatus;
+  } & Partial<PilotProgramFields>,
   now = new Date()
 ): boolean {
+  if (isPilotPendingActivation({
+    pilotProgramGrantedAt: practice.pilotProgramGrantedAt ?? null,
+    pilotProgramStartsAt: practice.pilotProgramStartsAt ?? null,
+    pilotProgramEndsAt: practice.pilotProgramEndsAt ?? null,
+  })) {
+    return false;
+  }
   if (
     practice.subscriptionStatus !== SubscriptionStatus.TRIAL &&
     practice.subscriptionStatus !== SubscriptionStatus.ACTIVE &&
@@ -87,6 +100,71 @@ export function isPracticeInvoiceEligible(
   }
   if (!practice.trialEndsAt) return true;
   return now.getTime() >= practice.trialEndsAt.getTime();
+}
+
+type LockedPractice = {
+  id: string;
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionSuspensionReason: SubscriptionSuspensionReason | null;
+  subscriptionSuspendedAt: Date | null;
+};
+
+export type BillingRestrictionChange = {
+  applied: boolean;
+  practice: LockedPractice;
+};
+
+/**
+ * Apply BILLING_OVERDUE restriction if the Practice is eligible.
+ * Does not overwrite MANUAL / legacy / CANCELLED state.
+ */
+export async function applyBillingOverdueRestriction(
+  tx: Prisma.TransactionClient,
+  practice: LockedPractice,
+  now: Date
+): Promise<BillingRestrictionChange> {
+  if (practice.subscriptionStatus === SubscriptionStatus.CANCELLED) {
+    return { applied: false, practice };
+  }
+  if (practice.subscriptionStatus === SubscriptionStatus.SUSPENDED) {
+    if (practice.subscriptionSuspensionReason === SubscriptionSuspensionReason.BILLING_OVERDUE) {
+      return { applied: false, practice };
+    }
+    return { applied: false, practice };
+  }
+  if (
+    practice.subscriptionStatus !== SubscriptionStatus.ACTIVE &&
+    practice.subscriptionStatus !== SubscriptionStatus.TRIAL
+  ) {
+    return { applied: false, practice };
+  }
+
+  const updated = await tx.practice.update({
+    where: { id: practice.id },
+    data: {
+      subscriptionStatus: SubscriptionStatus.SUSPENDED,
+      subscriptionSuspensionReason: SubscriptionSuspensionReason.BILLING_OVERDUE,
+      subscriptionSuspendedAt: now,
+    },
+    select: {
+      id: true,
+      subscriptionStatus: true,
+      subscriptionSuspensionReason: true,
+      subscriptionSuspendedAt: true,
+    },
+  });
+  return { applied: true, practice: updated };
+}
+
+async function logBillingAuditSafe(
+  params: Parameters<typeof logAudit>[0],
+  label: string
+) {
+  try {
+    await logAudit(params);
+  } catch (err) {
+    console.error(`[billing] ${label} audit failed after committed state:`, err);
+  }
 }
 
 /**
@@ -157,6 +235,9 @@ export async function generateMonthlySubscriptionInvoices(options?: {
       trialEndsAt: true,
       subscriptionStatus: true,
       ownerProfileId: true,
+      pilotProgramGrantedAt: true,
+      pilotProgramStartsAt: true,
+      pilotProgramEndsAt: true,
       owner: { select: { email: true, fullName: true } },
     },
   });
@@ -298,11 +379,15 @@ export async function reportEftPayment(params: {
   invoiceId: string;
   actorId: string;
   paymentReference: string;
+  now?: Date;
 }) {
   const reference = params.paymentReference.trim();
   if (!reference) throw new AppError(400, 'Payment reference is required');
+  const now = params.now ?? new Date();
 
   const result = await prisma.$transaction(async (tx) => {
+    await lockPracticeRow(tx, params.practiceId);
+
     const current = await tx.practiceSubscriptionInvoice.findFirst({
       where: { id: params.invoiceId, practiceId: params.practiceId },
     });
@@ -313,8 +398,25 @@ export async function reportEftPayment(params: {
     if (current.status === SubscriptionInvoiceStatus.VOID) {
       throw new AppError(409, 'Invoice has been voided');
     }
+
+    const practice = await tx.practice.findFirst({
+      where: { id: params.practiceId },
+      select: {
+        id: true,
+        subscriptionStatus: true,
+        subscriptionSuspensionReason: true,
+        subscriptionSuspendedAt: true,
+      },
+    });
+    if (!practice) throw new AppError(404, 'Practice not found');
+
     if (current.status === SubscriptionInvoiceStatus.PAYMENT_REPORTED) {
-      return { invoice: current, alreadyReported: true as const };
+      return {
+        invoice: current,
+        alreadyReported: true as const,
+        restrictionApplied: false,
+        practice,
+      };
     }
     if (
       current.status !== SubscriptionInvoiceStatus.DUE &&
@@ -323,27 +425,65 @@ export async function reportEftPayment(params: {
       throw new AppError(409, 'Invoice cannot accept a payment report in its current state');
     }
 
+    const isLate =
+      current.status === SubscriptionInvoiceStatus.OVERDUE || current.dueAt.getTime() < now.getTime();
+
     const invoice = await tx.practiceSubscriptionInvoice.update({
       where: { id: current.id },
       data: {
         status: SubscriptionInvoiceStatus.PAYMENT_REPORTED,
-        paymentReportedAt: new Date(),
+        paymentReportedAt: now,
         paymentReference: reference,
         paymentMethod: SubscriptionPaymentMethod.EFT,
       },
     });
-    return { invoice, alreadyReported: false as const };
+
+    let restrictionApplied = false;
+    let nextPractice = practice;
+    if (isLate) {
+      const restriction = await applyBillingOverdueRestriction(tx, practice, now);
+      restrictionApplied = restriction.applied;
+      nextPractice = restriction.practice;
+    }
+
+    return {
+      invoice,
+      alreadyReported: false as const,
+      restrictionApplied,
+      practice: nextPractice,
+    };
   });
 
   if (!result.alreadyReported) {
-    await logAudit({
-      practiceId: params.practiceId,
-      actorId: params.actorId,
-      action: 'SUBSCRIPTION_PAYMENT_REPORTED',
-      resource: 'SUBSCRIPTION_INVOICE',
-      resourceId: result.invoice.id,
-      newValue: { paymentReference: reference, status: result.invoice.status },
-    });
+    await logBillingAuditSafe(
+      {
+        practiceId: params.practiceId,
+        actorId: params.actorId,
+        action: 'SUBSCRIPTION_PAYMENT_REPORTED',
+        resource: 'SUBSCRIPTION_INVOICE',
+        resourceId: result.invoice.id,
+        newValue: { paymentReference: reference, status: result.invoice.status },
+      },
+      'SUBSCRIPTION_PAYMENT_REPORTED'
+    );
+  }
+  if (result.restrictionApplied) {
+    await logBillingAuditSafe(
+      {
+        practiceId: params.practiceId,
+        actorId: params.actorId,
+        action: 'PRACTICE_BILLING_RESTRICTED',
+        resource: 'PRACTICE',
+        resourceId: params.practiceId,
+        newValue: {
+          invoiceId: result.invoice.id,
+          invoiceNumber: result.invoice.invoiceNumber,
+          subscriptionSuspensionReason: SubscriptionSuspensionReason.BILLING_OVERDUE,
+          suspendedAt: result.practice.subscriptionSuspendedAt?.toISOString() ?? now.toISOString(),
+        },
+      },
+      'PRACTICE_BILLING_RESTRICTED'
+    );
   }
 
   return result.invoice;
@@ -354,6 +494,14 @@ export async function verifySubscriptionPayment(params: {
   superAdminId: string;
 }) {
   const result = await prisma.$transaction(async (tx) => {
+    const preview = await tx.practiceSubscriptionInvoice.findUnique({
+      where: { id: params.invoiceId },
+      select: { practiceId: true },
+    });
+    if (!preview) throw new AppError(404, 'Invoice not found');
+
+    await lockPracticeRow(tx, preview.practiceId);
+
     const current = await tx.practiceSubscriptionInvoice.findUnique({
       where: { id: params.invoiceId },
       include: { practice: true },
@@ -366,6 +514,7 @@ export async function verifySubscriptionPayment(params: {
         previousStatus: current.practice.subscriptionStatus,
         nextStatus: current.practice.subscriptionStatus,
         remainsSuspended: current.practice.subscriptionStatus === SubscriptionStatus.SUSPENDED,
+        suspensionReason: current.practice.subscriptionSuspensionReason,
       };
     }
     if (current.status !== SubscriptionInvoiceStatus.PAYMENT_REPORTED) {
@@ -384,6 +533,7 @@ export async function verifySubscriptionPayment(params: {
 
     // Payment verification activates TRIAL → ACTIVE only.
     // SUSPENDED Practices remain SUSPENDED — Super Admin must explicitly reactivate.
+    // Do not clear subscriptionSuspensionReason / subscriptionSuspendedAt.
     let nextStatus = current.practice.subscriptionStatus;
     if (current.practice.subscriptionStatus === SubscriptionStatus.TRIAL) {
       nextStatus = SubscriptionStatus.ACTIVE;
@@ -402,23 +552,27 @@ export async function verifySubscriptionPayment(params: {
       previousStatus: current.practice.subscriptionStatus,
       nextStatus,
       remainsSuspended: current.practice.subscriptionStatus === SubscriptionStatus.SUSPENDED,
+      suspensionReason: current.practice.subscriptionSuspensionReason,
     };
   });
 
   if (!result.alreadyPaid) {
-    await logAudit({
-      practiceId: result.invoice.practiceId,
-      actorSuperAdminId: params.superAdminId,
-      action: 'SUBSCRIPTION_PAYMENT_VERIFIED',
-      resource: 'SUBSCRIPTION_INVOICE',
-      resourceId: result.invoice.id,
-      oldValue: { subscriptionStatus: result.previousStatus },
-      newValue: {
-        status: SubscriptionInvoiceStatus.PAID,
-        subscriptionStatus: result.nextStatus,
-        remainsSuspended: result.remainsSuspended,
+    await logBillingAuditSafe(
+      {
+        practiceId: result.invoice.practiceId,
+        actorSuperAdminId: params.superAdminId,
+        action: 'SUBSCRIPTION_PAYMENT_VERIFIED',
+        resource: 'SUBSCRIPTION_INVOICE',
+        resourceId: result.invoice.id,
+        oldValue: { subscriptionStatus: result.previousStatus },
+        newValue: {
+          status: SubscriptionInvoiceStatus.PAID,
+          subscriptionStatus: result.nextStatus,
+          remainsSuspended: result.remainsSuspended,
+        },
       },
-    });
+      'SUBSCRIPTION_PAYMENT_VERIFIED'
+    );
   }
 
   return {
@@ -427,28 +581,146 @@ export async function verifySubscriptionPayment(params: {
     remainsSuspended: result.remainsSuspended,
     previousStatus: result.previousStatus,
     nextStatus: result.nextStatus,
+    suspensionReason: result.suspensionReason,
   };
 }
 
 /**
- * Idempotent: mark past-due DUE invoices as OVERDUE.
- * Does not touch PAYMENT_REPORTED, PAID, or VOID.
- * overdue when now > dueAt (dueAt is end-of-due-day SAST).
+ * Mark past-due DUE invoices as OVERDUE and persist BILLING_OVERDUE restriction.
+ * Safety net: late PAYMENT_REPORTED invoices also receive restriction if missing.
  */
 export async function refreshOverdueSubscriptionInvoices(options?: {
   practiceId?: string;
   now?: Date;
-}): Promise<{ updatedCount: number }> {
+}): Promise<{ updatedCount: number; restrictedCount: number }> {
   const now = options?.now ?? new Date();
-  const result = await prisma.practiceSubscriptionInvoice.updateMany({
+  const practiceFilter = options?.practiceId ? { practiceId: options.practiceId } : {};
+
+  const candidates = await prisma.practiceSubscriptionInvoice.findMany({
     where: {
-      status: SubscriptionInvoiceStatus.DUE,
-      dueAt: { lt: now },
-      ...(options?.practiceId ? { practiceId: options.practiceId } : {}),
+      ...practiceFilter,
+      OR: [
+        { status: SubscriptionInvoiceStatus.DUE, dueAt: { lt: now } },
+        { status: SubscriptionInvoiceStatus.OVERDUE },
+        { status: SubscriptionInvoiceStatus.PAYMENT_REPORTED, dueAt: { lt: now } },
+      ],
     },
-    data: { status: SubscriptionInvoiceStatus.OVERDUE },
+    select: {
+      id: true,
+      practiceId: true,
+      status: true,
+      dueAt: true,
+      paymentReportedAt: true,
+    },
   });
-  return { updatedCount: result.count };
+
+  let updatedCount = 0;
+  let restrictedCount = 0;
+
+  for (const candidate of candidates) {
+    const outcome = await prisma.$transaction(async (tx) => {
+      await lockPracticeRow(tx, candidate.practiceId);
+
+      const invoice = await tx.practiceSubscriptionInvoice.findFirst({
+        where: { id: candidate.id, practiceId: candidate.practiceId },
+      });
+      if (!invoice) {
+        return { invoiceOverdue: false, restrictionApplied: false, invoice: null, practice: null };
+      }
+
+      const practice = await tx.practice.findFirst({
+        where: { id: candidate.practiceId },
+        select: {
+          id: true,
+          subscriptionStatus: true,
+          subscriptionSuspensionReason: true,
+          subscriptionSuspendedAt: true,
+        },
+      });
+      if (!practice) {
+        return { invoiceOverdue: false, restrictionApplied: false, invoice: null, practice: null };
+      }
+
+      let working = invoice;
+      let invoiceOverdue = false;
+      if (
+        invoice.status === SubscriptionInvoiceStatus.DUE &&
+        invoice.dueAt.getTime() < now.getTime()
+      ) {
+        working = await tx.practiceSubscriptionInvoice.update({
+          where: { id: invoice.id },
+          data: { status: SubscriptionInvoiceStatus.OVERDUE },
+        });
+        invoiceOverdue = true;
+      }
+
+      const lateReported =
+        working.status === SubscriptionInvoiceStatus.PAYMENT_REPORTED &&
+        working.paymentReportedAt != null &&
+        working.paymentReportedAt.getTime() > working.dueAt.getTime();
+
+      const shouldRestrict =
+        invoiceOverdue || lateReported || working.status === SubscriptionInvoiceStatus.OVERDUE;
+
+      let restrictionApplied = false;
+      let nextPractice = practice;
+      if (shouldRestrict) {
+        const restriction = await applyBillingOverdueRestriction(tx, practice, now);
+        restrictionApplied = restriction.applied;
+        nextPractice = restriction.practice;
+      }
+
+      return {
+        invoiceOverdue,
+        restrictionApplied,
+        invoice: working,
+        practice: nextPractice,
+        previousInvoiceStatus: invoice.status,
+      };
+    });
+
+    if (outcome.invoiceOverdue) updatedCount += 1;
+    if (outcome.restrictionApplied) restrictedCount += 1;
+
+    if (outcome.invoiceOverdue && outcome.invoice) {
+      await logBillingAuditSafe(
+        {
+          practiceId: outcome.invoice.practiceId,
+          action: 'SUBSCRIPTION_INVOICE_OVERDUE',
+          resource: 'SUBSCRIPTION_INVOICE',
+          resourceId: outcome.invoice.id,
+          oldValue: { previousStatus: outcome.previousInvoiceStatus },
+          newValue: {
+            invoiceId: outcome.invoice.id,
+            invoiceNumber: outcome.invoice.invoiceNumber,
+            dueAt: outcome.invoice.dueAt.toISOString(),
+            previousStatus: outcome.previousInvoiceStatus,
+            newStatus: outcome.invoice.status,
+          },
+        },
+        'SUBSCRIPTION_INVOICE_OVERDUE'
+      );
+    }
+    if (outcome.restrictionApplied && outcome.invoice && outcome.practice) {
+      await logBillingAuditSafe(
+        {
+          practiceId: outcome.practice.id,
+          action: 'PRACTICE_BILLING_RESTRICTED',
+          resource: 'PRACTICE',
+          resourceId: outcome.practice.id,
+          newValue: {
+            invoiceId: outcome.invoice.id,
+            invoiceNumber: outcome.invoice.invoiceNumber,
+            subscriptionSuspensionReason: SubscriptionSuspensionReason.BILLING_OVERDUE,
+            suspendedAt: outcome.practice.subscriptionSuspendedAt?.toISOString() ?? now.toISOString(),
+          },
+        },
+        'PRACTICE_BILLING_RESTRICTED'
+      );
+    }
+  }
+
+  return { updatedCount, restrictedCount };
 }
 
 /** @deprecated Prefer paidSubscriptionPeriodFromStart — kept for any residual callers. */

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,7 @@ export default function DoctorTelemedicinePage() {
   const router = useRouter();
   const { toast } = useToast();
   const { joinCall, joining } = useTelemedicineJoin();
+  const { canMutate, mutationHint } = usePracticeAccess();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [precallForId, setPrecallForId] = useState<string | null>(null);
@@ -128,7 +130,7 @@ export default function DoctorTelemedicinePage() {
               />
             </div>
           ) : (
-            <Button size="sm" disabled={joining} onClick={() => setPrecallForId(appt.id)}>
+            <Button size="sm" disabled={joining || !canMutate} title={!canMutate ? mutationHint : undefined} onClick={() => setPrecallForId(appt.id)}>
               {joining ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

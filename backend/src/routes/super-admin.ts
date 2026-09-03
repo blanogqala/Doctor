@@ -26,6 +26,7 @@ import {
   updateInquiryStatus,
 } from '../services/inquiryService';
 import {
+  applyRequestedSubscriptionStatus,
   createPracticeWithOwnerInvite,
   getPracticeWorkspace,
   getSaasDashboard,
@@ -34,7 +35,7 @@ import {
   listPracticesOperational,
 } from '../services/saasPracticeService';
 import { resolvePlanAgreement, assertPlanSeatLimit } from '../config/subscriptionPlans';
-import { assertSeatLimitNotBelowAllocated, getSeatUsage } from '../services/seatService';
+import { assertSeatLimitNotBelowAllocated, getSeatUsage, lockPracticeRow } from '../services/seatService';
 import { resendInvitation, revokeInvitation, serializeInvitation } from '../services/invitationService';
 import {
   generateMonthlySubscriptionInvoices,
@@ -248,94 +249,132 @@ router.patch(
   '/practices/:id',
   asyncHandler(async (req: Request, res: Response) => {
     const body = patchSchema.parse(req.body);
-    const practice = await prisma.practice.findFirst({
-      where: { id: req.params.id, softDeletedAt: null },
-    });
-    if (!practice) throw new AppError(404, 'Practice not found');
+    const now = new Date();
 
-    let nextPlan = practice.subscriptionPlan;
-    let nextSeats = practice.doctorSeatLimit;
-    let nextFee = practice.monthlyFeeCents;
-
-    if (body.subscription_plan && body.subscription_plan !== practice.subscriptionPlan) {
-      try {
-        const agreement = resolvePlanAgreement({
-          plan: body.subscription_plan,
-          doctorSeatLimit: body.doctor_seat_limit ?? undefined,
-          monthlyFeeCents: body.monthly_fee_cents ?? practice.monthlyFeeCents,
-        });
-        nextPlan = agreement.subscriptionPlan;
-        nextSeats = agreement.doctorSeatLimit;
-        nextFee = agreement.monthlyFeeCents;
-      } catch (err) {
-        throw new AppError(400, err instanceof Error ? err.message : 'Invalid plan configuration');
-      }
-    } else {
-      if (body.doctor_seat_limit != null) nextSeats = body.doctor_seat_limit;
-      if (body.monthly_fee_cents != null) nextFee = body.monthly_fee_cents;
-    }
-
-    try {
-      assertPlanSeatLimit(nextPlan, nextSeats);
-    } catch (err) {
-      throw new AppError(400, err instanceof Error ? err.message : 'Invalid seat configuration');
-    }
-
-    if (nextSeats !== practice.doctorSeatLimit) {
-      await assertSeatLimitNotBelowAllocated(prisma, practice.id, nextSeats);
-    }
-
-    const updated = await prisma.practice.update({
-      where: { id: practice.id },
-      data: {
-        subscriptionStatus: body.subscription_status,
-        trialEndsAt: body.trial_ends_at ? new Date(body.trial_ends_at) : undefined,
-        clinicName: body.clinic_name,
-        setupFeePaid: body.setup_fee_paid,
-        monthlyFeeCents: nextFee,
-        subscriptionPlan: nextPlan,
-        doctorSeatLimit: nextSeats,
-      },
-    });
-
-    if (body.verify_doctor_id) {
-      await prisma.doctor.updateMany({
-        where: { id: body.verify_doctor_id, practiceId: practice.id },
-        data: { isVerified: true },
+    const result = await prisma.$transaction(async (tx) => {
+      const practice = await tx.practice.findFirst({
+        where: { id: req.params.id, softDeletedAt: null },
       });
-    }
+      if (!practice) throw new AppError(404, 'Practice not found');
+
+      await lockPracticeRow(tx, practice.id);
+      const locked = await tx.practice.findFirst({
+        where: { id: practice.id, softDeletedAt: null },
+      });
+      if (!locked) throw new AppError(404, 'Practice not found');
+
+      let nextPlan = locked.subscriptionPlan;
+      let nextSeats = locked.doctorSeatLimit;
+      let nextFee = locked.monthlyFeeCents;
+
+      if (body.subscription_plan && body.subscription_plan !== locked.subscriptionPlan) {
+        try {
+          const agreement = resolvePlanAgreement({
+            plan: body.subscription_plan,
+            doctorSeatLimit: body.doctor_seat_limit ?? undefined,
+            monthlyFeeCents: body.monthly_fee_cents ?? locked.monthlyFeeCents,
+          });
+          nextPlan = agreement.subscriptionPlan;
+          nextSeats = agreement.doctorSeatLimit;
+          nextFee = agreement.monthlyFeeCents;
+        } catch (err) {
+          throw new AppError(400, err instanceof Error ? err.message : 'Invalid plan configuration');
+        }
+      } else {
+        if (body.doctor_seat_limit != null) nextSeats = body.doctor_seat_limit;
+        if (body.monthly_fee_cents != null) nextFee = body.monthly_fee_cents;
+      }
+
+      try {
+        assertPlanSeatLimit(nextPlan, nextSeats);
+      } catch (err) {
+        throw new AppError(400, err instanceof Error ? err.message : 'Invalid seat configuration');
+      }
+
+      if (nextSeats !== locked.doctorSeatLimit) {
+        await assertSeatLimitNotBelowAllocated(tx, locked.id, nextSeats);
+      }
+
+      let statusData = {};
+      let statusAuditAction: 'PRACTICE_SUSPENDED' | 'PRACTICE_REACTIVATED' | null = null;
+      let previousReason = locked.subscriptionSuspensionReason;
+      if (body.subscription_status) {
+        const transition = await applyRequestedSubscriptionStatus(
+          tx,
+          locked,
+          body.subscription_status,
+          now
+        );
+        statusData = transition.statusData;
+        statusAuditAction = transition.statusAuditAction;
+        previousReason = transition.previousReason;
+      }
+
+      const updated = await tx.practice.update({
+        where: { id: locked.id },
+        data: {
+          ...statusData,
+          trialEndsAt: body.trial_ends_at ? new Date(body.trial_ends_at) : undefined,
+          clinicName: body.clinic_name,
+          setupFeePaid: body.setup_fee_paid,
+          monthlyFeeCents: nextFee,
+          subscriptionPlan: nextPlan,
+          doctorSeatLimit: nextSeats,
+        },
+      });
+
+      if (body.verify_doctor_id) {
+        await tx.doctor.updateMany({
+          where: { id: body.verify_doctor_id, practiceId: locked.id },
+          data: { isVerified: true },
+        });
+      }
+
+      return {
+        locked,
+        updated,
+        nextPlan,
+        nextSeats,
+        statusAuditAction,
+        previousReason,
+      };
+    });
+
+    const { locked, updated, nextPlan, nextSeats, statusAuditAction, previousReason } = result;
 
     const auditAction =
-      body.subscription_status === SubscriptionStatus.SUSPENDED &&
-      practice.subscriptionStatus !== SubscriptionStatus.SUSPENDED
-        ? 'PRACTICE_SUSPENDED'
-        : body.subscription_status === SubscriptionStatus.ACTIVE &&
-            practice.subscriptionStatus === SubscriptionStatus.SUSPENDED
-          ? 'PRACTICE_REACTIVATED'
-          : nextPlan !== practice.subscriptionPlan
-            ? 'SUBSCRIPTION_PLAN_CHANGED'
-            : nextSeats !== practice.doctorSeatLimit
-              ? 'DOCTOR_SEAT_LIMIT_CHANGED'
-              : 'PRACTICE_UPDATED';
+      statusAuditAction ??
+      (nextPlan !== locked.subscriptionPlan
+        ? 'SUBSCRIPTION_PLAN_CHANGED'
+        : nextSeats !== locked.doctorSeatLimit
+          ? 'DOCTOR_SEAT_LIMIT_CHANGED'
+          : 'PRACTICE_UPDATED');
 
     await logAudit({
-      practiceId: practice.id,
+      practiceId: locked.id,
       actorSuperAdminId: req.superAdmin!.superAdminId,
       action: auditAction,
       resource: 'PRACTICE',
-      resourceId: practice.id,
+      resourceId: locked.id,
       oldValue: {
-        subscriptionStatus: practice.subscriptionStatus,
-        subscriptionPlan: practice.subscriptionPlan,
-        doctorSeatLimit: practice.doctorSeatLimit,
-        monthlyFeeCents: practice.monthlyFeeCents,
+        subscriptionStatus: locked.subscriptionStatus,
+        subscriptionSuspensionReason: previousReason,
+        subscriptionPlan: locked.subscriptionPlan,
+        doctorSeatLimit: locked.doctorSeatLimit,
+        monthlyFeeCents: locked.monthlyFeeCents,
       },
-      newValue: body as Record<string, unknown>,
+      newValue:
+        auditAction === 'PRACTICE_REACTIVATED'
+          ? {
+              subscriptionStatus: SubscriptionStatus.ACTIVE,
+              subscriptionSuspensionReason: null,
+            }
+          : (body as Record<string, unknown>),
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
     });
 
-    const seats = await getSeatUsage(prisma, practice.id);
+    const seats = await getSeatUsage(prisma, locked.id);
     res.json(toSnakeCase({ ...updated, seats }));
   })
 );
@@ -538,8 +577,10 @@ router.post(
         invoice,
         already_paid: result.alreadyPaid,
         remains_suspended: result.remainsSuspended,
+        subscription_status: result.nextStatus,
+        suspension_reason: result.suspensionReason,
         message: result.remainsSuspended
-          ? 'This Practice is suspended. Payment was verified, but reactivation requires a Super Admin action.'
+          ? 'Payment verified. Practice remains read-only until reactivated.'
           : undefined,
       })
     );

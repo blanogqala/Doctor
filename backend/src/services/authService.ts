@@ -10,6 +10,10 @@ import { revokeAllPracticeSessionsForProfile } from './sessionService';
 import { splitFullName } from '../utils/personName';
 import { assertPatientEmailAvailable } from './patientEmailUniqueness';
 import { createReceptionPatient } from './receptionPatientService';
+import {
+  derivePracticeAccess,
+  serializePracticeAccessForRole,
+} from './practiceAccessPolicy';
 
 const profileInclude = {
   doctor: true,
@@ -42,6 +46,10 @@ export async function buildAuthUser(profileId: string) {
           subscriptionStatus: profile.practice.subscriptionStatus,
           trialEndsAt: profile.practice.trialEndsAt,
           subscriptionEndsAt: profile.practice.subscriptionEndsAt,
+          access: serializePracticeAccessForRole(
+            derivePracticeAccess(profile.practice),
+            profile.role
+          ),
         }
       : null,
     isPracticeOwner: Boolean(

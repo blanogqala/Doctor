@@ -1,8 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
-import { SubscriptionStatus } from '@prisma/client';
+import {
+  SubscriptionStatus,
+  SubscriptionSuspensionReason,
+} from '@prisma/client';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { DEFAULT_RESERVED, resolveTenantSubdomainFromHostname } from '../utils/hostTenant';
+import {
+  blockedErrorCode,
+  blockedErrorMessage,
+  derivePracticeAccess,
+  isBillingRecoveryOrSecurityPath,
+  isPracticeAccessEnforcementSkip,
+  isReadOnlyAllowedMutation,
+  isSafeHttpMethod,
+  readOnlyErrorMessage,
+  requestPathname,
+  type PracticeAccessState,
+} from '../services/practiceAccessPolicy';
 
 export const RESERVED_SUBDOMAINS: ReadonlySet<string> = DEFAULT_RESERVED;
 
@@ -16,6 +31,10 @@ export interface PracticeContext {
   trialEndsAt: Date | null;
   subscriptionEndsAt: Date | null;
   monthlyFeeCents: number;
+  ownerProfileId: string | null;
+  subscriptionSuspensionReason: SubscriptionSuspensionReason | null;
+  subscriptionSuspendedAt: Date | null;
+  access: PracticeAccessState;
 }
 
 declare global {
@@ -57,34 +76,6 @@ export function extractSubdomain(req: Request): string | null {
   return fromHost ? normalizeSubdomain(fromHost) : null;
 }
 
-export function isTrialSubscriptionGateBlocked(
-  practice: Pick<PracticeContext, 'subscriptionStatus' | 'trialEndsAt'>,
-  now: Date = new Date()
-): boolean {
-  return (
-    practice.subscriptionStatus === SubscriptionStatus.TRIAL &&
-    practice.trialEndsAt != null &&
-    practice.trialEndsAt.getTime() < now.getTime()
-  );
-}
-
-export function isSubscriptionGateExempt(req: Request): boolean {
-  const path = req.path;
-  if (path.startsWith('/api/public') || path.startsWith('/api/invitations') || path.startsWith('/api/activations')) {
-    return true;
-  }
-  if (path === '/api/auth/login' || path === '/api/auth/forgot-password' || path === '/api/auth/reset-password') {
-    return true;
-  }
-  if (path === '/api/auth/me' || path === '/api/auth/logout') return true;
-  if (req.method === 'GET' && path === '/api/practice-management') return true;
-  if (req.method === 'GET' && path === '/api/practice-management/eft-instructions') return true;
-  if (req.method === 'POST' && /^\/api\/practice-management\/invoices\/[^/]+\/report-payment$/.test(path)) {
-    return true;
-  }
-  return false;
-}
-
 export async function detectTenant(req: Request, res: Response, next: NextFunction) {
   try {
     if (
@@ -113,24 +104,7 @@ export async function detectTenant(req: Request, res: Response, next: NextFuncti
       return res.status(404).json({ error: 'Practice not found', code: 'PRACTICE_NOT_FOUND' });
     }
 
-    if (!isSubscriptionGateExempt(req)) {
-      if (
-        practice.subscriptionStatus === SubscriptionStatus.SUSPENDED ||
-        practice.subscriptionStatus === SubscriptionStatus.CANCELLED
-      ) {
-        return res.status(403).json({
-          error: 'Subscription expired. Please contact support.',
-          code: 'SUBSCRIPTION_EXPIRED',
-        });
-      }
-
-      if (isTrialSubscriptionGateBlocked(practice)) {
-        return res.status(403).json({
-          error: 'Trial expired. Please subscribe to continue.',
-          code: 'TRIAL_EXPIRED',
-        });
-      }
-    }
+    const access = derivePracticeAccess(practice);
 
     req.practiceContext = {
       id: practice.id,
@@ -142,12 +116,62 @@ export async function detectTenant(req: Request, res: Response, next: NextFuncti
       trialEndsAt: practice.trialEndsAt,
       subscriptionEndsAt: practice.subscriptionEndsAt,
       monthlyFeeCents: practice.monthlyFeeCents,
+      ownerProfileId: practice.ownerProfileId,
+      subscriptionSuspensionReason: practice.subscriptionSuspensionReason,
+      subscriptionSuspendedAt: practice.subscriptionSuspendedAt,
+      access,
     };
 
     next();
   } catch (error) {
     next(error);
   }
+}
+
+/**
+ * Central Practice access enforcement. Must run after sessions + CSRF.
+ * detectTenant only resolves context; this middleware is the gate.
+ */
+export function enforcePracticeAccess(req: Request, res: Response, next: NextFunction) {
+  if (isPracticeAccessEnforcementSkip(req)) {
+    return next();
+  }
+
+  const practice = req.practiceContext;
+  if (!practice) {
+    return next();
+  }
+
+  const { mode, reason } = practice.access;
+  if (mode === 'FULL') {
+    return next();
+  }
+
+  const method = req.method;
+  const pathname = requestPathname(req);
+
+  if (mode === 'READ_ONLY') {
+    if (isSafeHttpMethod(method) || isReadOnlyAllowedMutation(method, pathname)) {
+      return next();
+    }
+    const role = req.user?.role;
+    return res.status(403).json({
+      error: readOnlyErrorMessage(role),
+      code: 'PRACTICE_READ_ONLY',
+      access_mode: 'READ_ONLY',
+    });
+  }
+
+  // BLOCKED: security/recovery only. No clinical GETs.
+  if (isBillingRecoveryOrSecurityPath(method, pathname)) {
+    return next();
+  }
+
+  return res.status(403).json({
+    error: blockedErrorMessage(reason),
+    code: blockedErrorCode(reason),
+    access_mode: 'BLOCKED',
+  });
 }
 
 export function requireTenant(req: Request, res: Response, next: NextFunction) {

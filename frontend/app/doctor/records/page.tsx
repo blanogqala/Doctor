@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { AppPage, Section } from '@/components/layout/app-page';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,7 @@ import { Calendar, FileText, Folder, Search } from 'lucide-react';
 
 export default function DoctorRecordsPage() {
   const { user } = useAuth();
+  const { canMutate } = usePracticeAccess();
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedPatientId = searchParams.get('patient');
@@ -207,11 +209,13 @@ export default function DoctorRecordsPage() {
           <PatientFolderHeader
             patient={selectedPatient}
             onBack={() => router.push('/doctor/records')}
-            onNewConsultation={() =>
-              router.push(`/doctor/records/${selectedPatient.id}/new`)
+            onNewConsultation={
+              canMutate
+                ? () => router.push(`/doctor/records/${selectedPatient.id}/new`)
+                : undefined
             }
             onBookFollowUp={
-              primaryBookParent ? () => setBookParent(primaryBookParent) : undefined
+              canMutate && primaryBookParent ? () => setBookParent(primaryBookParent) : undefined
             }
           />
 

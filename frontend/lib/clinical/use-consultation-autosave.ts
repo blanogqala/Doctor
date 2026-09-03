@@ -115,7 +115,14 @@ export function useConsultationAutosave({
       if (dirtySeqRef.current === seqAtStart) {
         onSavedRef.current?.(saved);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'PRACTICE_READ_ONLY') {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        pausedRef.current = true;
+        setPausedState(true);
+        setStatus('error');
+        return;
+      }
       setStatus('error');
     } finally {
       savingRef.current = false;

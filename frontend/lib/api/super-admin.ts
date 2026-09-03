@@ -6,7 +6,9 @@ const LEGACY_TOKEN_KEY = 'super_admin_token';
 export class SuperAdminApiError extends Error {
   constructor(
     message: string,
-    public status: number
+    public status: number,
+    public code?: string,
+    public data?: unknown
   ) {
     super(message);
     this.name = 'SuperAdminApiError';
@@ -66,9 +68,13 @@ async function saFetch<T = unknown>(
 
   if (!res.ok) {
     let message = 'Request failed';
+    let code: string | undefined;
+    let data: unknown;
     try {
       const body = await res.json();
       message = body.error || message;
+      code = body.code;
+      data = body;
     } catch {
       // ignore
     }
@@ -76,7 +82,7 @@ async function saFetch<T = unknown>(
       superAdminCsrf.clear();
       onUnauthorized?.();
     }
-    throw new SuperAdminApiError(message, res.status);
+    throw new SuperAdminApiError(message, res.status, code, data);
   }
 
   if (res.status === 204) return undefined as T;
@@ -146,6 +152,9 @@ export interface PracticeSummary {
   subdomain: string;
   clinic_name: string;
   subscription_status: string;
+  subscription_suspension_reason?: string | null;
+  subscription_suspended_at?: string | null;
+  access?: { mode: string; reason?: string | null; suspended_at?: string | null } | null;
   subscription_plan?: string;
   doctor_seat_limit?: number;
   trial_ends_at: string | null;
@@ -289,6 +298,20 @@ export interface SupportQueue {
   practices?: PracticeSummary[];
 }
 
+export const PAYMENT_VERIFIED_REMAINS_READONLY =
+  'Payment verified. Practice remains read-only until reactivated.';
+
+export function isBillingRestrictedPractice(p: {
+  subscription_status?: string;
+  subscription_suspension_reason?: string | null;
+  access?: { reason?: string | null } | null;
+}): boolean {
+  return (
+    p.subscription_status === 'SUSPENDED' &&
+    (p.access?.reason === 'BILLING_OVERDUE' || p.subscription_suspension_reason === 'BILLING_OVERDUE')
+  );
+}
+
 export const superAdminApi = {
   login: async (email: string, password: string) => {
     const data = await saFetch<{ csrf_token: string; user: SuperAdminUser }>(
@@ -420,6 +443,8 @@ export const superAdminApi = {
       invoice: SubscriptionInvoice;
       already_paid?: boolean;
       remains_suspended?: boolean;
+      subscription_status?: string;
+      suspension_reason?: string | null;
       message?: string;
     }>(`/api/super-admin/invoices/${id}/verify`, {
       method: 'POST',

@@ -1,9 +1,10 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { authApi } from '@/lib/api/auth';
 import { csrfStorage } from '@/lib/api';
 import type { AuthUser } from '@/lib/types';
+import { PRACTICE_ACCESS_CHANGED_EVENT, shouldRefreshPracticeAccessOnce } from '@/lib/practice-access';
 
 export interface AppSession {
   csrf_token: string;
@@ -24,6 +25,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<AppSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const accessRefreshInFlight = useRef(false);
+  const userRef = useRef<AuthUser | null>(null);
+  userRef.current = user;
 
   const hydrate = useCallback(async () => {
     try {
@@ -47,9 +51,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const refreshPracticeAccessOnce = useCallback(async () => {
+    if (!shouldRefreshPracticeAccessOnce({ inFlight: accessRefreshInFlight.current, user: userRef.current })) {
+      return;
+    }
+    accessRefreshInFlight.current = true;
+    try {
+      const { user: loadedUser, csrf_token } = await authApi.me();
+      if (!loadedUser) return;
+      setUser(loadedUser);
+      if (csrf_token) setSession({ csrf_token });
+    } catch {
+      // Keep the existing session. Do not log the user out on a mid-session restriction refresh.
+    } finally {
+      accessRefreshInFlight.current = false;
+    }
+  }, []);
+
   useEffect(() => {
     hydrate().finally(() => setLoading(false));
   }, [hydrate]);
+
+  useEffect(() => {
+    const onAccessChanged = () => {
+      void refreshPracticeAccessOnce();
+    };
+    window.addEventListener(PRACTICE_ACCESS_CHANGED_EVENT, onAccessChanged);
+    return () => window.removeEventListener(PRACTICE_ACCESS_CHANGED_EVENT, onAccessChanged);
+  }, [refreshPracticeAccessOnce]);
 
   const signIn = async (email: string, password: string) => {
     try {

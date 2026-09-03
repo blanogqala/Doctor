@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { superAdminApi, type SubscriptionInvoice } from '@/lib/api/super-admin';
+import {
+  PAYMENT_VERIFIED_REMAINS_READONLY,
+  superAdminApi,
+  type SubscriptionInvoice,
+} from '@/lib/api/super-admin';
 import { AppPage } from '@/components/layout/app-page';
 import { PageHeader } from '@/components/layout/page-header';
 import { MetricCard, MetricGrid } from '@/components/ds/cards';
@@ -101,8 +105,12 @@ export default function SuperAdminBillingPage() {
   const verify = async (id: string) => {
     setActingId(id);
     try {
-      await superAdminApi.verifyInvoice(id);
-      toast.success('Payment verified');
+      const result = await superAdminApi.verifyInvoice(id);
+      toast.success(
+        result.remains_suspended
+          ? result.message || PAYMENT_VERIFIED_REMAINS_READONLY
+          : 'Payment verified'
+      );
       await load({ silent: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Verify failed');

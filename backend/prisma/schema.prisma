@@ -154,6 +154,13 @@ enum SubscriptionPaymentMethod {
   @@map("subscription_payment_method")
 }
 
+enum SubscriptionSuspensionReason {
+  BILLING_OVERDUE
+  MANUAL
+
+  @@map("subscription_suspension_reason")
+}
+
 enum PatientRegistrationSource {
   SELF_REGISTERED
   RECEPTION_CREATED
@@ -192,6 +199,8 @@ model Practice {
   subscriptionStatus SubscriptionStatus @default(TRIAL) @map("subscription_status")
   trialEndsAt        DateTime?          @map("trial_ends_at")
   subscriptionEndsAt DateTime?          @map("subscription_ends_at")
+  subscriptionSuspensionReason SubscriptionSuspensionReason? @map("subscription_suspension_reason")
+  subscriptionSuspendedAt      DateTime?                     @map("subscription_suspended_at")
   pilotProgramGrantedAt DateTime?       @map("pilot_program_granted_at")
   pilotProgramStartsAt  DateTime?       @map("pilot_program_starts_at")
   pilotProgramEndsAt    DateTime?       @map("pilot_program_ends_at")

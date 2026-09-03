@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
+import {
+  PAYMENT_REPORTED_READONLY_COPY,
+  PAYMENT_VERIFIED_PENDING_REACTIVATION_COPY,
+} from '@/lib/practice-access';
 import { practiceManagementApi, type PracticeManagementSummary } from '@/lib/api/practice-management';
 import { planLabel } from '@/lib/subscription-plans';
 import { AppPage } from '@/components/layout/app-page';
@@ -59,6 +64,7 @@ function invoiceTone(status: string): StatusTone {
 export default function PracticeManagementPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { canMutate, isReadOnly } = usePracticeAccess();
   const [data, setData] = useState<PracticeManagementSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -284,7 +290,7 @@ export default function PracticeManagementPage() {
                       onChange={(e) => setDoctorInvite((f) => ({ ...f, hpcsa_number: e.target.value }))}
                     />
                   </div>
-                  <Button type="submit" disabled={acting === 'invite-doctor' || seats.available <= 0}>
+                  <Button type="submit" disabled={acting === 'invite-doctor' || seats.available <= 0 || !canMutate}>
                     {acting === 'invite-doctor' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Send invitation
                   </Button>
@@ -324,7 +330,7 @@ export default function PracticeManagementPage() {
                       required
                     />
                   </div>
-                  <Button type="submit" disabled={acting === 'invite-reception'}>
+                  <Button type="submit" disabled={acting === 'invite-reception' || !canMutate}>
                     {acting === 'invite-reception' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Send invitation
                   </Button>
@@ -362,7 +368,7 @@ export default function PracticeManagementPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            disabled={acting === `deactivate-${member.id}`}
+                            disabled={acting === `deactivate-${member.id}` || !canMutate}
                             onClick={() => deactivate(member.id)}
                           >
                             <UserMinus className="mr-1 h-3 w-3" />
@@ -409,7 +415,7 @@ export default function PracticeManagementPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                disabled={acting === `resend-${inv.id}`}
+                                disabled={acting === `resend-${inv.id}` || !canMutate}
                                 onClick={() => resend(inv.id)}
                               >
                                 <RefreshCw className="h-3 w-3" />
@@ -418,7 +424,7 @@ export default function PracticeManagementPage() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  disabled={acting === `revoke-${inv.id}`}
+                                  disabled={acting === `revoke-${inv.id}` || !canMutate}
                                   onClick={() => revoke(inv.id)}
                                 >
                                   Revoke
@@ -518,7 +524,15 @@ export default function PracticeManagementPage() {
           {currentInvoice?.status === 'PAYMENT_REPORTED' && (
             <Card>
               <CardContent className="py-6 text-sm text-muted-foreground">
-                Payment reported for {currentInvoice.invoice_number}. Awaiting Super Admin verification.
+                {PAYMENT_REPORTED_READONLY_COPY}
+              </CardContent>
+            </Card>
+          )}
+
+          {isReadOnly && invoices.some((i) => i.status === 'PAID') && currentInvoice?.status !== 'PAYMENT_REPORTED' && (
+            <Card>
+              <CardContent className="py-6 text-sm text-muted-foreground">
+                {PAYMENT_VERIFIED_PENDING_REACTIVATION_COPY}
               </CardContent>
             </Card>
           )}

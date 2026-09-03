@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ import {
 
 export default function ProfilePage() {
   const { user, refresh } = useAuth();
+  const { canMutate, mutationHint, isPatient } = usePracticeAccess();
   const { toast } = useToast();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -293,7 +295,7 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-            <Button onClick={handleSavePersonal} disabled={savingPersonal}>
+            <Button onClick={handleSavePersonal} disabled={savingPersonal || (isPatient && !canMutate)} title={isPatient && !canMutate ? mutationHint : undefined}>
               {savingPersonal ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -358,7 +360,7 @@ export default function ProfilePage() {
                 placeholder="Medications you are currently taking, including dosage and frequency..."
               />
             </div>
-            <Button onClick={handleSaveMedical} disabled={savingMedical}>
+            <Button onClick={handleSaveMedical} disabled={savingMedical || (isPatient && !canMutate)} title={isPatient && !canMutate ? mutationHint : undefined}>
               {savingMedical ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

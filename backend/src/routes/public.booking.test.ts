@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { SubscriptionStatus } from '@prisma/client';
+import { SubscriptionStatus, SubscriptionSuspensionReason } from '@prisma/client';
 import { isPublicBookingAvailable } from '../routes/public';
-import { isTrialSubscriptionGateBlocked } from '../middleware/tenant';
+import { derivePracticeAccess } from '../services/practiceAccessPolicy';
 import { PILOT_PROGRAM_DURATION_MS } from '../services/pilotProgramService';
 
 const now = new Date('2026-09-20T12:00:00.000Z');
@@ -14,42 +14,45 @@ describe('pending pilot access regression', () => {
       isPublicBookingAvailable({
         subscriptionStatus: SubscriptionStatus.TRIAL,
         trialEndsAt: unexpiredPlaceholderTrial,
+        ownerProfileId: null,
         now,
       })
     ).toBe(true);
   });
 
   it('2. pending pilot + expired placeholder trial → booking unavailable', () => {
-    // Pilot metadata is PENDING_ACTIVATION in DB; booking still keys off trialEndsAt only.
     expect(
       isPublicBookingAvailable({
         subscriptionStatus: SubscriptionStatus.TRIAL,
         trialEndsAt: expiredPlaceholderTrial,
+        ownerProfileId: null,
         now,
       })
     ).toBe(false);
   });
 
-  it('5. pending pilot does not bypass tenant subscription gate', () => {
+  it('5. pending pilot does not bypass access policy after placeholder expiry', () => {
     expect(
-      isTrialSubscriptionGateBlocked(
+      derivePracticeAccess(
         {
           subscriptionStatus: SubscriptionStatus.TRIAL,
           trialEndsAt: expiredPlaceholderTrial,
+          ownerProfileId: null,
         },
         now
       )
-    ).toBe(true);
+    ).toMatchObject({ mode: 'BLOCKED', reason: 'ONBOARDING_TRIAL_EXPIRED' });
 
     expect(
-      isTrialSubscriptionGateBlocked(
+      derivePracticeAccess(
         {
           subscriptionStatus: SubscriptionStatus.TRIAL,
           trialEndsAt: unexpiredPlaceholderTrial,
+          ownerProfileId: null,
         },
         now
       )
-    ).toBe(false);
+    ).toMatchObject({ mode: 'FULL' });
   });
 });
 
@@ -64,6 +67,7 @@ describe('active pilot booking via trialEndsAt', () => {
       isPublicBookingAvailable({
         subscriptionStatus: SubscriptionStatus.TRIAL,
         trialEndsAt: endsAt,
+        ownerProfileId: 'owner-1',
         now: new Date(startsAt.getTime() + 60_000),
       })
     ).toBe(true);
@@ -72,9 +76,10 @@ describe('active pilot booking via trialEndsAt', () => {
       isPublicBookingAvailable({
         subscriptionStatus: SubscriptionStatus.TRIAL,
         trialEndsAt: endsAt,
+        ownerProfileId: 'owner-1',
         now: new Date(endsAt.getTime() + 1),
       })
-    ).toBe(false);
+    ).toBe(true);
   });
 });
 
@@ -84,16 +89,53 @@ describe('isPublicBookingAvailable baseline', () => {
       isPublicBookingAvailable({
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         trialEndsAt: null,
+        ownerProfileId: 'owner-1',
         now,
       })
     ).toBe(true);
   });
 
-  it('blocks booking when standard trial expired without pilot', () => {
+  it('blocks booking when standard trial expired without owner', () => {
     expect(
       isPublicBookingAvailable({
         subscriptionStatus: SubscriptionStatus.TRIAL,
         trialEndsAt: expiredPlaceholderTrial,
+        ownerProfileId: null,
+        now,
+      })
+    ).toBe(false);
+  });
+
+  it('14. public booking remains available during activated Practice grace', () => {
+    expect(
+      isPublicBookingAvailable({
+        subscriptionStatus: SubscriptionStatus.TRIAL,
+        trialEndsAt: expiredPlaceholderTrial,
+        ownerProfileId: 'owner-1',
+        now,
+      })
+    ).toBe(true);
+  });
+
+  it('blocks booking when billing restricted', () => {
+    expect(
+      isPublicBookingAvailable({
+        subscriptionStatus: SubscriptionStatus.SUSPENDED,
+        trialEndsAt: expiredPlaceholderTrial,
+        ownerProfileId: 'owner-1',
+        subscriptionSuspensionReason: SubscriptionSuspensionReason.BILLING_OVERDUE,
+        now,
+      })
+    ).toBe(false);
+  });
+
+  it('blocks booking for manual suspension', () => {
+    expect(
+      isPublicBookingAvailable({
+        subscriptionStatus: SubscriptionStatus.SUSPENDED,
+        trialEndsAt: null,
+        ownerProfileId: 'owner-1',
+        subscriptionSuspensionReason: SubscriptionSuspensionReason.MANUAL,
         now,
       })
     ).toBe(false);

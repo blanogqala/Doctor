@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -165,6 +166,7 @@ export default function NewClinicalNotePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { canMutate, mutationHint } = usePracticeAccess();
   const { toast } = useToast();
 
   const [patient, setPatient] = useState<Patient | null>(null);
@@ -318,7 +320,7 @@ export default function NewClinicalNotePage() {
 
   const autosave = useConsultationAutosave({
     recordId: draftRecordId,
-    enabled: draftInitialized && Boolean(patient) && Boolean(user?.doctor?.id),
+    enabled: draftInitialized && Boolean(patient) && Boolean(user?.doctor?.id) && canMutate,
     hasChanges,
     dirtySeq,
     buildPayload: () => buildSavePayload({ autosave: true }),
@@ -765,7 +767,7 @@ export default function NewClinicalNotePage() {
   const patientAge = patient.date_of_birth
     ? `${Math.floor((Date.now() - new Date(patient.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} years`
     : '—';
-  const canSave = clinical.chief_complaint.trim().length > 0;
+  const canSave = clinical.chief_complaint.trim().length > 0 && canMutate;
   const scribeBlocksComplete = scribeUsed && !scribeResolved;
   const canComplete = canSave && !scribeBlocksComplete && scribePhase !== 'recording' && scribePhase !== 'processing';
 
@@ -819,7 +821,8 @@ export default function NewClinicalNotePage() {
       <Button
         variant="outline"
         onClick={() => setConsentOpen(true)}
-        disabled={saving}
+        disabled={saving || !canMutate}
+        title={!canMutate ? mutationHint : undefined}
         className="flex-1 sm:flex-none"
       >
         <Mic className="mr-2 h-4 w-4" />
@@ -1220,6 +1223,7 @@ export default function NewClinicalNotePage() {
                       urgency: referral.urgency,
                       specific_questions: referral.specific_questions,
                     }}
+                    disabled={!canMutate}
                   />
                 </SectionCard>
               </TabsContent>
@@ -1238,6 +1242,7 @@ export default function NewClinicalNotePage() {
                       setClinicalLetter(next);
                       markChanged();
                     }}
+                    disabled={!canMutate}
                   />
                 </SectionCard>
               </TabsContent>

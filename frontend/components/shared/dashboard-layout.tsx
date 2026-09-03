@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AlertTriangle, HeartPulse } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
@@ -10,6 +11,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { messagesApi } from '@/lib/api/misc';
 import { MESSAGES_UNREAD_CHANGED_EVENT } from '@/lib/messages-events';
 import { usePollingRefresh } from '@/lib/use-polling-refresh';
+import { dashboardRestrictionBanner } from '@/lib/practice-access';
 import {
   doctorNavItems,
   doctorNavigation,
@@ -170,20 +172,29 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         }}
         onSignOut={() => signOut()}
         unreadCount={unreadCount}
-        banner={
-          trialDaysLeft !== null ? (
+        banner={(() => {
+          const restriction = dashboardRestrictionBanner({ user, trialDaysLeft });
+          if (!restriction) return null;
+          return (
             <div
-              className="flex items-center gap-2 border-b border-warning/30 bg-warning-soft px-4 py-2 text-sm text-warning-foreground"
+              className="flex flex-col gap-2 border-b border-warning/30 bg-warning-soft px-4 py-2 text-sm text-warning-foreground sm:flex-row sm:items-center sm:gap-3"
               role="status"
             >
-              <AlertTriangle className="h-4 w-4 flex-shrink-0" aria-hidden />
-              <span>
-                Trial ends in {trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'}. Contact platform
-                support to activate your subscription.
-              </span>
+              <div className="flex min-w-0 items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />
+                <span className="min-w-0 break-words">{restriction.message}</span>
+              </div>
+              {restriction.showBillingLink ? (
+                <Link
+                  href="/doctor/practice-management"
+                  className="flex-shrink-0 font-medium underline underline-offset-2"
+                >
+                  Review billing
+                </Link>
+              ) : null}
             </div>
-          ) : null
-        }
+          );
+        })()}
       >
         {children}
       </AppShell>

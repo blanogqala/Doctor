@@ -353,6 +353,20 @@ export interface AuditLog {
   actor?: Profile;
 }
 
+export type PracticeAccessMode = 'FULL' | 'READ_ONLY' | 'BLOCKED';
+export type PracticeAccessReason =
+  | 'BILLING_OVERDUE'
+  | 'MANUAL_SUSPENSION'
+  | 'CANCELLED'
+  | 'ONBOARDING_TRIAL_EXPIRED'
+  | null;
+
+export interface PracticeAccessState {
+  mode: PracticeAccessMode;
+  reason?: PracticeAccessReason | null;
+  suspended_at?: string | null;
+}
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -367,6 +381,7 @@ export interface AuthUser {
     subscription_status: string;
     trial_ends_at: string | null;
     subscription_ends_at: string | null;
+    access?: PracticeAccessState | null;
   } | null;
   profile: Profile | null;
   doctor: Doctor | null;

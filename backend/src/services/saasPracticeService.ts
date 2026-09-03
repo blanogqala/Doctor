@@ -1,7 +1,10 @@
 import {
   InquiryStatus,
+  Prisma,
+  SubscriptionInvoiceStatus,
   SubscriptionPlan,
   SubscriptionStatus,
+  SubscriptionSuspensionReason,
   UserRole,
 } from '@prisma/client';
 import { prisma } from '../config/database';
@@ -12,6 +15,10 @@ import { logAudit } from './auditService';
 import { sendPracticeInvitationEmail } from './emailService';
 import { createInvitation, invitationStatus, serializeInvitation } from './invitationService';
 import { buildOnboardingChecklist } from './onboardingStatus';
+import {
+  derivePracticeAccess,
+  serializePracticeAccess,
+} from './practiceAccessPolicy';
 import { getSeatUsage, lockPracticeRow } from './seatService';
 import { updateInquiryStatus } from './inquiryService';
 import {
@@ -34,8 +41,10 @@ const SAAS_AUDIT_ACTIONS = new Set([
   'SUBSCRIPTION_PLAN_CHANGED',
   'DOCTOR_SEAT_LIMIT_CHANGED',
   'SUBSCRIPTION_INVOICE_CREATED',
+  'SUBSCRIPTION_INVOICE_OVERDUE',
   'SUBSCRIPTION_PAYMENT_REPORTED',
   'SUBSCRIPTION_PAYMENT_VERIFIED',
+  'PRACTICE_BILLING_RESTRICTED',
   'PRACTICE_SUSPENDED',
   'PRACTICE_REACTIVATED',
   'PRACTICE_UPDATED',
@@ -58,6 +67,116 @@ export interface CreatePracticeInput {
   superAdminId: string;
   ipAddress?: string | null;
   userAgent?: string | null;
+}
+
+export function practiceAccessPayload(practice: {
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionSuspensionReason?: SubscriptionSuspensionReason | null;
+  subscriptionSuspendedAt?: Date | null;
+  trialEndsAt: Date | null;
+  ownerProfileId: string | null;
+}) {
+  return serializePracticeAccess(derivePracticeAccess(practice));
+}
+
+export async function hasOutstandingSubscriptionPayment(
+  tx: Prisma.TransactionClient | typeof prisma,
+  practiceId: string,
+  now: Date
+): Promise<boolean> {
+  const blocking = await tx.practiceSubscriptionInvoice.findFirst({
+    where: {
+      practiceId,
+      OR: [
+        { status: SubscriptionInvoiceStatus.OVERDUE },
+        { status: SubscriptionInvoiceStatus.PAYMENT_REPORTED },
+        { status: SubscriptionInvoiceStatus.DUE, dueAt: { lt: now } },
+      ],
+    },
+    select: { id: true },
+  });
+  return Boolean(blocking);
+}
+
+export async function applyRequestedSubscriptionStatus(
+  tx: Prisma.TransactionClient,
+  practice: {
+    id: string;
+    subscriptionStatus: SubscriptionStatus;
+    subscriptionSuspensionReason: SubscriptionSuspensionReason | null;
+    subscriptionSuspendedAt: Date | null;
+  },
+  nextStatus: SubscriptionStatus,
+  now: Date
+): Promise<{
+  statusData: Prisma.PracticeUpdateInput;
+  statusAuditAction: 'PRACTICE_SUSPENDED' | 'PRACTICE_REACTIVATED' | null;
+  previousReason: SubscriptionSuspensionReason | null;
+}> {
+  if (nextStatus === SubscriptionStatus.SUSPENDED) {
+    if (practice.subscriptionStatus === SubscriptionStatus.SUSPENDED) {
+      return {
+        statusData: {},
+        statusAuditAction: null,
+        previousReason: practice.subscriptionSuspensionReason,
+      };
+    }
+    return {
+      statusData: {
+        subscriptionStatus: SubscriptionStatus.SUSPENDED,
+        subscriptionSuspensionReason: SubscriptionSuspensionReason.MANUAL,
+        subscriptionSuspendedAt: now,
+      },
+      statusAuditAction: 'PRACTICE_SUSPENDED',
+      previousReason: practice.subscriptionSuspensionReason,
+    };
+  }
+
+  if (nextStatus === SubscriptionStatus.ACTIVE) {
+    if (practice.subscriptionStatus === SubscriptionStatus.CANCELLED) {
+      throw new AppError(
+        409,
+        'A cancelled Practice cannot be reactivated through this workflow.',
+        'PRACTICE_CANCELLED'
+      );
+    }
+    if (practice.subscriptionStatus === SubscriptionStatus.SUSPENDED) {
+      if (await hasOutstandingSubscriptionPayment(tx, practice.id, now)) {
+        throw new AppError(
+          409,
+          'This Practice has an outstanding subscription payment. Verify payment before reactivating.',
+          'OUTSTANDING_SUBSCRIPTION_PAYMENT'
+        );
+      }
+      return {
+        statusData: {
+          subscriptionStatus: SubscriptionStatus.ACTIVE,
+          subscriptionSuspensionReason: null,
+          subscriptionSuspendedAt: null,
+        },
+        statusAuditAction: 'PRACTICE_REACTIVATED',
+        previousReason: practice.subscriptionSuspensionReason,
+      };
+    }
+    if (practice.subscriptionStatus === SubscriptionStatus.ACTIVE) {
+      return {
+        statusData: {},
+        statusAuditAction: null,
+        previousReason: practice.subscriptionSuspensionReason,
+      };
+    }
+    return {
+      statusData: { subscriptionStatus: SubscriptionStatus.ACTIVE },
+      statusAuditAction: null,
+      previousReason: practice.subscriptionSuspensionReason,
+    };
+  }
+
+  return {
+    statusData: { subscriptionStatus: nextStatus },
+    statusAuditAction: null,
+    previousReason: practice.subscriptionSuspensionReason,
+  };
 }
 
 export async function createPracticeWithOwnerInvite(input: CreatePracticeInput) {
@@ -391,6 +510,9 @@ export async function getPracticeWorkspace(practiceId: string) {
       monthlyFeeCents: practice.monthlyFeeCents,
       trialEndsAt: practice.trialEndsAt,
       subscriptionEndsAt: practice.subscriptionEndsAt,
+      subscriptionSuspensionReason: practice.subscriptionSuspensionReason,
+      subscriptionSuspendedAt: practice.subscriptionSuspendedAt,
+      access: practiceAccessPayload(practice),
       setupFeePaid: practice.setupFeePaid,
       createdAt: practice.createdAt,
       owner: practice.owner,
@@ -448,6 +570,7 @@ export async function listPracticesOperational(status?: SubscriptionStatus) {
         seats,
         onboarding,
         pilot_program: compactPilotProgramIndicator(practice),
+        access: practiceAccessPayload(practice),
       };
     })
   );
@@ -649,7 +772,16 @@ export async function getSupportQueue() {
     }),
     prisma.practice.findMany({
       where: { softDeletedAt: null, subscriptionStatus: SubscriptionStatus.SUSPENDED },
-      select: { id: true, clinicName: true, subdomain: true, subscriptionStatus: true },
+      select: {
+        id: true,
+        clinicName: true,
+        subdomain: true,
+        subscriptionStatus: true,
+        subscriptionSuspensionReason: true,
+        subscriptionSuspendedAt: true,
+        trialEndsAt: true,
+        ownerProfileId: true,
+      },
     }),
   ]);
 
@@ -695,6 +827,11 @@ export async function getSupportQueue() {
     };
   });
 
+  const suspendedWithAccess = suspended.map((p) => ({
+    ...p,
+    access: practiceAccessPayload(p),
+  }));
+
   return {
     generatedAt: now,
     trialEnding,
@@ -703,6 +840,6 @@ export async function getSupportQueue() {
     paymentReported,
     expiredOwnerInvites,
     unactivatedOwners,
-    suspended,
+    suspended: suspendedWithAccess,
   };
 }

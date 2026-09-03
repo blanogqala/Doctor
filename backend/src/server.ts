@@ -13,7 +13,7 @@ import { attachOptionalSessions } from './middleware/auth';
 import { csrfProtect } from './middleware/csrf';
 import { requestContext } from './middleware/requestContext';
 import { createRequestLogger } from './middleware/requestLogger';
-import { detectTenant, requireTenant } from './middleware/tenant';
+import { detectTenant, enforcePracticeAccess, requireTenant } from './middleware/tenant';
 import { isCorsAllowedOrigin } from './utils/browserOrigin';
 import authRoutes from './routes/auth';
 import patientRoutes from './routes/patients';
@@ -88,6 +88,7 @@ app.use('/health', healthRouter);
 app.use(detectTenant);
 app.use(attachOptionalSessions);
 app.use(csrfProtect);
+app.use(enforcePracticeAccess);
 
 app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/public', publicRoutes);

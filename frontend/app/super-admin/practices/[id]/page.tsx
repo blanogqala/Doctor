@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
+  PAYMENT_VERIFIED_REMAINS_READONLY,
+  SuperAdminApiError,
+  isBillingRestrictedPractice,
   superAdminApi,
   type PracticeWorkspace,
   type InvitationSummary,
@@ -179,16 +182,30 @@ export default function PracticeWorkspacePage() {
     try {
       const result = await superAdminApi.verifyInvoice(invoiceId);
       if (result.remains_suspended) {
-        toast.success(
-          result.message ||
-            'Payment verified. Practice remains suspended — reactivate explicitly if appropriate.'
-        );
+        toast.success(result.message || PAYMENT_VERIFIED_REMAINS_READONLY);
       } else {
         toast.success('Payment verified');
       }
       await load({ silent: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Verify failed');
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const reactivatePractice = async () => {
+    setActing('reactivate');
+    try {
+      await superAdminApi.updatePractice(practiceId, { subscription_status: 'ACTIVE' });
+      toast.success('Practice reactivated');
+      await load({ silent: true });
+    } catch (err) {
+      if (err instanceof SuperAdminApiError && err.code === 'OUTSTANDING_SUBSCRIPTION_PAYMENT') {
+        toast.error('Reactivation is blocked until the subscription payment is verified.');
+      } else {
+        toast.error(err instanceof Error ? err.message : 'Reactivation failed');
+      }
     } finally {
       setActing(null);
     }
@@ -308,10 +325,26 @@ export default function PracticeWorkspacePage() {
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <StatusBadge tone={subscriptionTone(practice.subscription_status)} label={practice.subscription_status} />
+        {practice.subscription_status === 'SUSPENDED' && (
+          <StatusBadge
+            tone={isBillingRestrictedPractice(practice) ? 'warning' : 'danger'}
+            label={isBillingRestrictedPractice(practice) ? 'Billing restricted' : 'Manually suspended'}
+          />
+        )}
         {practice.owner && (
           <span className="text-sm text-muted-foreground">
             Owner: {practice.owner.full_name} ({practice.owner.email})
           </span>
+        )}
+        {practice.subscription_status === 'SUSPENDED' && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={acting === 'reactivate'}
+            onClick={() => void reactivatePractice()}
+          >
+            Reactivate
+          </Button>
         )}
       </div>
 
@@ -474,18 +507,47 @@ export default function PracticeWorkspacePage() {
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Status</dt>
-                  <dd>
+                  <dd className="flex flex-wrap items-center gap-2">
                     <StatusBadge
                       tone={subscriptionTone(practice.subscription_status)}
                       label={practice.subscription_status}
                     />
+                    {practice.subscription_status === 'SUSPENDED' && (
+                      <StatusBadge
+                        tone={isBillingRestrictedPractice(practice) ? 'warning' : 'danger'}
+                        label={
+                          isBillingRestrictedPractice(practice)
+                            ? 'Billing restricted'
+                            : 'Manually suspended'
+                        }
+                      />
+                    )}
                   </dd>
                 </div>
+                {(practice.subscription_suspension_reason || practice.access?.reason) && (
+                  <div>
+                    <dt className="text-muted-foreground">Suspension reason</dt>
+                    <dd className="font-medium">
+                      {practice.subscription_suspension_reason || practice.access?.reason}
+                    </dd>
+                  </div>
+                )}
+                {(practice.subscription_suspended_at || practice.access?.suspended_at) && (
+                  <div>
+                    <dt className="text-muted-foreground">Suspended at</dt>
+                    <dd className="font-medium">
+                      {formatDate(practice.subscription_suspended_at || practice.access?.suspended_at || '')}
+                    </dd>
+                  </div>
+                )}
               </dl>
-              <p className="mt-4 text-xs text-muted-foreground">
-                Subscription status is changed only via Activate / Suspend / Reactivate on the Practices
-                list — not in this editor.
-              </p>
+              {practice.subscription_status === 'SUSPENDED' && (
+                <p className="mt-4 text-xs text-muted-foreground">
+                  {isBillingRestrictedPractice(practice)
+                    ? 'Billing restriction stays until Super Admin reactivates after a verified payment. Verification alone does not restore write access.'
+                    : 'Manually suspended Practices stay blocked until Super Admin reactivates them.'}
+                </p>
+              )}
             </CardContent>
           </Card>
 

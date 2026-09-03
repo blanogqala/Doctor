@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { SlotPicker } from '@/components/shared/slot-picker';
 import { useToast } from '@/hooks/use-toast';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { patientDisplayName } from '@/lib/patients/display-name';
 import { appointmentsApi } from '@/lib/api/appointments';
 import type { AppointmentType, Doctor, MedicalRecord, Patient } from '@/lib/types';
@@ -48,6 +49,7 @@ export function CheckUpBookingDialog({
   onBooked,
 }: CheckUpBookingDialogProps) {
   const { toast } = useToast();
+  const { canMutate, mutationHint } = usePracticeAccess();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     doctor_id: '',
@@ -233,7 +235,7 @@ export function CheckUpBookingDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={saving}>
+          <Button onClick={handleCreate} disabled={saving || !canMutate} title={!canMutate ? mutationHint : undefined}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create
           </Button>

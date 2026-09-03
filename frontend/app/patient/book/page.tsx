@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,7 @@ function canJoinTelemedicine(appt: Appointment) {
 
 export default function PatientBookPage() {
   const { user } = useAuth();
+  const { canMutate, mutationHint } = usePracticeAccess();
   const { toast } = useToast();
   const router = useRouter();
   const { session, livekit } = useTelemedicineSession();
@@ -333,7 +335,7 @@ export default function PatientBookPage() {
             <h1 className="text-2xl font-bold text-foreground">Book Appointment</h1>
             <p className="text-sm text-muted-foreground">Request a consultation with your doctor</p>
           </div>
-          <Button onClick={openCreate} disabled={loading}>
+          <Button onClick={openCreate} disabled={loading || !canMutate} title={!canMutate ? mutationHint : undefined}>
             <Plus className="mr-2 h-4 w-4" />
             Request Appointment
           </Button>
@@ -368,7 +370,7 @@ export default function PatientBookPage() {
                 title="No upcoming appointments"
                 description="Request your next consultation."
                 action={
-                  <Button onClick={openCreate}>
+                  <Button onClick={openCreate} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}>
                     <Plus className="mr-2 h-4 w-4" />
                     Request Appointment
                   </Button>
@@ -477,6 +479,8 @@ export default function PatientBookPage() {
                                 e.stopPropagation();
                                 setCancelAppt(appt);
                               }}
+                              disabled={!canMutate}
+                              title={!canMutate ? mutationHint : undefined}
                               aria-label="Delete appointment"
                               className="text-destructive hover:text-destructive"
                             >
@@ -489,7 +493,8 @@ export default function PatientBookPage() {
                         <div className="flex flex-wrap gap-2 border-t pt-3">
                           <Button
                             size="sm"
-                            disabled={actingId === appt.id}
+                            disabled={actingId === appt.id || !canMutate}
+                            title={!canMutate ? mutationHint : undefined}
                             onClick={(e) => {
                               e.stopPropagation();
                               decideTelemedicine(appt.id, 'ACCEPTED_VIDEO');
@@ -505,7 +510,8 @@ export default function PatientBookPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            disabled={actingId === appt.id}
+                            disabled={actingId === appt.id || !canMutate}
+                            title={!canMutate ? mutationHint : undefined}
                             onClick={(e) => {
                               e.stopPropagation();
                               decideTelemedicine(appt.id, 'SWITCHED_IN_PERSON');
@@ -520,7 +526,8 @@ export default function PatientBookPage() {
                         <div className="flex flex-wrap gap-2 border-t pt-3">
                           <Button
                             size="sm"
-                            disabled={joiningId === appt.id || inCall}
+                            disabled={joiningId === appt.id || inCall || !canMutate}
+                            title={!canMutate ? mutationHint : undefined}
                             onClick={(e) => {
                               e.stopPropagation();
                               void joinVideoCall(appt);
@@ -655,7 +662,7 @@ export default function PatientBookPage() {
               </div>
               <div className="mt-6 flex justify-end gap-2">
                 <Button variant="outline" onClick={() => { setCreateOpen(false); setEditAppt(null); }}>Cancel</Button>
-                <Button onClick={editAppt ? handleUpdate : handleCreate} disabled={saving}>
+                <Button onClick={editAppt ? handleUpdate : handleCreate} disabled={saving || !canMutate} title={!canMutate ? mutationHint : undefined}>
                   {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {editAppt ? 'Reschedule' : 'Submit Request'}
                 </Button>

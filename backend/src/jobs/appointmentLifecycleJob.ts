@@ -5,11 +5,20 @@ import {
   notifyAppointmentNoShow,
   notifyAppointmentReminder,
 } from '../services/messageService';
+import { isPracticeAccessFull } from '../services/practiceAccessPolicy';
 import { writeStructuredLog } from '../middleware/requestLogger';
 
 const INTERVAL_MS = 60_000;
 const REMINDER_WINDOW_MS = 30 * 60_000;
 const LIFECYCLE_ADVISORY_LOCK_KEY = 860_502;
+
+const PRACTICE_ACCESS_SELECT = {
+  subscriptionStatus: true,
+  subscriptionSuspensionReason: true,
+  subscriptionSuspendedAt: true,
+  trialEndsAt: true,
+  ownerProfileId: true,
+} as const;
 
 let timer: ReturnType<typeof setInterval> | null = null;
 let running = false;
@@ -33,6 +42,20 @@ async function releaseLifecycleLock(): Promise<void> {
   }
 }
 
+function practiceIsFull(
+  practice: {
+    subscriptionStatus: import('@prisma/client').SubscriptionStatus;
+    subscriptionSuspensionReason: import('@prisma/client').SubscriptionSuspensionReason | null;
+    subscriptionSuspendedAt: Date | null;
+    trialEndsAt: Date | null;
+    ownerProfileId: string | null;
+  } | null,
+  now: Date
+): boolean {
+  if (!practice) return false;
+  return isPracticeAccessFull(practice, now);
+}
+
 /**
  * Claim reminder slot, deliver, roll back claim on failure so retries stay safe.
  * Never leaves reminderSentAt set when delivery did not succeed.
@@ -50,11 +73,16 @@ async function processReminders(now: Date) {
         lte: windowEnd,
       },
     },
-    select: { id: true },
+    select: {
+      id: true,
+      practice: { select: PRACTICE_ACCESS_SELECT },
+    },
   });
 
   for (const appt of due) {
     try {
+      if (!practiceIsFull(appt.practice, now)) continue;
+
       const claimed = await prisma.appointment.updateMany({
         where: { id: appt.id, reminderSentAt: null },
         data: { reminderSentAt: now },
@@ -83,11 +111,16 @@ async function processNoShows(now: Date) {
       status: { in: ACTIVE_BOOKING_STATUSES },
       scheduledAt: { lte: now },
     },
-    select: { id: true },
+    select: {
+      id: true,
+      practice: { select: PRACTICE_ACCESS_SELECT },
+    },
   });
 
   for (const appt of expired) {
     try {
+      if (!practiceIsFull(appt.practice, now)) continue;
+
       const updated = await prisma.appointment.updateMany({
         where: {
           id: appt.id,

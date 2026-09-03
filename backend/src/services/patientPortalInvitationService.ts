@@ -8,6 +8,7 @@ import { joinPersonName } from '../utils/personName';
 import { logAudit } from './auditService';
 import { assertPatientEmailAvailable } from './patientEmailUniqueness';
 import { createPracticeSession } from './sessionService';
+import { assertPatientActivationAllowed } from './practiceAccessPolicy';
 
 /** Invitation lifetime — matches legacy PatientActivationToken TTL. */
 export const PATIENT_PORTAL_INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -115,13 +116,24 @@ export async function sendPatientPortalInvitation(params: {
   };
 }
 
+const PRACTICE_ACCESS_SELECT = {
+  id: true,
+  clinicName: true,
+  subdomain: true,
+  subscriptionStatus: true,
+  subscriptionSuspensionReason: true,
+  subscriptionSuspendedAt: true,
+  trialEndsAt: true,
+  ownerProfileId: true,
+} as const;
+
 export async function findPortalInvitationByToken(token: string) {
   if (!token || token.length < 16) return null;
   return prisma.patientPortalInvitation.findUnique({
     where: { tokenHash: hashToken(token) },
     include: {
       patient: true,
-      practice: { select: { id: true, clinicName: true, subdomain: true } },
+      practice: { select: PRACTICE_ACCESS_SELECT },
     },
   });
 }
@@ -143,6 +155,7 @@ export async function validatePortalInvitationToken(token: string) {
   if (record.patient.portalStatus === PatientPortalStatus.ACTIVE && record.patient.profileId) {
     throw new AppError(400, 'This account is already activated');
   }
+  assertPatientActivationAllowed(record.practice);
 
   return {
     email: record.email,
@@ -170,7 +183,7 @@ export async function acceptPortalInvitation(params: {
   const result = await prisma.$transaction(async (tx) => {
     const record = await tx.patientPortalInvitation.findUnique({
       where: { tokenHash },
-      include: { patient: true, practice: { select: { id: true, subdomain: true } } },
+      include: { patient: true, practice: { select: PRACTICE_ACCESS_SELECT } },
     });
 
     if (
@@ -186,6 +199,8 @@ export async function acceptPortalInvitation(params: {
     if (params.practiceId && record.practiceId !== params.practiceId) {
       throw new AppError(403, 'Activation token does not match this Practice');
     }
+
+    assertPatientActivationAllowed(record.practice);
 
     if (record.patient.profileId && record.patient.portalStatus === PatientPortalStatus.ACTIVE) {
       throw new AppError(400, 'This account is already activated');

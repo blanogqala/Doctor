@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ const POLL_MS = 5_000;
 
 export function MessagesView() {
   const { user } = useAuth();
+  const { canMutate, mutationHint } = usePracticeAccess();
   const { toast } = useToast();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -409,7 +411,7 @@ export function MessagesView() {
                         (e.preventDefault(), handleSend())
                       }
                     />
-                    <Button onClick={handleSend} disabled={!messageText.trim()} size="icon">
+                    <Button onClick={handleSend} disabled={!messageText.trim() || !canMutate} title={!canMutate ? mutationHint : undefined} size="icon">
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
@@ -431,7 +433,7 @@ export function MessagesView() {
       {isPatient && (
         <Button
           onClick={handleContactAdmin}
-          disabled={startingAdmin}
+          disabled={startingAdmin || !canMutate}
           className="fixed bottom-6 right-6 z-40 h-14 gap-2 rounded-full px-5 shadow-lg md:bottom-8 md:right-8"
           size="lg"
         >

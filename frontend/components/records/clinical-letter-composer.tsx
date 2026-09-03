@@ -36,6 +36,7 @@ interface ClinicalLetterComposerProps {
   diagnosisText?: string | null;
   value: ClinicalLetterSaveState;
   onChange: (next: ClinicalLetterSaveState) => void;
+  disabled?: boolean;
 }
 
 export function ClinicalLetterComposer({
@@ -47,6 +48,7 @@ export function ClinicalLetterComposer({
   diagnosisText,
   value,
   onChange,
+  disabled = false,
 }: ClinicalLetterComposerProps) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
@@ -235,7 +237,7 @@ export function ClinicalLetterComposer({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" onClick={() => void handleGenerate()} disabled={generating || !canGenerate}>
+        <Button type="button" onClick={() => void handleGenerate()} disabled={generating || !canGenerate || disabled}>
           {generating ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -252,7 +254,7 @@ export function ClinicalLetterComposer({
           type="button"
           variant="secondary"
           onClick={handleApprove}
-          disabled={!letter.trim() || approved}
+          disabled={!letter.trim() || approved || disabled}
         >
           Approve document
         </Button>

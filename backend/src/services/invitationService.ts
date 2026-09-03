@@ -15,6 +15,7 @@ import {
   assertDoctorSeatAvailable,
   lockPracticeRow,
 } from './seatService';
+import { assertInvitationAcceptanceAllowed } from './practiceAccessPolicy';
 
 export const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -183,6 +184,9 @@ export async function findInvitationByToken(token: string) {
           clinicName: true,
           subdomain: true,
           subscriptionStatus: true,
+          subscriptionSuspensionReason: true,
+          subscriptionSuspendedAt: true,
+          trialEndsAt: true,
           doctorSeatLimit: true,
           ownerProfileId: true,
           softDeletedAt: true,
@@ -204,6 +208,7 @@ export async function validateInvitationToken(token: string) {
   if (invitation.practice.subscriptionStatus === SubscriptionStatus.CANCELLED) {
     throw new AppError(409, 'This Practice is cancelled', 'PRACTICE_CANCELLED');
   }
+  assertInvitationAcceptanceAllowed(invitation.practice, invitation.isPracticeOwner);
   return invitation;
 }
 
@@ -229,6 +234,7 @@ export async function acceptInvitation(token: string, password: string) {
     if (practice.subscriptionStatus === SubscriptionStatus.CANCELLED) {
       throw new AppError(409, 'This Practice is cancelled', 'PRACTICE_CANCELLED');
     }
+    assertInvitationAcceptanceAllowed(practice, invitation.isPracticeOwner);
 
     const status = invitationStatus(invitation);
     if (status === 'ACCEPTED') throw new AppError(409, 'Invitation already accepted', 'INVITATION_ACCEPTED');

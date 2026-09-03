@@ -11,6 +11,9 @@ export interface PracticeManagementSummary {
     doctor_seat_limit: number;
     monthly_fee_cents: number;
     trial_ends_at: string | null;
+    subscription_suspension_reason?: string | null;
+    subscription_suspended_at?: string | null;
+    access?: { mode: string; reason?: string | null; suspended_at?: string | null } | null;
     owner?: { id: string; full_name: string; email: string } | null;
   };
   seats: SeatUsage;

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,6 +80,7 @@ interface DayInfo {
 
 export default function AdminAppointmentsPage() {
   const { user } = useAuth();
+  const { canMutate, mutationHint } = usePracticeAccess();
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -366,7 +368,7 @@ export default function AdminAppointmentsPage() {
           </div>
           <div className="flex items-center gap-2">
             <ViewToggle view={viewMode} onChange={setViewMode} />
-            <Button onClick={openCreate}>
+            <Button onClick={openCreate} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}>
               <Plus className="mr-2 h-4 w-4" />
               New Appointment
             </Button>
@@ -495,7 +497,7 @@ export default function AdminAppointmentsPage() {
                       icon={<CalendarDays className="h-10 w-10" />}
                       title="No appointments"
                       description={`No appointments on ${selectedDate ? formatDate(selectedDate) : 'this date'}.`}
-                      action={<Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Book one for this day</Button>}
+                      action={<Button onClick={openCreate} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}><Plus className="mr-2 h-4 w-4" />Book one for this day</Button>}
                     />
                   ) : (
                     <div className="rounded-lg border divide-y">
@@ -534,14 +536,14 @@ export default function AdminAppointmentsPage() {
                               <AppointmentTypeBadge type={appt.type} />
                             </div>
                             <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(appt)} aria-label="Edit">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(appt)} disabled={!canMutate} title={!canMutate ? mutationHint : undefined} aria-label="Edit">
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
                               {canArrive(appt.status) && (
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => setArrivedAppt(appt)}>
+                                      <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => setArrivedAppt(appt)} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}>
                                         <LogIn className="h-3 w-3" /> Arrived
                                       </Button>
                                     </TooltipTrigger>
@@ -551,7 +553,7 @@ export default function AdminAppointmentsPage() {
                               )}
                               
                               {canArrive(appt.status) && (
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => setCancelAppt(appt)} aria-label="Cancel">
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => setCancelAppt(appt)} disabled={!canMutate} title={!canMutate ? mutationHint : undefined} aria-label="Cancel">
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               )}
@@ -575,7 +577,7 @@ export default function AdminAppointmentsPage() {
                 icon={<CalendarDays className="h-10 w-10" />}
                 title="No appointments"
                 description="No appointments match the current filter."
-                action={<Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />New Appointment</Button>}
+                action={<Button onClick={openCreate} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}><Plus className="mr-2 h-4 w-4" />New Appointment</Button>}
               />
             ) : (
               groupedAppointments.map((month) => (
@@ -630,7 +632,7 @@ export default function AdminAppointmentsPage() {
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => setArrivedAppt(appt)}>
+                                          <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => setArrivedAppt(appt)} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}>
                                             <LogIn className="h-3 w-3" /> Arrived
                                           </Button>
                                         </TooltipTrigger>
@@ -638,11 +640,11 @@ export default function AdminAppointmentsPage() {
                                       </Tooltip>
                                     </TooltipProvider>
                                   )}
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(appt)} aria-label="Edit">
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(appt)} disabled={!canMutate} title={!canMutate ? mutationHint : undefined} aria-label="Edit">
                                     <Pencil className="h-3.5 w-3.5" />
                                   </Button>
                                   {canArrive(appt.status) && (
-                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => setCancelAppt(appt)} aria-label="Cancel">
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => setCancelAppt(appt)} disabled={!canMutate} title={!canMutate ? mutationHint : undefined} aria-label="Cancel">
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
@@ -745,7 +747,7 @@ export default function AdminAppointmentsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setCreateOpen(false); setEditAppt(null); }}>Cancel</Button>
-            <Button onClick={editAppt ? handleUpdate : handleCreate} disabled={saving}>
+            <Button onClick={editAppt ? handleUpdate : handleCreate} disabled={saving || !canMutate} title={!canMutate ? mutationHint : undefined}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editAppt ? 'Update' : 'Create'}
             </Button>

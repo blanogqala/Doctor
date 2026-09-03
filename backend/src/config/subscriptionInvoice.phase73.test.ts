@@ -54,6 +54,39 @@ describe('subscription invoice periods', () => {
       )
     ).toBe(false);
   });
+
+  it('10. PENDING_ACTIVATION Pilot is not invoice eligible after placeholder expiry', () => {
+    expect(
+      isPracticeInvoiceEligible(
+        {
+          trialEndsAt: new Date('2026-09-01T00:00:00.000Z'),
+          subscriptionStatus: SubscriptionStatus.TRIAL,
+          pilotProgramGrantedAt: new Date('2026-08-20T00:00:00.000Z'),
+          pilotProgramStartsAt: null,
+          pilotProgramEndsAt: null,
+        },
+        new Date('2026-09-20T00:00:00.000Z')
+      )
+    ).toBe(false);
+  });
+
+  it('9. active 30-day Pilot is not invoice eligible before pilot end', () => {
+    const granted = new Date('2026-09-01T00:00:00.000Z');
+    const starts = new Date('2026-09-02T00:00:00.000Z');
+    const ends = new Date('2026-10-02T00:00:00.000Z');
+    expect(
+      isPracticeInvoiceEligible(
+        {
+          trialEndsAt: ends,
+          subscriptionStatus: SubscriptionStatus.TRIAL,
+          pilotProgramGrantedAt: granted,
+          pilotProgramStartsAt: starts,
+          pilotProgramEndsAt: ends,
+        },
+        new Date('2026-09-15T00:00:00.000Z')
+      )
+    ).toBe(false);
+  });
 });
 
 describe('ownerBillingUrl', () => {

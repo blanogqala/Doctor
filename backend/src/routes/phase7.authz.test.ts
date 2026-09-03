@@ -37,10 +37,14 @@ describe('Phase 7 route authZ (source contract)', () => {
   });
 
   it('exempts invitations and auth reset from subscription gate', () => {
+    const policySource = fs.readFileSync(
+      path.join(__dirname, '../services/practiceAccessPolicy.ts'),
+      'utf8'
+    );
     expect(tenantSource).toMatch(/invitations/);
-    expect(tenantSource).toMatch(/activations/);
-    expect(tenantSource).toMatch(/forgot-password/);
-    expect(tenantSource).toMatch(/reset-password/);
-    expect(tenantSource).toMatch(/practice-management/);
+    expect(policySource).toMatch(/activations/);
+    expect(policySource).toMatch(/forgot-password/);
+    expect(policySource).toMatch(/reset-password/);
+    expect(policySource).toMatch(/practice-management/);
   });
 });

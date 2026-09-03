@@ -35,6 +35,7 @@ import { formatDate, formatTime, maskIdNumber } from '@/lib/format';
 import { patientDisplayName, patientEmail } from '@/lib/patients/display-name';
 import { filterPatients, originBadgeLabel, portalBadgeLabel, type OriginFilter, type PortalFilter } from '@/lib/patients/filters';
 import { PortalInviteActions } from '@/components/patients/portal-invite-actions';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import type { Patient, Doctor, MedicalRecord } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -46,6 +47,7 @@ import { AppointmentStatusBadge, AppointmentTypeBadge } from '@/components/share
 
 export default function AdminPatientsPage() {
   const { toast } = useToast();
+  const { canMutate, mutationHint } = usePracticeAccess();
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedPatientId = searchParams.get('patient');
@@ -491,7 +493,7 @@ export default function AdminPatientsPage() {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => { setCreateOpen(false); setEditPatient(null); }}>Cancel</Button>
-          <Button onClick={editPatient ? handleUpdate : handleCreate}>{editPatient ? 'Update' : 'Register'}</Button>
+          <Button onClick={editPatient ? handleUpdate : handleCreate} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}>{editPatient ? 'Update' : 'Register'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -588,13 +590,15 @@ export default function AdminPatientsPage() {
                     onInvite={() => sendPortalInvite(selectedPatient, false)}
                     onResend={() => sendPortalInvite(selectedPatient, true)}
                   />
-                  <Button onClick={() => openEdit(selectedPatient)}>
+                  <Button onClick={() => openEdit(selectedPatient)} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}>
                     Edit Information
                   </Button>
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => setDeletePatient(selectedPatient)}
+                    disabled={!canMutate}
+                    title={!canMutate ? mutationHint : undefined}
                     aria-label="Archive patient"
                     className="text-destructive hover:text-destructive"
                   >
@@ -793,7 +797,7 @@ export default function AdminPatientsPage() {
           title="Patients"
           description="Patient folders — open a folder to manage registration details"
           actions={
-            <Button onClick={openCreate}>
+            <Button onClick={openCreate} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}>
               <Plus className="mr-2 h-4 w-4" />
               Register Patient
             </Button>
@@ -845,7 +849,7 @@ export default function AdminPatientsPage() {
             description={search ? 'No patients match your search.' : 'Register a new patient to get started.'}
             action={
               !search ? (
-                <Button onClick={openCreate}>
+                <Button onClick={openCreate} disabled={!canMutate} title={!canMutate ? mutationHint : undefined}>
                   <Plus className="mr-2 h-4 w-4" />
                   Register Patient
                 </Button>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,6 +62,7 @@ function emptyWeek(weekStart: Date): WeekDayState[] {
 
 export default function AdminSettingsPage() {
   const { user, refresh } = useAuth();
+  const { canMutate } = usePracticeAccess();
   const { practice, refresh: refreshTenant, logoSrc } = useTenant();
   const { toast } = useToast();
   const [fullName, setFullName] = useState(user?.profile?.full_name ?? '');
@@ -499,12 +501,12 @@ export default function AdminSettingsPage() {
                     type="file"
                     accept="image/png,image/jpeg,image/webp,image/gif"
                     onChange={(e) => handleLogoUpload(e.target.files?.[0] ?? null)}
-                    disabled={uploadingLogo}
+                    disabled={uploadingLogo || !canMutate}
                     className="max-w-xs"
                   />
                 </div>
               </Field>
-              <Button onClick={handleSaveBrand} loading={savingBrand}>
+              <Button onClick={handleSaveBrand} loading={savingBrand} disabled={!canMutate}>
                 <Palette className="h-4 w-4" />
                 Save branding
               </Button>
@@ -669,7 +671,7 @@ export default function AdminSettingsPage() {
                 <Plus className="h-4 w-4" />
                 Add service
               </Button>
-              <Button onClick={handleSaveServices} loading={savingServices}>
+              <Button onClick={handleSaveServices} loading={savingServices} disabled={!canMutate}>
                 <Save className="h-4 w-4" />
                 Save services
               </Button>
@@ -791,7 +793,7 @@ export default function AdminSettingsPage() {
                 />
               </div>
             </div>
-            <Button onClick={handleSavePublicProfile} disabled={savingProfile}>
+            <Button onClick={handleSavePublicProfile} disabled={savingProfile || !canMutate}>
               <MapPin className="mr-2 h-4 w-4" />
               {savingProfile ? 'Saving…' : 'Save public profile'}
             </Button>
@@ -882,11 +884,11 @@ export default function AdminSettingsPage() {
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/gif"
                   onChange={(e) => handleDoctorPhotoUpload(e.target.files?.[0] ?? null)}
-                  disabled={uploadingPhoto}
+                  disabled={uploadingPhoto || !canMutate}
                 />
               </div>
             </div>
-            <Button onClick={handleSaveDoctorProfile} disabled={savingDoctorProfile}>
+            <Button onClick={handleSaveDoctorProfile} disabled={savingDoctorProfile || !canMutate}>
               <Save className="mr-2 h-4 w-4" />
               {savingDoctorProfile ? 'Saving…' : 'Save doctor profile'}
             </Button>
@@ -992,7 +994,7 @@ export default function AdminSettingsPage() {
               </div>
             )}
 
-            <Button onClick={saveWeek} disabled={savingWeek || !doctorId || loadingWeek}>
+            <Button onClick={saveWeek} disabled={savingWeek || !doctorId || loadingWeek || !canMutate}>
               <Save className="mr-2 h-4 w-4" />
               {savingWeek ? 'Saving week…' : 'Save week availability'}
             </Button>
@@ -1020,7 +1022,7 @@ export default function AdminSettingsPage() {
                   <Label htmlFor="phone">Phone</Label>
                   <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+27 82 123 4567" />
                 </div>
-                <Button onClick={handleSave} disabled={saving}>
+                <Button onClick={handleSave} disabled={saving || !canMutate}>
                   <Save className="mr-2 h-4 w-4" />
                   {saving ? 'Saving...' : 'Save Changes'}
                 </Button>

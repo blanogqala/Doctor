@@ -8,6 +8,7 @@ import { appointmentsApi } from '@/lib/api/appointments';
 import { telemedicineApi } from '@/lib/api/telemedicine';
 import { useTelemedicineSession } from '@/lib/telemedicine-session-context';
 import { useTelemedicineJoin } from '@/hooks/useTelemedicineJoin';
+import { usePracticeAccess } from '@/lib/use-practice-access';
 import { useToast } from '@/hooks/use-toast';
 import { usePollingRefresh } from '@/lib/use-polling-refresh';
 import type { Appointment } from '@/lib/types';
@@ -34,6 +35,7 @@ export function CheckupTelemedicinePanel({
   const { toast } = useToast();
   const { session, livekit } = useTelemedicineSession();
   const { joinCall, joining } = useTelemedicineJoin();
+  const { canMutate, mutationHint } = usePracticeAccess();
   const [liveAppt, setLiveAppt] = useState(appointment);
   const [precallDone, setPrecallDone] = useState(false);
   const [providerOk, setProviderOk] = useState<boolean | null>(null);
@@ -110,7 +112,7 @@ export function CheckupTelemedicinePanel({
 
       {!inCall && precallDone && (
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => void handleJoin()} disabled={joining}>
+          <Button onClick={() => void handleJoin()} disabled={joining || !canMutate} title={!canMutate ? mutationHint : undefined}>
             {joining ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (

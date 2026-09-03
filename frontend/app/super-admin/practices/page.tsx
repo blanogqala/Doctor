@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
+  SuperAdminApiError,
+  isBillingRestrictedPractice,
   superAdminApi,
   type PracticeSummary,
 } from '@/lib/api/super-admin';
@@ -59,6 +61,14 @@ function subscriptionBadges(p: PracticeSummary) {
       label: p.subscription_status,
     },
   ];
+  if (p.subscription_status === 'SUSPENDED') {
+    const billing = isBillingRestrictedPractice(p);
+    badges.push({
+      key: 'suspension',
+      tone: billing ? 'warning' : 'danger',
+      label: billing ? 'Billing restricted' : 'Manually suspended',
+    } as (typeof badges)[number]);
+  }
   const pilotLabel = p.pilot_program?.status
     ? pilotProgramBadgeLabel(p.pilot_program.status)
     : '';
@@ -101,7 +111,11 @@ export default function SuperAdminPracticesPage() {
       await superAdminApi.updatePractice(id, { subscription_status });
       await load({ silent: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Update failed');
+      if (err instanceof SuperAdminApiError && err.code === 'OUTSTANDING_SUBSCRIPTION_PAYMENT') {
+        setError('Reactivation is blocked until the subscription payment is verified.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Update failed');
+      }
     } finally {
       setActingId(null);
     }
@@ -109,7 +123,7 @@ export default function SuperAdminPracticesPage() {
 
   const actionsFor = (p: PracticeSummary) => {
     const busy = actingId === p.id;
-    const isActive = p.subscription_status === 'ACTIVE';
+    const isActive = p.subscription_status === 'ACTIVE' || p.subscription_status === 'TRIAL';
     const isSuspended = p.subscription_status === 'SUSPENDED';
     return (
       <div className="flex flex-wrap gap-2">
@@ -119,7 +133,19 @@ export default function SuperAdminPracticesPage() {
             Workspace
           </Link>
         </Button>
-        {!isActive && (
+        {isSuspended && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            loading={busy}
+            className="min-h-10"
+            onClick={() => setStatus(p.id, 'ACTIVE')}
+          >
+            Reactivate
+          </Button>
+        )}
+        {p.subscription_status === 'TRIAL' && (
           <Button
             size="sm"
             variant="outline"
@@ -131,7 +157,7 @@ export default function SuperAdminPracticesPage() {
             Activate
           </Button>
         )}
-        {!isSuspended && (
+        {isActive && (
           <Button
             size="sm"
             variant="ghost"

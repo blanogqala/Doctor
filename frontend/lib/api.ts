@@ -1,4 +1,6 @@
 import { hostTenantOptionsFromEnv, resolveApiTenantSubdomain } from './hostTenant';
+import { notifyPracticeAccessChanged } from './practice-access';
+import { toast } from 'sonner';
 
 /**
  * API origin for credentialed fetches.
@@ -75,6 +77,22 @@ function csrfHeader(): Record<string, string> {
   return csrf ? { 'X-CSRF-Token': csrf } : {};
 }
 
+let lastReadOnlyToastAt = 0;
+
+function notePracticeReadOnly(code: string | undefined, message: string, data: unknown) {
+  if (code !== 'PRACTICE_READ_ONLY') return;
+  const accessMode =
+    data && typeof data === 'object' && 'access_mode' in data
+      ? String((data as { access_mode?: string }).access_mode)
+      : 'READ_ONLY';
+  notifyPracticeAccessChanged({ code, access_mode: accessMode });
+  const now = Date.now();
+  if (now - lastReadOnlyToastAt > 4000) {
+    lastReadOnlyToastAt = now;
+    toast.error(message);
+  }
+}
+
 export async function apiFetch<T = unknown>(
   endpoint: string,
   options: RequestInit = {}
@@ -105,6 +123,7 @@ export async function apiFetch<T = unknown>(
     } catch {
       // ignore
     }
+    notePracticeReadOnly(code, message, data);
     throw new ApiError(message, res.status, code, data);
   }
 
@@ -148,6 +167,7 @@ export async function apiFormFetch<T = unknown>(
     } catch {
       // ignore
     }
+    notePracticeReadOnly(code, message, data);
     throw new ApiError(message, res.status, code, data);
   }
 
