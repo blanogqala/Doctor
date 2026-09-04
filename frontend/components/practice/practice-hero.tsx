@@ -1,13 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { CheckCircle2, ChevronLeft, ChevronRight, MapPin, Phone, Stethoscope, Star } from 'lucide-react';
+import { CheckCircle2, MapPin, Phone, Stethoscope, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { absoluteApiUrl, type PracticeInfo } from '@/lib/tenant';
 import { phoneToTelHref } from './practice-defaults';
-import { useDoctorSlide } from './use-doctor-slide';
 import { PracticeLogo } from '@/components/practice/practice-logo';
 import { DoctorPhoto } from '@/components/practice/doctor-photo';
+import {
+  DoctorCarouselControls,
+  DOCTOR_CAROUSEL_FRAME_CLASS,
+  doctorCarouselInteractionProps,
+} from './doctor-carousel-controls';
+import type { DoctorSlide } from './use-doctor-slide';
 
 interface PracticeHeroProps {
   practice: PracticeInfo;
@@ -16,6 +22,7 @@ interface PracticeHeroProps {
   isLoggedIn: boolean;
   hasSlots: boolean;
   bookingAvailable?: boolean;
+  doctorSlide: DoctorSlide;
 }
 
 export function PracticeHero({
@@ -25,8 +32,9 @@ export function PracticeHero({
   isLoggedIn,
   hasSlots,
   bookingAvailable = true,
+  doctorSlide,
 }: PracticeHeroProps) {
-  const { doctor, goPrev, goNext, showControls } = useDoctorSlide(practice.doctors);
+  const { doctor, showControls } = doctorSlide;
   const photoSrc = absoluteApiUrl(doctor?.photo_url);
   const tel = phoneToTelHref(practice.phone);
   const locationLabel = [practice.city, practice.province].filter(Boolean).join(', ');
@@ -131,45 +139,41 @@ export function PracticeHero({
         </div>
 
         <div className="relative mx-auto w-full min-w-0 max-w-md lg:mx-0 lg:justify-self-end">
-          <div className="relative overflow-hidden rounded-2xl bg-white shadow-lg shadow-slate-200/80 ring-1 ring-slate-100">
-            <DoctorPhoto
-              src={photoSrc}
-              alt={doctor?.full_name || 'Doctor'}
-              className="h-[360px] w-full object-cover sm:h-[400px]"
-              fallback={
-                <div className="flex h-[360px] w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-primary to-primary/80 text-white sm:h-[400px]">
-                  <Stethoscope className="h-14 w-14 opacity-90 sm:h-16 sm:w-16" />
-                  <p className="text-lg font-semibold">{doctor?.full_name || 'Your doctor'}</p>
-                </div>
-              }
+          <div
+            className={cn(
+              'relative overflow-hidden rounded-2xl bg-white shadow-lg',
+              DOCTOR_CAROUSEL_FRAME_CLASS
+            )}
+            {...doctorCarouselInteractionProps(doctorSlide, 'hero')}
+          >
+            <div
+              key={doctor?.id ?? 'none'}
+              className={cn(showControls && 'animate-fade-in motion-reduce:animate-none')}
+            >
+              <DoctorPhoto
+                src={photoSrc}
+                alt={doctor?.full_name || 'Doctor'}
+                className="h-[360px] w-full object-cover sm:h-[400px]"
+                fallback={
+                  <div className="flex h-[360px] w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-primary to-primary/80 text-white sm:h-[400px]">
+                    <Stethoscope className="h-14 w-14 opacity-90 sm:h-16 sm:w-16" />
+                    <p className="text-lg font-semibold">{doctor?.full_name || 'Your doctor'}</p>
+                  </div>
+                }
+              />
+            </div>
+
+            <DoctorCarouselControls
+              doctors={practice.doctors}
+              index={doctorSlide.index}
+              showControls={showControls}
+              goPrev={doctorSlide.goPrev}
+              goNext={doctorSlide.goNext}
+              goTo={doctorSlide.goTo}
+              dotsPosition="top"
             />
 
-            {showControls && (
-              <>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  className="absolute left-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-white/95 shadow-md"
-                  onClick={goPrev}
-                  aria-label="Previous doctor"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  className="absolute right-3 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full bg-white/95 shadow-md"
-                  onClick={goNext}
-                  aria-label="Next doctor"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-              </>
-            )}
-
-            <div className="absolute inset-x-3 bottom-3 rounded-xl border border-slate-100 bg-white/95 p-3 shadow-md backdrop-blur-sm sm:inset-x-4 sm:bottom-4 sm:p-4">
+            <div className="absolute inset-x-3 bottom-3 z-10 rounded-xl border border-slate-100 bg-white/95 p-3 shadow-md backdrop-blur-sm sm:inset-x-4 sm:bottom-4 sm:p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                 <span
                   className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${

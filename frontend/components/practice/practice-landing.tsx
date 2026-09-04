@@ -16,6 +16,7 @@ import { PracticeTestimonials } from './practice-testimonials';
 import { PracticeFaq } from './practice-faq';
 import { PracticeFinalCta } from './practice-final-cta';
 import { PracticeFooter } from './practice-footer';
+import { useDoctorSlide } from './use-doctor-slide';
 
 export function PracticeLanding() {
   const { user } = useAuth();
@@ -26,6 +27,7 @@ export function PracticeLanding() {
   const bookingAvailable = practice?.booking_available !== false;
   const bookHref = user ? '/dashboard' : '/register';
   const primaryDoctor = practice?.doctors[0];
+  const doctorSlide = useDoctorSlide(practice?.doctors ?? [], { autoplayMs: 7000 });
 
   useEffect(() => {
     if (!practice) return;
@@ -109,6 +111,7 @@ export function PracticeLanding() {
           isLoggedIn={!!user}
           hasSlots={hasSlots}
           bookingAvailable={bookingAvailable}
+          doctorSlide={doctorSlide}
         />
         <PracticeQuickBookBar
           slots={slots}
@@ -120,7 +123,7 @@ export function PracticeLanding() {
           services={practice.landing_services}
           intro={practice.services_intro}
         />
-        <PracticeAbout doctors={practice.doctors} />
+        <PracticeAbout doctorSlide={doctorSlide} />
         {/* <PracticeFees doctor={primaryDoctor} bookHref={bookHref} /> */}
         <PracticeLocation practice={practice} />
         {/* <PracticeTestimonials /> */}

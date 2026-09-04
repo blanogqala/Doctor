@@ -1,18 +1,23 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, GraduationCap, Stethoscope } from 'lucide-react';
+import { GraduationCap, Stethoscope } from 'lucide-react';
 import { SectionReveal } from '@/components/marketing/section-reveal';
-import { Button } from '@/components/ui/button';
-import { absoluteApiUrl, type PracticeDoctorSummary } from '@/lib/tenant';
-import { useDoctorSlide } from './use-doctor-slide';
+import { cn } from '@/lib/utils';
+import { absoluteApiUrl } from '@/lib/tenant';
 import { DoctorPhoto } from '@/components/practice/doctor-photo';
+import {
+  DoctorCarouselControls,
+  DOCTOR_CAROUSEL_FRAME_CLASS,
+  doctorCarouselInteractionProps,
+} from './doctor-carousel-controls';
+import type { DoctorSlide } from './use-doctor-slide';
 
 interface PracticeAboutProps {
-  doctors: PracticeDoctorSummary[];
+  doctorSlide: DoctorSlide;
 }
 
-export function PracticeAbout({ doctors }: PracticeAboutProps) {
-  const { doctor, goPrev, goNext, showControls } = useDoctorSlide(doctors);
+export function PracticeAbout({ doctorSlide }: PracticeAboutProps) {
+  const { doctor, showControls } = doctorSlide;
 
   if (!doctor) return null;
 
@@ -31,41 +36,37 @@ export function PracticeAbout({ doctors }: PracticeAboutProps) {
     <section id="about" className="scroll-mt-16 bg-gradient-to-br from-primary/40 via-slate-50/50 to-primary/30 py-16 sm:py-20 border-b-2 border-primary">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center">
         <SectionReveal className="min-w-0">
-          <div className="relative overflow-hidden rounded-2xl shadow-md ring-1 ring-slate-100">
-            <DoctorPhoto
-              src={photoSrc}
-              alt={doctor.full_name}
-              className="aspect-square max-h-[400px] w-full object-cover"
-              fallback={
-                <div className="flex aspect-square max-h-[400px] w-full items-center justify-center bg-gradient-to-br from-primary to-primary/80 text-white">
-                  <Stethoscope className="h-16 w-16 opacity-90 sm:h-20 sm:w-20" />
-                </div>
-              }
-            />
-            {showControls && (
-              <>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  className="absolute left-3 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-white/95 shadow-md"
-                  onClick={goPrev}
-                  aria-label="Previous doctor"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  className="absolute right-3 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-white/95 shadow-md"
-                  onClick={goNext}
-                  aria-label="Next doctor"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-              </>
+          <div
+            className={cn(
+              'relative overflow-hidden rounded-2xl shadow-md',
+              DOCTOR_CAROUSEL_FRAME_CLASS
             )}
+            {...doctorCarouselInteractionProps(doctorSlide, 'about')}
+          >
+            <div
+              key={doctor.id}
+              className={cn(showControls && 'animate-fade-in motion-reduce:animate-none')}
+            >
+              <DoctorPhoto
+                src={photoSrc}
+                alt={doctor.full_name}
+                className="aspect-square max-h-[400px] w-full object-cover"
+                fallback={
+                  <div className="flex aspect-square max-h-[400px] w-full items-center justify-center bg-gradient-to-br from-primary to-primary/80 text-white">
+                    <Stethoscope className="h-16 w-16 opacity-90 sm:h-20 sm:w-20" />
+                  </div>
+                }
+              />
+            </div>
+            <DoctorCarouselControls
+              doctors={doctorSlide.doctors}
+              index={doctorSlide.index}
+              showControls={showControls}
+              goPrev={doctorSlide.goPrev}
+              goNext={doctorSlide.goNext}
+              goTo={doctorSlide.goTo}
+              dotsPosition="bottom"
+            />
           </div>
         </SectionReveal>
 
