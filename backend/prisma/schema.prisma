@@ -212,7 +212,7 @@ model Practice {
   pilotProgramStartsAt  DateTime?       @map("pilot_program_starts_at")
   pilotProgramEndsAt    DateTime?       @map("pilot_program_ends_at")
   setupFeePaid       Boolean            @default(false) @map("setup_fee_paid")
-  monthlyFeeCents    Int                @default(80000) @map("monthly_fee_cents")
+  monthlyFeeCents    Int                @default(99900) @map("monthly_fee_cents")
   subscriptionPlan   SubscriptionPlan   @default(SOLO) @map("subscription_plan")
   doctorSeatLimit    Int                @default(1) @map("doctor_seat_limit")
   clinicalChartAccessMode ClinicalChartAccessMode @default(ASSIGNED_DOCTOR_ONLY) @map("clinical_chart_access_mode")

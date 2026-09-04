@@ -90,7 +90,7 @@ async function main() {
     const pricing = await page.evaluate(() => document.body.innerText);
     record(
       'Pricing canonical',
-      /R800/.test(pricing) && /R1,800/.test(pricing) && /R3,500/.test(pricing) && /Custom/.test(pricing)
+      /R999/.test(pricing) && /R2,499/.test(pricing) && /R4,499/.test(pricing) && /Custom/.test(pricing)
         ? 'PASS'
         : 'FAIL'
     );

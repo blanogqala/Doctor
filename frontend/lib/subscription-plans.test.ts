@@ -5,6 +5,7 @@ import {
   planLabel,
   resolveInquiryPlanPrefill,
   formatInterestedPlanDisplay,
+  formatPlanPrice,
 } from './subscription-plans';
 
 describe('subscription plan config', () => {
@@ -15,8 +16,21 @@ describe('subscription plan config', () => {
       'CLINIC',
       'ENTERPRISE',
     ]);
-    expect(SUBSCRIPTION_PLANS[0].monthlyFeeCents).toBe(80_000);
+    expect(SUBSCRIPTION_PLANS[0].monthlyFeeCents).toBe(99_900);
+    expect(SUBSCRIPTION_PLANS[1].monthlyFeeCents).toBe(249_900);
+    expect(SUBSCRIPTION_PLANS[2].monthlyFeeCents).toBe(449_900);
+    expect(SUBSCRIPTION_PLANS[3].monthlyFeeCents).toBeNull();
+    expect(SUBSCRIPTION_PLANS[0].doctorSeatLimit).toBe(1);
     expect(SUBSCRIPTION_PLANS[1].doctorSeatLimit).toBe(3);
+    expect(SUBSCRIPTION_PLANS[2].doctorSeatLimit).toBe(5);
+    expect(SUBSCRIPTION_PLANS[3].doctorSeatLimit).toBe(6);
+  });
+
+  it('formats catalogue prices for marketing', () => {
+    expect(formatPlanPrice('SOLO')).toEqual({ price: 'R999', period: '/month' });
+    expect(formatPlanPrice('SMALL_PRACTICE')).toEqual({ price: 'R2,499', period: '/month' });
+    expect(formatPlanPrice('CLINIC')).toEqual({ price: 'R4,499', period: '/month' });
+    expect(formatPlanPrice('ENTERPRISE')).toEqual({ price: 'Custom', period: '' });
   });
 
   it('maps legacy inquiry types to subscription plans', () => {

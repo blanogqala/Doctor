@@ -16,7 +16,7 @@ export const SUBSCRIPTION_PLAN_DEFAULTS: Record<SubscriptionPlan, SubscriptionPl
     label: 'Solo',
     description: '1 Doctor',
     doctorSeatLimit: 1,
-    monthlyFeeCents: 80_000,
+    monthlyFeeCents: 99_900,
     minSeats: 1,
     maxSeats: 1,
   },
@@ -25,7 +25,7 @@ export const SUBSCRIPTION_PLAN_DEFAULTS: Record<SubscriptionPlan, SubscriptionPl
     label: 'Small Practice',
     description: 'Up to 3 Doctors',
     doctorSeatLimit: 3,
-    monthlyFeeCents: 180_000,
+    monthlyFeeCents: 249_900,
     minSeats: 2,
     maxSeats: 3,
   },
@@ -34,7 +34,7 @@ export const SUBSCRIPTION_PLAN_DEFAULTS: Record<SubscriptionPlan, SubscriptionPl
     label: 'Clinic',
     description: 'Up to 5 Doctors',
     doctorSeatLimit: 5,
-    monthlyFeeCents: 350_000,
+    monthlyFeeCents: 449_900,
     minSeats: 4,
     maxSeats: 5,
   },
@@ -90,7 +90,7 @@ export function resolvePlanAgreement(input: {
   return {
     subscriptionPlan: input.plan,
     doctorSeatLimit: defaults.doctorSeatLimit,
-    monthlyFeeCents: input.monthlyFeeCents ?? defaults.monthlyFeeCents ?? 80_000,
+    monthlyFeeCents: input.monthlyFeeCents ?? defaults.monthlyFeeCents ?? 99_900,
   };
 }
 

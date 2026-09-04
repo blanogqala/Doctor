@@ -15,7 +15,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanInfo[] = [
     label: 'Solo',
     description: '1 Doctor',
     doctorSeatLimit: 1,
-    monthlyFeeCents: 80_000,
+    monthlyFeeCents: 99_900,
     minSeats: 1,
   },
   {
@@ -23,7 +23,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanInfo[] = [
     label: 'Small Practice',
     description: 'Up to 3 Doctors',
     doctorSeatLimit: 3,
-    monthlyFeeCents: 180_000,
+    monthlyFeeCents: 249_900,
     minSeats: 2,
   },
   {
@@ -31,7 +31,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanInfo[] = [
     label: 'Clinic',
     description: 'Up to 5 Doctors',
     doctorSeatLimit: 5,
-    monthlyFeeCents: 350_000,
+    monthlyFeeCents: 449_900,
     minSeats: 4,
   },
   {

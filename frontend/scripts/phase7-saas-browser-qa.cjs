@@ -102,9 +102,9 @@ async function checkPricing(page) {
   await page.goto(`${BASE}/pricing`, { waitUntil: 'networkidle2', timeout: 60000 });
   const text = await page.evaluate(() => document.body.innerText);
   const checks = {
-    solo: /Solo/i.test(text) && /R\s*800|R800/i.test(text),
-    small: /Small Practice/i.test(text) && /R\s*1[,.]?800|R1800/i.test(text),
-    clinic: /Clinic/i.test(text) && /R\s*3[,.]?500|R3500/i.test(text),
+    solo: /Solo/i.test(text) && /R\s*999|R999/i.test(text),
+    small: /Small Practice/i.test(text) && /R\s*2[,.]?499|R2499/i.test(text),
+    clinic: /Clinic/i.test(text) && /R\s*4[,.]?499|R4499/i.test(text),
     enterprise: /Enterprise/i.test(text) && /Custom/i.test(text),
     seats: /6\+/.test(text),
   };

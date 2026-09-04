@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SubscriptionPlan } from '@prisma/client';
 import {
+  SUBSCRIPTION_PLAN_DEFAULTS,
   assertPlanSeatLimit,
   planFromActiveDoctorCount,
   resolvePlanAgreement,
@@ -11,11 +12,35 @@ describe('subscriptionPlans', () => {
     expect(resolvePlanAgreement({ plan: SubscriptionPlan.SOLO })).toEqual({
       subscriptionPlan: SubscriptionPlan.SOLO,
       doctorSeatLimit: 1,
-      monthlyFeeCents: 80_000,
+      monthlyFeeCents: 99_900,
     });
+    expect(SUBSCRIPTION_PLAN_DEFAULTS.SOLO.monthlyFeeCents).toBe(99_900);
+    expect(SUBSCRIPTION_PLAN_DEFAULTS.SOLO.doctorSeatLimit).toBe(1);
   });
 
-  it('requires Enterprise fee and min seats', () => {
+  it('uses Small Practice defaults', () => {
+    expect(resolvePlanAgreement({ plan: SubscriptionPlan.SMALL_PRACTICE })).toEqual({
+      subscriptionPlan: SubscriptionPlan.SMALL_PRACTICE,
+      doctorSeatLimit: 3,
+      monthlyFeeCents: 249_900,
+    });
+    expect(SUBSCRIPTION_PLAN_DEFAULTS.SMALL_PRACTICE.monthlyFeeCents).toBe(249_900);
+    expect(SUBSCRIPTION_PLAN_DEFAULTS.SMALL_PRACTICE.doctorSeatLimit).toBe(3);
+  });
+
+  it('uses Clinic defaults', () => {
+    expect(resolvePlanAgreement({ plan: SubscriptionPlan.CLINIC })).toEqual({
+      subscriptionPlan: SubscriptionPlan.CLINIC,
+      doctorSeatLimit: 5,
+      monthlyFeeCents: 449_900,
+    });
+    expect(SUBSCRIPTION_PLAN_DEFAULTS.CLINIC.monthlyFeeCents).toBe(449_900);
+    expect(SUBSCRIPTION_PLAN_DEFAULTS.CLINIC.doctorSeatLimit).toBe(5);
+  });
+
+  it('keeps Enterprise custom with no catalogue fee', () => {
+    expect(SUBSCRIPTION_PLAN_DEFAULTS.ENTERPRISE.monthlyFeeCents).toBeNull();
+    expect(SUBSCRIPTION_PLAN_DEFAULTS.ENTERPRISE.minSeats).toBe(6);
     expect(() =>
       resolvePlanAgreement({ plan: SubscriptionPlan.ENTERPRISE, doctorSeatLimit: 10 })
     ).toThrow(/monthly fee/i);

@@ -34,10 +34,10 @@ describe('marketing pricing config', () => {
     expect(marketingSeatDescription('ENTERPRISE').toLowerCase()).not.toContain('unlimited');
   });
 
-  it('matches Phase 7 pricing', () => {
-    expect(formatPlanPrice('SOLO')).toEqual({ price: 'R800', period: '/month' });
-    expect(formatPlanPrice('SMALL_PRACTICE')).toEqual({ price: 'R1,800', period: '/month' });
-    expect(formatPlanPrice('CLINIC')).toEqual({ price: 'R3,500', period: '/month' });
+  it('matches current commercial pricing', () => {
+    expect(formatPlanPrice('SOLO')).toEqual({ price: 'R999', period: '/month' });
+    expect(formatPlanPrice('SMALL_PRACTICE')).toEqual({ price: 'R2,499', period: '/month' });
+    expect(formatPlanPrice('CLINIC')).toEqual({ price: 'R4,499', period: '/month' });
     expect(formatPlanPrice('ENTERPRISE')).toEqual({ price: 'Custom', period: '' });
   });
 
