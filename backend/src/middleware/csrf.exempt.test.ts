@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   csrfProtect,
   isPublicTokenCsrfExempt,
-  PUBLIC_TOKEN_CSRF_EXEMPT_POSTS,
+  isSessionBootstrapCsrfExempt,
+  SESSION_BOOTSTRAP_CSRF_EXEMPT_POSTS,
 } from './csrf';
 import type { Request, Response } from 'express';
 
@@ -21,7 +22,12 @@ describe('public token CSRF exemption', () => {
     expect(isPublicTokenCsrfExempt('POST', '/api/invitations/accept')).toBe(true);
     expect(isPublicTokenCsrfExempt('POST', '/api/activations/accept')).toBe(true);
     expect(isPublicTokenCsrfExempt('POST', '/api/auth/reset-password')).toBe(true);
-    expect(PUBLIC_TOKEN_CSRF_EXEMPT_POSTS).not.toContain('/api/auth/login');
+    expect(isPublicTokenCsrfExempt('POST', '/api/auth/login')).toBe(false);
+    expect(isSessionBootstrapCsrfExempt('POST', '/api/auth/login')).toBe(true);
+    expect(isSessionBootstrapCsrfExempt('POST', '/api/auth/register')).toBe(true);
+    expect(isSessionBootstrapCsrfExempt('POST', '/api/auth/forgot-password')).toBe(true);
+    expect(isSessionBootstrapCsrfExempt('POST', '/api/super-admin/login')).toBe(true);
+    expect(SESSION_BOOTSTRAP_CSRF_EXEMPT_POSTS).toContain('/api/auth/login');
     expect(isPublicTokenCsrfExempt('POST', '/api/patients')).toBe(false);
     expect(isPublicTokenCsrfExempt('GET', '/api/invitations/accept')).toBe(false);
   });
@@ -37,6 +43,44 @@ describe('public token CSRF exemption', () => {
         practiceSession: { id: 'sess-1', csrfTokenHash: 'deadbeef' },
         get: () => undefined,
         body: { token: 'raw-invite-token', password: 'SecurePass123!' },
+      } as unknown as Request,
+      res,
+      next
+    );
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it('allows POST /api/auth/login with a leftover session and no CSRF header', () => {
+    const next = vi.fn();
+    const res = mockRes();
+    csrfProtect(
+      {
+        method: 'POST',
+        path: '/api/auth/login',
+        originalUrl: '/api/auth/login',
+        practiceSession: { id: 'sess-1', csrfTokenHash: 'deadbeef' },
+        get: () => undefined,
+        body: { email: 'owner@example.com', password: 'secret' },
+      } as unknown as Request,
+      res,
+      next
+    );
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it('allows POST /api/auth/register with a leftover session and no CSRF header', () => {
+    const next = vi.fn();
+    const res = mockRes();
+    csrfProtect(
+      {
+        method: 'POST',
+        path: '/api/auth/register',
+        originalUrl: '/api/auth/register',
+        practiceSession: { id: 'sess-1', csrfTokenHash: 'deadbeef' },
+        get: () => undefined,
+        body: { email: 'new@example.com', password: 'SecurePass123!', full_name: 'New Patient' },
       } as unknown as Request,
       res,
       next
