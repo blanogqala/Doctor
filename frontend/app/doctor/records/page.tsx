@@ -26,6 +26,7 @@ import {
 import { RecordStatusBadge } from '@/components/records/record-status';
 import { CheckUpBookingDialog } from '@/components/appointments/check-up-booking-dialog';
 import { StatusBadge } from '@/components/ds/status-badge';
+import { ApiError } from '@/lib/api';
 import { medicalRecordsApi } from '@/lib/api/medical-records';
 import { patientsApi, doctorsApi } from '@/lib/api/patients';
 import { appointmentsApi } from '@/lib/api/appointments';
@@ -80,9 +81,13 @@ export default function DoctorRecordsPage() {
     ]);
 
     if (patientsResult.status === 'fulfilled') {
-      setPatients(patientsResult.value);
+      setPatients((current) => {
+        const next = patientsResult.value;
+        const extras = current.filter((p) => !next.some((n) => n.id === p.id));
+        return extras.length > 0 ? [...extras, ...next] : next;
+      });
     } else {
-      setPatients([]);
+      setPatients((current) => current);
     }
 
     if (doctorsResult.status === 'fulfilled') {
@@ -91,6 +96,47 @@ export default function DoctorRecordsPage() {
 
     setLoading(false);
   }, [user]);
+
+  const loadPatientChart = useCallback(async (patientId: string) => {
+    setRecordsError(null);
+    setApptsError(null);
+    const [apptsResult, recordsResult, detailResult] = await Promise.allSettled([
+      appointmentsApi.list({ patient_id: patientId }),
+      medicalRecordsApi.list({ patient_id: patientId }),
+      patientsApi.getById(patientId),
+    ]);
+
+    if (apptsResult.status === 'fulfilled') {
+      setAppointments(apptsResult.value);
+      setApptsError(null);
+    } else {
+      setAppointments([]);
+      const err = apptsResult.reason;
+      setApptsError(err instanceof Error ? err.message : 'Failed to load appointments');
+    }
+
+    if (recordsResult.status === 'fulfilled') {
+      setRecords(recordsResult.value);
+      setRecordsError(null);
+    } else {
+      setRecords([]);
+      const err = recordsResult.reason;
+      if (err instanceof ApiError && err.code === 'CLINICAL_CHART_ACCESS_DENIED') {
+        setRecordsError(
+          "You do not have access to this patient's clinical chart. Ask reception to assign this patient to you, or ask Super Admin to enable practice-wide chart access."
+        );
+      } else {
+        setRecordsError(err instanceof Error ? err.message : 'Failed to load patient chart');
+      }
+    }
+
+    if (detailResult.status === 'fulfilled') {
+      const detail = detailResult.value;
+      setPatients((current) =>
+        current.some((p) => p.id === detail.id) ? current : [detail, ...current]
+      );
+    }
+  }, []);
 
   useEffect(() => {
     load();
@@ -101,35 +147,18 @@ export default function DoctorRecordsPage() {
       setAppointments([]);
       setRecords([]);
       setRecordsError(null);
+      setApptsError(null);
       return;
     }
     let cancelled = false;
     (async () => {
-      try {
-        const [appts, patientRecords] = await Promise.all([
-          appointmentsApi.list({ patient_id: selectedPatientId }),
-          medicalRecordsApi.list({ patient_id: selectedPatientId }),
-        ]);
-        if (!cancelled) {
-          setAppointments(appts);
-          setApptsError(null);
-          setRecords(patientRecords);
-          setRecordsError(null);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setAppointments([]);
-          setRecords([]);
-          const message = err instanceof Error ? err.message : 'Failed to load patient chart';
-          setApptsError(message);
-          setRecordsError(message);
-        }
-      }
+      await loadPatientChart(selectedPatientId);
+      if (cancelled) return;
     })();
     return () => {
       cancelled = true;
     };
-  }, [selectedPatientId]);
+  }, [selectedPatientId, loadPatientChart]);
 
   const selectedPatient = useMemo(
     () => patients.find((p) => p.id === selectedPatientId) ?? null,
@@ -234,7 +263,7 @@ export default function DoctorRecordsPage() {
             <ErrorState
               title="Could not load clinical records"
               message={recordsError}
-              onRetry={load}
+              onRetry={() => selectedPatientId && loadPatientChart(selectedPatientId)}
             />
           )}
 
@@ -414,6 +443,7 @@ export default function DoctorRecordsPage() {
               onBooked={() => {
                 setBookParent(null);
                 load();
+                if (selectedPatientId) loadPatientChart(selectedPatientId);
               }}
             />
           )}
@@ -425,9 +455,16 @@ export default function DoctorRecordsPage() {
     return (
         <AppPage>
           <ErrorState
-            kind="not_found"
-            title="Patient not found"
-            message="This patient is not in your clinical chart directory, or the link is invalid."
+            kind={recordsError?.includes('clinical chart') ? 'forbidden' : 'not_found'}
+            title={
+              recordsError?.includes('clinical chart')
+                ? 'Clinical chart access denied'
+                : 'Patient not found'
+            }
+            message={
+              recordsError ??
+              'This patient is not in your clinical chart directory, or the link is invalid.'
+            }
             onRetry={() => router.push('/doctor/records')}
           />
         </AppPage>

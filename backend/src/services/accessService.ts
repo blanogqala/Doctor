@@ -196,6 +196,17 @@ export async function assertClinicalPatientAccess(
       return { patient, doctorId: doctor.id, accessBasis: 'PRACTICE_WIDE' };
     }
 
+    // Solo / single-doctor practices: reception often creates patients with no
+    // assignedDoctorId. The only active Doctor is the implicit assigned Doctor.
+    if (patient.assignedDoctorId == null) {
+      const activeDoctors = await prisma.doctor.count({
+        where: activeDoctorWhere(practiceId),
+      });
+      if (activeDoctors === 1) {
+        return { patient, doctorId: doctor.id, accessBasis: 'ASSIGNED_DOCTOR' };
+      }
+    }
+
     throw clinicalChartDenied();
   }
 

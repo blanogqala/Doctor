@@ -207,13 +207,27 @@ export async function listPracticePatients(params: {
       practice?.clinicalChartAccessMode === ClinicalChartAccessMode.ALL_ACTIVE_DOCTORS &&
       Boolean(doctor);
 
-    scope = sharedDirectory
-      ? { softDeletedAt: null, practiceId }
-      : {
-          softDeletedAt: null,
-          practiceId,
-          assignedDoctor: { profileId: userId, practiceId },
-        };
+    if (sharedDirectory) {
+      scope = { softDeletedAt: null, practiceId };
+    } else {
+      const assignedToMe: Prisma.PatientWhereInput = {
+        assignedDoctor: { profileId: userId, practiceId },
+      };
+      let includeUnassigned = false;
+      if (doctor) {
+        const activeDoctors = await prisma.doctor.count({
+          where: activeDoctorWhere(practiceId),
+        });
+        includeUnassigned = activeDoctors === 1;
+      }
+      scope = {
+        softDeletedAt: null,
+        practiceId,
+        OR: includeUnassigned
+          ? [assignedToMe, { assignedDoctorId: null }]
+          : [assignedToMe],
+      };
+    }
   } else {
     scope = { profileId: userId, softDeletedAt: null, practiceId };
   }

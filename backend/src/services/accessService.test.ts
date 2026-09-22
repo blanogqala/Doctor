@@ -8,6 +8,7 @@ vi.mock('../config/database', () => ({
     },
     doctor: {
       findFirst: vi.fn(),
+      count: vi.fn(),
     },
     appointment: {
       findFirst: vi.fn(),
@@ -53,7 +54,7 @@ const RECORD_B_ID = '88888888-8888-8888-8888-888888888888';
 
 const mockedPrisma = prisma as unknown as {
   patient: { findFirst: ReturnType<typeof vi.fn> };
-  doctor: { findFirst: ReturnType<typeof vi.fn> };
+  doctor: { findFirst: ReturnType<typeof vi.fn>; count: ReturnType<typeof vi.fn> };
   appointment: { findFirst: ReturnType<typeof vi.fn> };
   practice: { findFirst: ReturnType<typeof vi.fn> };
   message: { findFirst: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
@@ -227,6 +228,25 @@ describe('clinical chart access policy', () => {
       statusCode: 403,
       code: 'CLINICAL_CHART_ACCESS_DENIED',
       message: "You do not have access to this patient's clinical chart.",
+    });
+  });
+
+  it('2b. sole active Doctor can open an unassigned patient chart', async () => {
+    mockedPrisma.patient.findFirst.mockResolvedValueOnce({
+      ...assignedPatient,
+      assignedDoctorId: null,
+    });
+    mockedPrisma.doctor.findFirst.mockResolvedValueOnce(activeDoctor);
+    mockedPrisma.practice.findFirst.mockResolvedValueOnce({
+      clinicalChartAccessMode: ClinicalChartAccessMode.ASSIGNED_DOCTOR_ONLY,
+    });
+    mockedPrisma.doctor.count.mockResolvedValue(1);
+
+    await expect(
+      assertClinicalPatientAccess(DOCTOR_A_PROFILE, UserRole.DOCTOR, PATIENT_A_ID, PRACTICE_A)
+    ).resolves.toMatchObject({
+      doctorId: DOCTOR_A_ID,
+      accessBasis: 'ASSIGNED_DOCTOR',
     });
   });
 

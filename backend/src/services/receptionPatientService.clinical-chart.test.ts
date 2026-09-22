@@ -4,7 +4,7 @@ import { ClinicalChartAccessMode, UserRole } from '@prisma/client';
 vi.mock('../config/database', () => ({
   prisma: {
     practice: { findFirst: vi.fn() },
-    doctor: { findFirst: vi.fn() },
+    doctor: { findFirst: vi.fn(), count: vi.fn() },
     patient: { findMany: vi.fn(), create: vi.fn() },
     appointment: { create: vi.fn(), findFirst: vi.fn() },
     $transaction: vi.fn(),
@@ -23,7 +23,7 @@ import {
 
 const mockedPrisma = prisma as unknown as {
   practice: { findFirst: ReturnType<typeof vi.fn> };
-  doctor: { findFirst: ReturnType<typeof vi.fn> };
+  doctor: { findFirst: ReturnType<typeof vi.fn>; count: ReturnType<typeof vi.fn> };
   patient: { findMany: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
   appointment: { create: ReturnType<typeof vi.fn>; findFirst: ReturnType<typeof vi.fn> };
   $transaction: ReturnType<typeof vi.fn>;
@@ -40,6 +40,7 @@ describe('listPracticePatients clinical chart directory', () => {
       clinicalChartAccessMode: ClinicalChartAccessMode.ASSIGNED_DOCTOR_ONLY,
     });
     mockedPrisma.doctor.findFirst.mockResolvedValue({ id: 'doc-1' });
+    mockedPrisma.doctor.count.mockResolvedValue(2);
 
     await listPracticePatients({
       practiceId: 'prac-1',
@@ -47,13 +48,31 @@ describe('listPracticePatients clinical chart directory', () => {
       userId: 'profile-1',
     });
 
-    expect(mockedPrisma.patient.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          assignedDoctor: { profileId: 'profile-1', practiceId: 'prac-1' },
-        }),
-      })
-    );
+    const where = mockedPrisma.patient.findMany.mock.calls[0][0].where;
+    expect(where.OR).toEqual([
+      { assignedDoctor: { profileId: 'profile-1', practiceId: 'prac-1' } },
+    ]);
+    expect(where.assignedDoctor).toBeUndefined();
+  });
+
+  it('ASSIGNED mode includes unassigned patients for the sole active Doctor', async () => {
+    mockedPrisma.practice.findFirst.mockResolvedValue({
+      clinicalChartAccessMode: ClinicalChartAccessMode.ASSIGNED_DOCTOR_ONLY,
+    });
+    mockedPrisma.doctor.findFirst.mockResolvedValue({ id: 'doc-1' });
+    mockedPrisma.doctor.count.mockResolvedValue(1);
+
+    await listPracticePatients({
+      practiceId: 'prac-1',
+      role: UserRole.DOCTOR,
+      userId: 'profile-1',
+    });
+
+    const where = mockedPrisma.patient.findMany.mock.calls[0][0].where;
+    expect(where.OR).toEqual([
+      { assignedDoctor: { profileId: 'profile-1', practiceId: 'prac-1' } },
+      { assignedDoctorId: null },
+    ]);
   });
 
   it('ALL mode returns Practice patients for an active Doctor', async () => {
@@ -88,7 +107,7 @@ describe('listPracticePatients clinical chart directory', () => {
     expect(mockedPrisma.patient.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          assignedDoctor: { profileId: 'profile-1', practiceId: 'prac-1' },
+          OR: [{ assignedDoctor: { profileId: 'profile-1', practiceId: 'prac-1' } }],
         }),
       })
     );
