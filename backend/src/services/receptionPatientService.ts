@@ -43,7 +43,7 @@ export async function createReceptionPatient(
   const extra = data.patient ?? {};
   const email = normalizeOptional(data.email ?? extra.email);
   const phone = normalizeOptional(data.phone ?? extra.phone);
-  const assignedDoctorId = (extra.assigned_doctor_id as string) ?? null;
+  let assignedDoctorId = (extra.assigned_doctor_id as string) ?? null;
 
   if (email) {
     await assertPatientEmailAvailable(prisma, { practiceId, email });
@@ -52,6 +52,15 @@ export async function createReceptionPatient(
     await assertActiveDoctorInPractice(prisma, assignedDoctorId, practiceId, {
       inactiveMessage: 'This Doctor is inactive and cannot receive new patient assignments.',
     });
+  } else {
+    const soleDoctors = await prisma.doctor.findMany({
+      where: activeDoctorWhere(practiceId),
+      select: { id: true },
+      take: 2,
+    });
+    if (soleDoctors.length === 1) {
+      assignedDoctorId = soleDoctors[0].id;
+    }
   }
 
   const created = await prisma.patient.create({
@@ -209,23 +218,35 @@ export async function listPracticePatients(params: {
 
     if (sharedDirectory) {
       scope = { softDeletedAt: null, practiceId };
-    } else {
-      const assignedToMe: Prisma.PatientWhereInput = {
-        assignedDoctor: { profileId: userId, practiceId },
-      };
-      let includeUnassigned = false;
-      if (doctor) {
-        const activeDoctors = await prisma.doctor.count({
-          where: activeDoctorWhere(practiceId),
-        });
-        includeUnassigned = activeDoctors === 1;
+    } else if (doctor) {
+      const activeDoctors = await prisma.doctor.count({
+        where: activeDoctorWhere(practiceId),
+      });
+      if (activeDoctors === 1) {
+        scope = { softDeletedAt: null, practiceId };
+      } else {
+        scope = {
+          softDeletedAt: null,
+          practiceId,
+          OR: [
+            { assignedDoctor: { profileId: userId, practiceId } },
+            {
+              appointments: {
+                some: {
+                  doctorId: doctor.id,
+                  practiceId,
+                  softDeletedAt: null,
+                },
+              },
+            },
+          ],
+        };
       }
+    } else {
       scope = {
         softDeletedAt: null,
         practiceId,
-        OR: includeUnassigned
-          ? [assignedToMe, { assignedDoctorId: null }]
-          : [assignedToMe],
+        assignedDoctor: { profileId: userId, practiceId },
       };
     }
   } else {

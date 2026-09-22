@@ -81,13 +81,32 @@ export default function DoctorRecordsPage() {
     ]);
 
     if (patientsResult.status === 'fulfilled') {
+      let next = patientsResult.value;
+      if (next.length === 0 && user.doctor?.id) {
+        try {
+          const appts = await appointmentsApi.list({ doctor_id: user.doctor.id });
+          const seen = new Set<string>();
+          next = [];
+          for (const appt of appts) {
+            const patient = appt.patient;
+            if (!patient?.id || seen.has(patient.id)) continue;
+            seen.add(patient.id);
+            next.push(patient);
+          }
+        } catch {
+          // Directory stays empty when appointments cannot be used as a fallback.
+        }
+      }
       setPatients((current) => {
-        const next = patientsResult.value;
         const extras = current.filter((p) => !next.some((n) => n.id === p.id));
         return extras.length > 0 ? [...extras, ...next] : next;
       });
     } else {
-      setPatients((current) => current);
+      setPatients([]);
+      const err = patientsResult.reason;
+      setRecordsError(
+        err instanceof Error ? err.message : 'Failed to load patient folders'
+      );
     }
 
     if (doctorsResult.status === 'fulfilled') {

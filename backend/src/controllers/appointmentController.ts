@@ -181,20 +181,28 @@ export const appointmentController = {
     });
     if (!patient) throw new AppError(400, 'Invalid patient for this practice');
 
-    const appointment = await prisma.appointment.create({
-      data: {
-        practiceId,
-        patientId,
-        doctorId,
-        createdBy: req.user!.userId,
-        scheduledAt,
-        durationMinutes,
-        type: body.type as never,
-        status: (body.status as never) ?? 'PENDING',
-        reason: (body.reason as string) ?? null,
-        notes,
-      },
-      include: appointmentInclude,
+    const appointment = await prisma.$transaction(async (tx) => {
+      if (!patient.assignedDoctorId) {
+        await tx.patient.update({
+          where: { id: patient.id },
+          data: { assignedDoctorId: doctorId },
+        });
+      }
+      return tx.appointment.create({
+        data: {
+          practiceId,
+          patientId,
+          doctorId,
+          createdBy: req.user!.userId,
+          scheduledAt,
+          durationMinutes,
+          type: body.type as never,
+          status: (body.status as never) ?? 'PENDING',
+          reason: (body.reason as string) ?? null,
+          notes,
+        },
+        include: appointmentInclude,
+      });
     });
 
     try {

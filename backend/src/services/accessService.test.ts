@@ -221,6 +221,8 @@ describe('clinical chart access policy', () => {
     mockedPrisma.practice.findFirst.mockResolvedValueOnce({
       clinicalChartAccessMode: ClinicalChartAccessMode.ASSIGNED_DOCTOR_ONLY,
     });
+    mockedPrisma.doctor.count.mockResolvedValue(2);
+    mockedPrisma.appointment.findFirst.mockResolvedValueOnce(null);
 
     await expect(
       assertClinicalPatientAccess(DOCTOR_A_PROFILE, UserRole.DOCTOR, PATIENT_A_ID, PRACTICE_A)
@@ -231,16 +233,33 @@ describe('clinical chart access policy', () => {
     });
   });
 
-  it('2b. sole active Doctor can open an unassigned patient chart', async () => {
+  it('2b. sole active Doctor can open any Practice patient chart', async () => {
     mockedPrisma.patient.findFirst.mockResolvedValueOnce({
       ...assignedPatient,
-      assignedDoctorId: null,
+      assignedDoctorId: 'other-doctor-id',
     });
     mockedPrisma.doctor.findFirst.mockResolvedValueOnce(activeDoctor);
     mockedPrisma.practice.findFirst.mockResolvedValueOnce({
       clinicalChartAccessMode: ClinicalChartAccessMode.ASSIGNED_DOCTOR_ONLY,
     });
     mockedPrisma.doctor.count.mockResolvedValue(1);
+
+    await expect(
+      assertClinicalPatientAccess(DOCTOR_A_PROFILE, UserRole.DOCTOR, PATIENT_A_ID, PRACTICE_A)
+    ).resolves.toMatchObject({
+      doctorId: DOCTOR_A_ID,
+      accessBasis: 'ASSIGNED_DOCTOR',
+    });
+  });
+
+  it('2c. treating Doctor with an appointment can open the chart in ASSIGNED mode', async () => {
+    mockedPrisma.patient.findFirst.mockResolvedValueOnce(unassignedPatient);
+    mockedPrisma.doctor.findFirst.mockResolvedValueOnce(activeDoctor);
+    mockedPrisma.practice.findFirst.mockResolvedValueOnce({
+      clinicalChartAccessMode: ClinicalChartAccessMode.ASSIGNED_DOCTOR_ONLY,
+    });
+    mockedPrisma.doctor.count.mockResolvedValue(2);
+    mockedPrisma.appointment.findFirst.mockResolvedValueOnce({ id: APPT_B_ID });
 
     await expect(
       assertClinicalPatientAccess(DOCTOR_A_PROFILE, UserRole.DOCTOR, PATIENT_A_ID, PRACTICE_A)

@@ -4,7 +4,7 @@ import { ClinicalChartAccessMode, UserRole } from '@prisma/client';
 vi.mock('../config/database', () => ({
   prisma: {
     practice: { findFirst: vi.fn() },
-    doctor: { findFirst: vi.fn(), count: vi.fn() },
+    doctor: { findFirst: vi.fn(), count: vi.fn(), findMany: vi.fn() },
     patient: { findMany: vi.fn(), create: vi.fn() },
     appointment: { create: vi.fn(), findFirst: vi.fn() },
     $transaction: vi.fn(),
@@ -51,11 +51,15 @@ describe('listPracticePatients clinical chart directory', () => {
     const where = mockedPrisma.patient.findMany.mock.calls[0][0].where;
     expect(where.OR).toEqual([
       { assignedDoctor: { profileId: 'profile-1', practiceId: 'prac-1' } },
+      {
+        appointments: {
+          some: { doctorId: 'doc-1', practiceId: 'prac-1', softDeletedAt: null },
+        },
+      },
     ]);
-    expect(where.assignedDoctor).toBeUndefined();
   });
 
-  it('ASSIGNED mode includes unassigned patients for the sole active Doctor', async () => {
+  it('ASSIGNED mode lists every patient for the sole active Doctor', async () => {
     mockedPrisma.practice.findFirst.mockResolvedValue({
       clinicalChartAccessMode: ClinicalChartAccessMode.ASSIGNED_DOCTOR_ONLY,
     });
@@ -68,11 +72,11 @@ describe('listPracticePatients clinical chart directory', () => {
       userId: 'profile-1',
     });
 
-    const where = mockedPrisma.patient.findMany.mock.calls[0][0].where;
-    expect(where.OR).toEqual([
-      { assignedDoctor: { profileId: 'profile-1', practiceId: 'prac-1' } },
-      { assignedDoctorId: null },
-    ]);
+    expect(mockedPrisma.patient.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { softDeletedAt: null, practiceId: 'prac-1' },
+      })
+    );
   });
 
   it('ALL mode returns Practice patients for an active Doctor', async () => {
@@ -107,7 +111,7 @@ describe('listPracticePatients clinical chart directory', () => {
     expect(mockedPrisma.patient.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          OR: [{ assignedDoctor: { profileId: 'profile-1', practiceId: 'prac-1' } }],
+          assignedDoctor: { profileId: 'profile-1', practiceId: 'prac-1' },
         }),
       })
     );
